@@ -10,12 +10,13 @@ import ProgressScreen from "./components/ProgressScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
-import GeminiQuestGenerator from "./components/GeminiQuestGenerator"; // Mantido, mas a funcionalidade foi removida
+import GeminiQuestGenerator from "./components/GeminiQuestGenerator"; 
 import { Joystick } from "lucide-react";
 import imageCompression from "browser-image-compression";
+// Removidos imports do Firebase Storage
 
 // Imports do Firebase
-import { auth, db, googleProvider } from "./firebase";
+import { auth, db, googleProvider } from "./firebase"; // Storage removido
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
@@ -60,7 +61,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isAddGameModalOpen, setIsAddGameModalOpen] = useState(false); 
-  // const [isGeminiModalOpen, setIsGeminiModalOpen] = useState(false); // REMOVIDO
+  const [gameToEdit, setGameToEdit] = useState(null); 
   
   // Stats e Histórico
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
@@ -81,7 +82,7 @@ function App() {
     setTimeout(() => setShowConfetti(false), 3000);
   };
 
-  // Funções de Autenticação
+  // Funções de Autenticação (Mantidas)
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -131,7 +132,7 @@ function App() {
     }
   };
 
-  // Efeito de Dark Mode
+  // Efeito de Dark Mode (Mantido)
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -140,7 +141,7 @@ function App() {
     }
   }, [darkMode]);
 
-  // Função para calcular estatísticas e checar conquistas
+  // Função para calcular estatísticas e checar conquistas (Mantida)
   const calculateStats = useCallback((data) => {
     const finishedCount = data.filter(g => g.status === 'zerados').length;
     setTotalFinishedGames(finishedCount);
@@ -166,7 +167,7 @@ function App() {
     });
   }, []);
 
-  // Listener de autenticação
+  // Listener de autenticação (Mantido)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -211,7 +212,7 @@ function App() {
     return () => unsubscribe();
   }, [calculateStats]);
 
-  // Salvar dados no Firestore
+  // Salvar dados no Firestore (Mantido)
   const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
     if (!user || loading) return;
     const userData = {
@@ -227,7 +228,7 @@ function App() {
     }
   }, [user, loading]);
   
-  // Efeito para salvar dados no debounce
+  // Efeito para salvar dados no debounce (Mantido)
   useEffect(() => {
     if (loading || !user) return;
     const handler = setTimeout(() => {
@@ -236,19 +237,19 @@ function App() {
     return () => clearTimeout(handler);
   }, [gamesData, achievements, gameHistory, saveDataToFirestore, loading, user]);
 
-  // Função para adicionar novo jogo
+
+  // Função para adicionar novo jogo (Ajustada para usar onSaveGame)
   const handleAddNewGame = (newGame) => {
     const gameWithId = { ...newGame, id: Date.now().toString() };
     const newGamesData = [...gamesData, gameWithId];
     
     setGamesData(newGamesData);
     
-    // Lógica de Histórico para jogos já zerados
     if (newGame.status === 'zerados') {
         setGameHistory(prev => [...prev, { 
             game: newGame.nome, 
             status: 'zerado', 
-            date: new Date().toISOString().split('T')[0] // Data atual como data de conclusão
+            date: new Date().toISOString().split('T')[0] 
         }]);
         triggerConfetti();
         toast.success(`🎉 ${newGame.nome} adicionado como zerado!`);
@@ -259,7 +260,65 @@ function App() {
     setIsAddGameModalOpen(false);
   };
   
-  // Função para atualizar o status de um jogo
+  // FUNÇÃO: Editar Jogo (Mantida)
+  const handleEditGame = (updatedGame) => {
+    const newGamesData = gamesData.map(game => 
+      game.id === updatedGame.id ? updatedGame : game
+    );
+    setGamesData(newGamesData);
+    setSelectedGame(updatedGame); 
+    setGameToEdit(null); 
+    toast.success(`"${updatedGame.nome}" atualizado com sucesso!`);
+    
+    const oldGame = gamesData.find(g => g.id === updatedGame.id);
+    if (oldGame && oldGame.status !== 'zerados' && updatedGame.status === 'zerados') {
+        setGameHistory(prev => [...prev, { 
+            game: updatedGame.nome, 
+            status: 'zerado', 
+            date: new Date().toISOString().split('T')[0] 
+        }]);
+        triggerConfetti();
+    } else if (oldGame && oldGame.status === 'zerados' && updatedGame.status !== 'zerados') {
+        setGameHistory(prev => prev.filter(item => item.game !== updatedGame.nome || item.status !== 'zerado'));
+    }
+  };
+  
+  // FUNÇÃO: Remover Jogo (Ajustada para a lógica Base64, removendo o Storage)
+  const handleDeleteGame = async (gameId) => {
+    const gameToDelete = gamesData.find(g => g.id === gameId);
+    if (!gameToDelete) return;
+    
+    // A Base64 é removida junto com o jogo, pois está inline no Firestore.
+    
+    const newGamesData = gamesData.filter(game => game.id !== gameId);
+    setGamesData(newGamesData);
+    calculateStats(newGamesData); 
+    
+    // 3. Remove do histórico
+    setGameHistory(prev => prev.filter(item => item.game !== gameToDelete.nome || item.status !== 'zerado'));
+
+    toast.success(`"${gameToDelete.nome}" removido!`);
+  };
+
+  // Função para adicionar ou editar, dependendo do contexto
+  const handleSaveGame = (gameData) => {
+    if (gameToEdit) {
+      handleEditGame(gameData);
+    } else {
+      handleAddNewGame(gameData);
+    }
+    // Fecha o modal de adição
+    setIsAddGameModalOpen(false); 
+    setGameToEdit(null); // Fecha o modal de edição
+  }
+  
+  // Função para abrir o modal de edição
+  const openEditModal = () => {
+    setGameToEdit(selectedGame); // Define o jogo a ser editado
+    setIsAddGameModalOpen(true); // Abre o modal
+  };
+
+  // Função para atualizar o status de um jogo (Mantida)
   const handleUpdateGameStatus = (gameId, newStatus) => {
     const gameToUpdate = gamesData.find(g => g.id === gameId);
     if (!gameToUpdate) return;
@@ -283,19 +342,18 @@ function App() {
       triggerConfetti();
       toast.success(`🎉 ${gameToUpdate.nome} zerado!`);
     } else if (newStatus !== 'zerados' && oldStatus === 'zerados') {
-        // Remove do histórico ao desmarcar como zerado
         setGameHistory(prev => prev.filter(item => item.game !== gameToUpdate.nome || item.status !== 'zerado'));
         toast(`Jogo desmarcado como zerado. Movido para ${categoryNames[newStatus].split('(')[1].replace(')', '')}`);
     }
   };
   
-  // Função para calcular o progresso/contagem de uma categoria
+  // Função para calcular o progresso/contagem de uma categoria (Mantida)
   const getCategoryProgress = useCallback((category) => {
     const categoryGames = gamesData.filter(g => g.status === category);
     return categoryGames.length;
   }, [gamesData]);
 
-  // Função para agrupar os jogos por status
+  // Função para agrupar os jogos por status (Mantida)
   const groupedGames = gamesData.reduce((acc, game) => {
     const status = game.status;
     if (!acc[status]) acc[status] = [];
@@ -303,11 +361,11 @@ function App() {
     return acc;
   }, { jogando: [], a_zerar: [], zerados: [], desejados: [] });
 
-  // Função de placeholder para remover o botão GeminiQuest
+  // Função de placeholder para remover o botão GeminiQuest (Mantida)
   const openGeminiQuestPlaceholder = () => toast('A funcionalidade Gemini Quest foi desativada.', { icon: '🤖' });
 
 
-  // Renderização de Conteúdo
+  // Renderização de Conteúdo (Mantida com ajustes de props)
   const renderContent = () => {
     // Loading
     if (loading) {
@@ -352,15 +410,7 @@ function App() {
       );
     }
     
-    // if (isGeminiModalOpen) { // REMOVIDO: Modal Gemini
-    //   return (
-    //     <GeminiQuestGenerator
-    //       game={selectedGame}
-    //       onClose={() => setIsGeminiModalOpen(false)}
-    //     />
-    //   );
-    // }
-
+    // Telas de Navegação
     if (activeTab === "progress") {
       return (
         <ProgressScreen
@@ -393,7 +443,7 @@ function App() {
       );
     }
 
-    // Tab de Categorias
+    // Fluxo de Jogos
     if (!selectedCategory) {
       return (
         <CategorySelector 
@@ -425,8 +475,9 @@ function App() {
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
         handleUpdateGameStatus={handleUpdateGameStatus}
-        // openGeminiQuest={() => setIsGeminiModalOpen(true)} // REMOVIDO
-        openGeminiQuest={openGeminiQuestPlaceholder} // Placeholder
+        handleDeleteGame={handleDeleteGame} 
+        openEditModal={openEditModal} 
+        openGeminiQuest={openGeminiQuestPlaceholder} 
       />
     );
   };
@@ -437,15 +488,19 @@ function App() {
       {showConfetti && <Confetti />}
       {renderContent()}
 
-      {/* Modal de Adicionar Jogo */}
+      {/* Modal de Adicionar/Editar Jogo */}
       {isAddGameModalOpen && (
         <AddGameModal
-          onClose={() => setIsAddGameModalOpen(false)}
-          onAddGame={handleAddNewGame}
+          onClose={() => {
+            setIsAddGameModalOpen(false);
+            setGameToEdit(null); // Limpa o jogo para edição ao fechar
+          }}
+          onSaveGame={handleSaveGame} 
+          gameToEdit={gameToEdit} 
         />
       )}
 
-      {user && !selectedCategory && !selectedGame && ( // REMOVIDA: !isGeminiModalOpen
+      {user && !selectedCategory && !selectedGame && (
         <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
     </div>

@@ -1,12 +1,23 @@
+// src/components/GameDetail.jsx
 import React from 'react';
-import { ChevronLeft, CheckCircle, TrendingUp, Zap } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Zap, Gamepad, Edit, Trash } from 'lucide-react';
 import { categoryNames, categoryColors, categoryIcons } from '../data/categories';
+
+// Função auxiliar para limpar o nome da categoria
+const getCleanCategoryName = (name) => {
+    // Remove emojis e texto entre parênteses
+    return name
+        .replace(/[^a-zA-Z\s]/g, '') 
+        .replace(/\(.*\)/, '')       
+        .trim();                     
+};
 
 export default function GameDetail({
   selectedGame,
   setSelectedGame,
   handleUpdateGameStatus,
-  // openGeminiQuest, // REMOVIDO
+  handleDeleteGame, 
+  openEditModal,    
 }) {
   
   const currentStatus = selectedGame.status;
@@ -23,19 +34,25 @@ export default function GameDetail({
     : 'bg-green-500 hover:bg-green-600';
   
   const handleFinishToggle = () => {
-    // Se está zerado, volta para o status original (se houver), senão, marca como zerado.
     const newStatus = isFinished ? selectedGame.originalStatus || 'a_zerar' : 'zerados'; 
     handleUpdateGameStatus(selectedGame.id, newStatus);
-    setSelectedGame({ ...selectedGame, status: newStatus }); // Atualiza localmente
+    setSelectedGame({ ...selectedGame, status: newStatus }); 
   };
   
   const handleMoveToStatus = (newStatus) => {
     handleUpdateGameStatus(selectedGame.id, newStatus);
-    // Para navegação suave, retorne à lista de jogos
     setSelectedGame(null); 
   };
   
   const CurrentIcon = categoryIcons[currentStatus];
+
+  // Handler para remoção com confirmação
+  const handleRemove = () => {
+      if (window.confirm(`Tem certeza que deseja remover o jogo "${selectedGame.nome}" do seu backlog?`)) {
+          handleDeleteGame(selectedGame.id);
+          setSelectedGame(null); // Volta para a lista após remoção
+      }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-20">
@@ -49,19 +66,36 @@ export default function GameDetail({
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h2 className="text-lg font-bold text-center flex-1">{selectedGame.nome}</h2>
-          <div className="w-9" />
+          
+          {/* Botões de Ação de Detalhe */}
+          <div className='flex gap-2'>
+            <button
+                onClick={openEditModal}
+                className="p-2 bg-gray-800/50 rounded-xl border border-gray-700 hover:border-blue-500 text-blue-400 transition-all"
+            >
+                <Edit className="w-5 h-5" />
+            </button>
+            <button
+                onClick={handleRemove}
+                className="p-2 bg-gray-800/50 rounded-xl border border-gray-700 hover:border-red-500 text-red-400 transition-all"
+            >
+                <Trash className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Game Image Card (NOVO) */}
-        {selectedGame.imageUrl && (
-            <div className="mb-6 rounded-2xl overflow-hidden shadow-xl border border-gray-700">
+        {/* Game Image Card (USANDO BASE64) */}
+        <div className="mb-6 rounded-2xl overflow-hidden shadow-xl border border-gray-700 bg-gray-800 h-40 flex items-center justify-center">
+            {selectedGame.imageBase64 ? ( 
                 <img
-                    src={selectedGame.imageUrl}
+                    src={selectedGame.imageBase64} // Usando Base64
                     alt={`Capa do jogo ${selectedGame.nome}`}
-                    className="w-full h-40 object-cover"
+                    className="w-full h-full object-cover"
                 />
-            </div>
-        )}
+            ) : (
+                 <Gamepad className="w-16 h-16 text-gray-600" />
+            )}
+        </div>
 
         {/* Game Info Card */}
         <div className={`bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700 mb-6`}>
@@ -90,10 +124,14 @@ export default function GameDetail({
             </div>
           </div>
           
-          <div className='p-3 bg-gray-700/50 rounded-xl'>
-            <p className='text-sm text-gray-400 font-semibold mb-1'>Notas:</p>
-            <p className='text-white text-base'>{selectedGame.notes || 'Nenhuma nota adicionada.'}</p>
-          </div>
+          {/* Notas - Exibição Condicional: só exibe se houver conteúdo preenchido */}
+          {selectedGame.notes && selectedGame.notes.trim() && (
+            <div className='p-3 bg-gray-700/50 rounded-xl'>
+              <p className='text-sm text-gray-400 font-semibold mb-1'>Notas:</p>
+              <p className='text-white text-base'>{selectedGame.notes}</p>
+            </div>
+          )}
+
         </div>
         
         {/* Ação Principal: Zerar/Deszerar */}
@@ -105,17 +143,6 @@ export default function GameDetail({
           {isFinished ? '✓ Jogo Zerado (Desmarcar)' : 'Marcar como Zerado'}
         </button>
         
-        {/* Botão Gemini Removido - Opcional: Adicionar um botão de placeholder se desejar */}
-        {/* <button
-          onClick={openGeminiQuest} // REMOVIDO: openGeminiQuest
-          className="w-full flex items-center justify-center gap-3 p-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-2xl font-semibold text-yellow-400 transition-all duration-300 active:scale-[0.98] mb-6"
-        >
-          <Zap className="w-5 h-5" />
-          Gerar Missão Surpresa Gemini
-        </button> 
-        */}
-
-
         {/* Mover Status (para outras categorias) */}
         <div className='bg-gray-800/50 backdrop-blur rounded-2xl p-5 border border-gray-700 mb-6'>
           <h3 className='font-semibold text-lg mb-4 text-center'>Mover Jogo</h3>
@@ -126,7 +153,7 @@ export default function GameDetail({
                 onClick={() => handleMoveToStatus(opt.id)}
                 className={`py-2 px-4 rounded-xl font-semibold text-sm transition-all duration-300 active:scale-[0.98] flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white`}
               >
-                {opt.label.split(' ')[2].replace('(','').replace(')','')} 
+                {getCleanCategoryName(opt.label)}
               </button>
             ))}
           </div>

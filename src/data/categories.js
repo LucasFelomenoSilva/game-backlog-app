@@ -29,7 +29,7 @@ export const initialGameData = {
   timeToBeat: 20,
   status: "a_zerar",
   notes: "",
-  imageUrl: "" // Adicionado para imagem
+  imageBase64: "" // Alterado de imageUrl para imageBase64
 };
 
 export const platformOptions = ["PC", "PS5", "Switch", "Xbox Series", "PS4", "Xbox One", "Mobile", "Outra"];
