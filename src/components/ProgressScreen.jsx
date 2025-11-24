@@ -1,5 +1,9 @@
+// src/components/ProgressScreen.jsx
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, Clock, History } from "lucide-react";
+import { TrendingUp, CheckCircle, Clock, History, List, Heart } from "lucide-react";
+// Importação direta dos componentes do Recharts:
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'; 
+
 
 export default function ProgressScreen({
   gamesData,
@@ -18,13 +22,14 @@ export default function ProgressScreen({
   // Calcular o tempo total
   const totalHours = gamesData.reduce((sum, game) => sum + (game.timeToBeat || 0), 0);
   
-  // Dados para o gráfico (Fallback visual)
+  // Dados para o gráfico (Apenas 3 categorias: Zerados, Jogando, Desejos)
   const chartData = [
-    { name: 'Zerados', count: statusCounts.zerados || 0, fill: '#10b981' },
-    { name: 'Jogando', count: statusCounts.jogando || 0, fill: '#0ea5e9' },
-    { name: 'A Zerar', count: statusCounts.a_zerar || 0, fill: '#a855f7' },
-    { name: 'Desejos', count: statusCounts.desejados || 0, fill: '#f59e0b' },
-  ];
+    { name: 'Zerados', count: statusCounts.zerados || 0, fill: '#10b981' }, 
+    { name: 'Jogando', count: statusCounts.jogando || 0, fill: '#0ea5e9' }, // Status principal
+    { name: 'Desejos', count: statusCounts.desejados || 0, fill: '#f59e0b' }, 
+  ].filter(item => item.count > 0);
+  
+  const COLORS = ['#10b981', '#0ea5e9', '#f59e0b']; // Cores para os 3 status restantes
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pb-24 pt-6">
@@ -46,9 +51,9 @@ export default function ProgressScreen({
             <div className="text-xs text-gray-400">títulos</div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur rounded-2xl p-4 border border-purple-500/30">
+          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur rounded-2xl p-4 border border-blue-500/30">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-5 h-5 text-purple-400" />
+              <Clock className="w-5 h-5 text-blue-400" />
               <span className="text-sm text-gray-300">Tempo Total</span>
             </div>
             <div className="text-3xl font-bold">{totalHours}h</div>
@@ -56,26 +61,43 @@ export default function ProgressScreen({
           </div>
         </div>
 
-        {/* Gráfico de Status (Fallback visual - sem Recharts para compatibilidade) */}
+        {/* Gráfico de Status (Recharts - AGORA É O GRÁFICO REAL) */}
         {gamesData.length > 0 && (
           <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-4 border border-gray-700 mb-6">
             <h3 className="font-semibold mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-cyan-400" />
               Distribuição por Status
             </h3>
-            <div style={{ width: '100%', height: 200 }}>
-                <p className="text-center text-sm text-gray-500 pt-10">
-                    Visualização gráfica (Recharts) não renderizada por segurança de ambiente.
-                </p>
-                <div className='flex justify-around mt-4'>
-                    {chartData.map(item => (
-                        <div key={item.name} className='text-center'>
-                            <div className={`w-8 h-8 rounded-full mx-auto mb-1`} style={{backgroundColor: item.fill}}/>
-                            <span className='text-xs text-gray-400'>{item.name}</span>
-                            <span className='block font-bold'>{item.count}</span>
-                        </div>
+            
+            <div style={{ width: '100%', height: 250, position: 'relative' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="count"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    labelLine={false}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
-                </div>
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Legend 
+                    layout="horizontal" 
+                    verticalAlign="bottom" 
+                    align="center"
+                    wrapperStyle={{ paddingTop: '10px' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </div>
         )}

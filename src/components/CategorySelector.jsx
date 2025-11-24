@@ -14,6 +14,10 @@ export default function CategorySelector({
   const finishedGamesCount = getCategoryProgress('zerados');
   const inProgressCount = getCategoryProgress('jogando');
 
+  // Filtra as categorias disponíveis
+  const availableCategories = Object.keys(categoryNames);
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-32">
       <div className="max-w-md mx-auto animate-fadeIn">
@@ -29,12 +33,12 @@ export default function CategorySelector({
           
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full backdrop-blur">
-              <span className="text-sm font-semibold">Total de Jogos: {games.jogando.length + games.a_zerar.length + games.zerados.length + games.desejados.length}</span>
+              <span className="text-sm font-semibold">Total de Jogos: {games.jogando.length + games.zerados.length + games.desejados.length}</span>
             </div>
           </div>
 
           <p className="text-gray-400">
-            {inProgressCount > 0 ? `Você está jogando ${inProgressCount} título(s). Não desista!` : 'Adicione seu primeiro jogo e comece a zerar!'}
+            {inProgressCount > 0 ? `Você tem ${inProgressCount} título(s) no seu backlog principal.` : 'Adicione seu primeiro jogo!'}
           </p>
         </div>
 
@@ -62,7 +66,7 @@ export default function CategorySelector({
 
         {/* Lista de Categorias */}
         <div className="space-y-4 mb-6">
-          {Object.keys(categoryNames).map((category) => {
+          {availableCategories.map((category) => {
             const count = getCategoryProgress(category);
             const Icon = categoryIcons[category] || Joystick;
             const isFinishedCategory = category === 'zerados';

@@ -2,18 +2,19 @@
 import React, { useState, useRef, useEffect } from 'react'; 
 import { X, Gamepad, Save, Upload, Loader2 } from 'lucide-react'; 
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
-// Removidos imports do Firebase Storage
 import imageCompression from "browser-image-compression"; 
 
 export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) { 
   const isEditing = !!gameToEdit;
-  const [formData, setFormData] = useState(isEditing ? gameToEdit : initialGameData);
+  // Inicializa o status para 'jogando' se for novo, ou mantém o status do jogo em edição
+  const initialStatus = isEditing ? gameToEdit.status : 'jogando'; 
+  const [formData, setFormData] = useState(isEditing ? gameToEdit : { ...initialGameData, status: initialStatus });
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null); 
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    setFormData(isEditing ? gameToEdit : initialGameData);
+    setFormData(isEditing ? gameToEdit : { ...initialGameData, status: initialStatus });
   }, [gameToEdit, isEditing]);
 
 
@@ -30,19 +31,17 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) {
       fileInputRef.current.click();
   }
 
-  // NOVA LÓGICA: Converte o arquivo para Base64 após compressão.
+  // Converte o arquivo para Base64 após compressão.
   const convertFileToBase64 = async (file) => {
       if (!file) return null;
       
       try {
-          // 1. Comprime a imagem (máximo 200KB para evitar exceder o limite do Firestore)
           const compressedFile = await imageCompression(file, {
               maxSizeMB: 0.2, 
               maxWidthOrHeight: 400,
               useWebWorker: true,
           });
 
-          // 2. Converte para Base64
           return new Promise((resolve, reject) => {
               const reader = new FileReader();
               reader.onloadend = () => resolve(reader.result);
@@ -64,10 +63,9 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) {
     }
     
     setLoading(true);
-    let imageBase64Data = formData.imageBase64; // Mantém a Base64 existente
+    let imageBase64Data = formData.imageBase64;
     
     try {
-        // 1. Processa a nova imagem para Base64 se um arquivo foi selecionado
         if (imageFile) {
             imageBase64Data = await convertFileToBase64(imageFile);
         }
@@ -76,7 +74,6 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) {
           ...formData,
           timeToBeat: parseInt(formData.timeToBeat) || 0,
           originalStatus: formData.status, 
-          // Salva o Base64 no objeto do jogo
           imageBase64: imageBase64Data 
         };
         
@@ -87,15 +84,14 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) {
         alert("Erro ao salvar o jogo. Verifique o console para mais detalhes. Se o erro persistir, o arquivo Base64 pode ser muito grande (limite do Firestore é 1MB).");
     } finally {
         setLoading(false); 
-        // Limpa o preview/file do modal após o salvamento
         setImageFile(null); 
     }
   };
 
-  // Determina qual imagem exibir: o arquivo selecionado (preview URL) ou o Base64 existente
   const previewImageURL = imageFile ? URL.createObjectURL(imageFile) : null;
   const displayImage = previewImageURL || formData.imageBase64;
 
+  const availableCategories = Object.entries(categoryNames);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
@@ -134,7 +130,6 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) {
                           src={displayImage} 
                           alt="Preview" 
                           className="w-full h-full object-cover" 
-                          // Revoga a URL temporária para previews se não for a Base64 salva
                           onLoad={() => { if(previewImageURL) URL.revokeObjectURL(previewImageURL) }} 
                         />
                     ) : (
@@ -227,7 +222,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit }) {
               onChange={handleChange}
               className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
             >
-              {Object.entries(categoryNames).map(([key, name]) => (
+              {availableCategories.map(([key, name]) => (
                 <option key={key} value={key}>{name}</option>
               ))}
             </select>

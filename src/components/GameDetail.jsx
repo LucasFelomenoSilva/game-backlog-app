@@ -1,11 +1,10 @@
 // src/components/GameDetail.jsx
 import React from 'react';
-import { ChevronLeft, CheckCircle, Zap, Gamepad, Edit, Trash } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Zap, Gamepad, Edit, Trash, Star } from 'lucide-react'; 
 import { categoryNames, categoryColors, categoryIcons } from '../data/categories';
 
 // Função auxiliar para limpar o nome da categoria
 const getCleanCategoryName = (name) => {
-    // Remove emojis e texto entre parênteses
     return name
         .replace(/[^a-zA-Z\s]/g, '') 
         .replace(/\(.*\)/, '')       
@@ -18,13 +17,14 @@ export default function GameDetail({
   handleUpdateGameStatus,
   handleDeleteGame, 
   openEditModal,    
+  openReviewModal, // NOVA PROP
 }) {
   
   const currentStatus = selectedGame.status;
   
+  // Statuses disponíveis para mover o jogo
   const statusOptions = [
     { id: 'jogando', label: categoryNames.jogando, color: 'bg-blue-500 hover:bg-blue-600' },
-    { id: 'a_zerar', label: categoryNames.a_zerar, color: 'bg-purple-500 hover:bg-purple-600' },
     { id: 'desejados', label: categoryNames.desejados, color: 'bg-yellow-500 hover:bg-yellow-600' },
   ];
   
@@ -34,13 +34,28 @@ export default function GameDetail({
     : 'bg-green-500 hover:bg-green-600';
   
   const handleFinishToggle = () => {
-    const newStatus = isFinished ? selectedGame.originalStatus || 'a_zerar' : 'zerados'; 
-    handleUpdateGameStatus(selectedGame.id, newStatus);
-    setSelectedGame({ ...selectedGame, status: newStatus }); 
+    // Se o jogo NÃO está zerado e queremos marcar, ABRE O MODAL DE REVIEW
+    if (!isFinished) {
+        openReviewModal(selectedGame);
+        return;
+    } 
+    
+    // Se está zerado, volta para 'jogando' (ação de desmarcar)
+    const newStatus = selectedGame.originalStatus || 'jogando'; 
+    
+    // Remove a nota e o review ao desmarcar como zerado
+    const gameToUpdate = { ...selectedGame, rating: null, reviewText: "" };
+    handleUpdateGameStatus(selectedGame.id, newStatus, gameToUpdate);
+    setSelectedGame({ ...gameToUpdate, status: newStatus }); 
   };
   
   const handleMoveToStatus = (newStatus) => {
-    handleUpdateGameStatus(selectedGame.id, newStatus);
+    // Se estiver movendo de zerado para outro status, limpa a review
+    let gameToUpdate = selectedGame;
+    if (selectedGame.status === 'zerados') {
+        gameToUpdate = { ...selectedGame, rating: null, reviewText: "" };
+    }
+    handleUpdateGameStatus(selectedGame.id, newStatus, gameToUpdate);
     setSelectedGame(null); 
   };
   
@@ -50,9 +65,13 @@ export default function GameDetail({
   const handleRemove = () => {
       if (window.confirm(`Tem certeza que deseja remover o jogo "${selectedGame.nome}" do seu backlog?`)) {
           handleDeleteGame(selectedGame.id);
-          setSelectedGame(null); // Volta para a lista após remoção
+          setSelectedGame(null); 
       }
   };
+
+  // Filtra as opções de mover para remover o status atual e 'zerados'
+  const filteredMoveOptions = statusOptions.filter(opt => opt.id !== currentStatus && opt.id !== 'zerados');
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-20">
@@ -88,7 +107,7 @@ export default function GameDetail({
         <div className="mb-6 rounded-2xl overflow-hidden shadow-xl border border-gray-700 bg-gray-800 h-40 flex items-center justify-center">
             {selectedGame.imageBase64 ? ( 
                 <img
-                    src={selectedGame.imageBase64} // Usando Base64
+                    src={selectedGame.imageBase64} 
                     alt={`Capa do jogo ${selectedGame.nome}`}
                     className="w-full h-full object-cover"
                 />
@@ -107,6 +126,17 @@ export default function GameDetail({
             <h3 className="text-xl font-semibold mb-2">{selectedGame.nome}</h3>
           </div>
 
+          {/* Se estiver Zerado, mostra a Nota */}
+          {isFinished && selectedGame.rating !== null && (
+            <div className="flex items-center justify-center gap-3 py-2 border-b border-gray-700 mb-4">
+                <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
+                <span className="text-3xl font-bold text-white">
+                    {selectedGame.rating}
+                </span>
+                <span className="text-lg text-gray-400">/ 10</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-4 text-center border-b border-gray-700 pb-4 mb-4">
             <div>
               <div className="text-xl font-bold text-cyan-400">{selectedGame.platform}</div>
@@ -124,14 +154,24 @@ export default function GameDetail({
             </div>
           </div>
           
-          {/* Notas - Exibição Condicional: só exibe se houver conteúdo preenchido */}
+          {/* Notas - Exibição Condicional (Original) */}
           {selectedGame.notes && selectedGame.notes.trim() && (
-            <div className='p-3 bg-gray-700/50 rounded-xl'>
+            <div className='p-3 bg-gray-700/50 rounded-xl mb-4'>
               <p className='text-sm text-gray-400 font-semibold mb-1'>Notas:</p>
               <p className='text-white text-base'>{selectedGame.notes}</p>
             </div>
           )}
 
+          {/* Review/Comentário Final (NOVO) */}
+          {isFinished && selectedGame.reviewText && selectedGame.reviewText.trim() && (
+            <div className='p-3 bg-green-900/40 border border-green-500/50 rounded-xl'>
+              <p className='text-sm text-green-400 font-semibold mb-1 flex items-center gap-2'>
+                <CheckCircle className='w-4 h-4' />
+                Review Final:
+              </p>
+              <p className='text-white text-base'>{selectedGame.reviewText}</p>
+            </div>
+          )}
         </div>
         
         {/* Ação Principal: Zerar/Deszerar */}
@@ -147,7 +187,7 @@ export default function GameDetail({
         <div className='bg-gray-800/50 backdrop-blur rounded-2xl p-5 border border-gray-700 mb-6'>
           <h3 className='font-semibold text-lg mb-4 text-center'>Mover Jogo</h3>
           <div className="flex flex-wrap gap-2 justify-center">
-            {statusOptions.filter(opt => opt.id !== currentStatus && opt.id !== 'zerados').map(opt => (
+            {filteredMoveOptions.map(opt => (
               <button 
                 key={opt.id}
                 onClick={() => handleMoveToStatus(opt.id)}

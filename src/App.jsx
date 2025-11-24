@@ -10,13 +10,13 @@ import ProgressScreen from "./components/ProgressScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
+import ReviewGameModal from "./components/ReviewGameModal"; // NOVO IMPORT
 import GeminiQuestGenerator from "./components/GeminiQuestGenerator"; 
 import { Joystick } from "lucide-react";
 import imageCompression from "browser-image-compression";
-// Removidos imports do Firebase Storage
 
 // Imports do Firebase
-import { auth, db, googleProvider } from "./firebase"; // Storage removido
+import { auth, db, googleProvider } from "./firebase"; 
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
@@ -62,6 +62,8 @@ function App() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isAddGameModalOpen, setIsAddGameModalOpen] = useState(false); 
   const [gameToEdit, setGameToEdit] = useState(null); 
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // NOVO ESTADO
+  const [gameToReview, setGameToReview] = useState(null); // NOVO ESTADO
   
   // Stats e Histórico
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
@@ -70,7 +72,7 @@ function App() {
 
   // Função para reproduzir som de notificação
   const playNotificationSound = () => {
-    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZizcIGWi77eefTRAMUKfj8LZjHAY4ktfzznksBS');
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZizcIGWi7eefTRAMUKfj+LZjHAY4ktfzznksBS');
     audio.volume = 0.3;
     audio.play().catch(() => {}); // Ignora erro se o navegador bloquear
   };
@@ -167,7 +169,7 @@ function App() {
     });
   }, []);
 
-  // Listener de autenticação (Mantido)
+  // Listener de autenticação (Ajustado)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -175,6 +177,7 @@ function App() {
         const userDocSnap = await getDoc(userDocRef);
 
         let firestoreData = {};
+        let needsUpdate = false;
         if (userDocSnap.exists()) {
           firestoreData = userDocSnap.data();
         } else {
@@ -193,7 +196,26 @@ function App() {
         };
         setUser(fullUser);
         
-        const fetchedGamesData = firestoreData.gamesData || [];
+        let fetchedGamesData = firestoreData.gamesData || [];
+        
+        // **LÓGICA DE MIGRAÇÃO: Mapeia o status 'a_zerar' para 'jogando'**
+        const migratedGames = fetchedGamesData.map(game => {
+            if (game.status === 'a_zerar') {
+                needsUpdate = true;
+                return { ...game, status: 'jogando' };
+            }
+            if (game.originalStatus === 'a_zerar') {
+                needsUpdate = true;
+                return { ...game, originalStatus: 'jogando' };
+            }
+            return game;
+        });
+        
+        if (needsUpdate) {
+            fetchedGamesData = migratedGames;
+            await updateDoc(doc(db, "users", currentUser.uid), { gamesData: fetchedGamesData });
+        }
+        
         setGamesData(fetchedGamesData);
         setAchievements(firestoreData.achievements || []);
         setGameHistory(firestoreData.gameHistory || []);
@@ -238,7 +260,7 @@ function App() {
   }, [gamesData, achievements, gameHistory, saveDataToFirestore, loading, user]);
 
 
-  // Função para adicionar novo jogo (Ajustada para usar onSaveGame)
+  // Função para adicionar novo jogo (Mantida)
   const handleAddNewGame = (newGame) => {
     const gameWithId = { ...newGame, id: Date.now().toString() };
     const newGamesData = [...gamesData, gameWithId];
@@ -283,18 +305,16 @@ function App() {
     }
   };
   
-  // FUNÇÃO: Remover Jogo (Ajustada para a lógica Base64, removendo o Storage)
+  // FUNÇÃO: Remover Jogo (Mantida)
   const handleDeleteGame = async (gameId) => {
     const gameToDelete = gamesData.find(g => g.id === gameId);
     if (!gameToDelete) return;
-    
-    // A Base64 é removida junto com o jogo, pois está inline no Firestore.
     
     const newGamesData = gamesData.filter(game => game.id !== gameId);
     setGamesData(newGamesData);
     calculateStats(newGamesData); 
     
-    // 3. Remove do histórico
+    // Remove do histórico
     setGameHistory(prev => prev.filter(item => item.game !== gameToDelete.nome || item.status !== 'zerado'));
 
     toast.success(`"${gameToDelete.nome}" removido!`);
@@ -317,32 +337,72 @@ function App() {
     setGameToEdit(selectedGame); // Define o jogo a ser editado
     setIsAddGameModalOpen(true); // Abre o modal
   };
+  
+  // NOVA FUNÇÃO: Abre o modal de review
+  const openReviewModal = (game) => {
+    setGameToReview(game);
+    setIsReviewModalOpen(true);
+  };
+  
+  // NOVA FUNÇÃO: Finaliza o processo de zerar o jogo com a nota e o review
+  const handleCompleteGameFinish = (reviewData) => {
+      if (!gameToReview) return;
+      
+      const gameId = gameToReview.id;
+      const newStatus = 'zerados';
+      const oldStatus = gameToReview.status;
 
-  // Função para atualizar o status de um jogo (Mantida)
-  const handleUpdateGameStatus = (gameId, newStatus) => {
-    const gameToUpdate = gamesData.find(g => g.id === gameId);
-    if (!gameToUpdate) return;
+      // 1. Cria a versão atualizada do jogo com a nota e o status
+      const updatedGame = {
+          ...gameToReview,
+          status: newStatus,
+          originalStatus: oldStatus, // Guarda o status anterior (jogando/desejados)
+          rating: reviewData.rating,
+          reviewText: reviewData.reviewText,
+      };
+
+      // 2. Atualiza o gamesData
+      const newGamesData = gamesData.map(game => 
+        game.id === gameId ? updatedGame : game
+      );
+      
+      setGamesData(newGamesData);
+      calculateStats(newGamesData); 
+      setSelectedGame(updatedGame); // Atualiza a tela de detalhes
+      
+      // 3. Atualiza o Histórico
+      setGameHistory(prev => [...prev, { 
+        game: updatedGame.nome, 
+        status: 'zerado', 
+        date: new Date().toISOString().split('T')[0] 
+      }]);
+      
+      triggerConfetti();
+      toast.success(`🎉 ${updatedGame.nome} zerado e avaliado!`);
+      
+      // 4. Fecha o modal
+      setIsReviewModalOpen(false);
+      setGameToReview(null);
+  }
+
+
+  // Função para atualizar o status de um jogo (recebe o gameToUpdate opcionalmente)
+  const handleUpdateGameStatus = (gameId, newStatus, gameToUpdate = null) => {
+    const gameToMap = gameToUpdate || gamesData.find(g => g.id === gameId);
+    if (!gameToMap) return;
     
-    const oldStatus = gameToUpdate.status;
+    const oldStatus = gameToMap.status;
     
     const newGamesData = gamesData.map(game => 
-      game.id === gameId ? { ...game, status: newStatus } : game
+      game.id === gameId ? { ...gameToMap, status: newStatus } : game
     );
     
     setGamesData(newGamesData);
     calculateStats(newGamesData); 
     
-    // Lógica de Histórico
-    if (newStatus === 'zerados' && oldStatus !== 'zerados') {
-      setGameHistory(prev => [...prev, { 
-        game: gameToUpdate.nome, 
-        status: 'zerado', 
-        date: new Date().toISOString().split('T')[0] 
-      }]);
-      triggerConfetti();
-      toast.success(`🎉 ${gameToUpdate.nome} zerado!`);
-    } else if (newStatus !== 'zerados' && oldStatus === 'zerados') {
-        setGameHistory(prev => prev.filter(item => item.game !== gameToUpdate.nome || item.status !== 'zerado'));
+    // Lógica de Histórico (apenas para desmarcar como zerado aqui)
+    if (oldStatus === 'zerados' && newStatus !== 'zerados') {
+        setGameHistory(prev => prev.filter(item => item.game !== gameToMap.nome || item.status !== 'zerado'));
         toast(`Jogo desmarcado como zerado. Movido para ${categoryNames[newStatus].split('(')[1].replace(')', '')}`);
     }
   };
@@ -359,13 +419,13 @@ function App() {
     if (!acc[status]) acc[status] = [];
     acc[status].push(game);
     return acc;
-  }, { jogando: [], a_zerar: [], zerados: [], desejados: [] });
+  }, { jogando: [], zerados: [], desejados: [] });
 
   // Função de placeholder para remover o botão GeminiQuest (Mantida)
   const openGeminiQuestPlaceholder = () => toast('A funcionalidade Gemini Quest foi desativada.', { icon: '🤖' });
 
 
-  // Renderização de Conteúdo (Mantida com ajustes de props)
+  // Renderização de Conteúdo
   const renderContent = () => {
     // Loading
     if (loading) {
@@ -378,8 +438,8 @@ function App() {
         </div>
       );
     }
-
-    // Tela de Login
+    
+    // Tela de Login (Mantida)
     if (!user) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center p-4">
@@ -387,7 +447,7 @@ function App() {
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-3xl mb-6 shadow-2xl">
               <Joystick className="w-12 h-12" />
             </div>
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
               Game Backlog
             </h1>
             <p className="text-gray-400 mb-8">
@@ -409,8 +469,8 @@ function App() {
         </div>
       );
     }
-    
-    // Telas de Navegação
+
+    // Navegação (Mantida)
     if (activeTab === "progress") {
       return (
         <ProgressScreen
@@ -420,7 +480,7 @@ function App() {
         />
       );
     }
-
+    // ... outros tabs (achievements, profile) ...
     if (activeTab === "achievements") {
       return (
         <EnhancedAchievements
@@ -442,6 +502,21 @@ function App() {
         />
       );
     }
+    
+    // Se o modal de Review estiver aberto, renderiza-o primeiro
+    if (isReviewModalOpen && gameToReview) {
+      return (
+        <ReviewGameModal
+          game={gameToReview}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            setGameToReview(null);
+          }}
+          onReviewSubmit={handleCompleteGameFinish}
+        />
+      );
+    }
+
 
     // Fluxo de Jogos
     if (!selectedCategory) {
@@ -477,6 +552,7 @@ function App() {
         handleUpdateGameStatus={handleUpdateGameStatus}
         handleDeleteGame={handleDeleteGame} 
         openEditModal={openEditModal} 
+        openReviewModal={openReviewModal} // NOVO PROP
         openGeminiQuest={openGeminiQuestPlaceholder} 
       />
     );
@@ -493,14 +569,14 @@ function App() {
         <AddGameModal
           onClose={() => {
             setIsAddGameModalOpen(false);
-            setGameToEdit(null); // Limpa o jogo para edição ao fechar
+            setGameToEdit(null); 
           }}
           onSaveGame={handleSaveGame} 
           gameToEdit={gameToEdit} 
         />
       )}
 
-      {user && !selectedCategory && !selectedGame && (
+      {user && !selectedCategory && !selectedGame && !isReviewModalOpen && ( // Adicionado !isReviewModalOpen
         <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
     </div>
