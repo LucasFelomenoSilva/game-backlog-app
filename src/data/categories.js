@@ -28,7 +28,8 @@ export const initialGameData = {
   genre: "Ação",
   timeToBeat: 20,
   status: "a_zerar",
-  notes: ""
+  notes: "",
+  imageUrl: "" // Adicionado para imagem
 };
 
 export const platformOptions = ["PC", "PS5", "Switch", "Xbox Series", "PS4", "Xbox One", "Mobile", "Outra"];

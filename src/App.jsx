@@ -10,7 +10,7 @@ import ProgressScreen from "./components/ProgressScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
-import GeminiQuestGenerator from "./components/GeminiQuestGenerator";
+import GeminiQuestGenerator from "./components/GeminiQuestGenerator"; // Mantido, mas a funcionalidade foi removida
 import { Joystick } from "lucide-react";
 import imageCompression from "browser-image-compression";
 
@@ -60,7 +60,7 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isAddGameModalOpen, setIsAddGameModalOpen] = useState(false); 
-  const [isGeminiModalOpen, setIsGeminiModalOpen] = useState(false); 
+  // const [isGeminiModalOpen, setIsGeminiModalOpen] = useState(false); // REMOVIDO
   
   // Stats e Histórico
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
@@ -240,9 +240,23 @@ function App() {
   const handleAddNewGame = (newGame) => {
     const gameWithId = { ...newGame, id: Date.now().toString() };
     const newGamesData = [...gamesData, gameWithId];
+    
     setGamesData(newGamesData);
+    
+    // Lógica de Histórico para jogos já zerados
+    if (newGame.status === 'zerados') {
+        setGameHistory(prev => [...prev, { 
+            game: newGame.nome, 
+            status: 'zerado', 
+            date: new Date().toISOString().split('T')[0] // Data atual como data de conclusão
+        }]);
+        triggerConfetti();
+        toast.success(`🎉 ${newGame.nome} adicionado como zerado!`);
+    } else {
+        toast.success(`${newGame.nome} adicionado com sucesso!`);
+    }
+
     setIsAddGameModalOpen(false);
-    toast.success(`${newGame.nome} adicionado com sucesso!`);
   };
   
   // Função para atualizar o status de um jogo
@@ -268,6 +282,10 @@ function App() {
       }]);
       triggerConfetti();
       toast.success(`🎉 ${gameToUpdate.nome} zerado!`);
+    } else if (newStatus !== 'zerados' && oldStatus === 'zerados') {
+        // Remove do histórico ao desmarcar como zerado
+        setGameHistory(prev => prev.filter(item => item.game !== gameToUpdate.nome || item.status !== 'zerado'));
+        toast(`Jogo desmarcado como zerado. Movido para ${categoryNames[newStatus].split('(')[1].replace(')', '')}`);
     }
   };
   
@@ -284,6 +302,10 @@ function App() {
     acc[status].push(game);
     return acc;
   }, { jogando: [], a_zerar: [], zerados: [], desejados: [] });
+
+  // Função de placeholder para remover o botão GeminiQuest
+  const openGeminiQuestPlaceholder = () => toast('A funcionalidade Gemini Quest foi desativada.', { icon: '🤖' });
+
 
   // Renderização de Conteúdo
   const renderContent = () => {
@@ -330,14 +352,14 @@ function App() {
       );
     }
     
-    if (isGeminiModalOpen) {
-      return (
-        <GeminiQuestGenerator
-          game={selectedGame}
-          onClose={() => setIsGeminiModalOpen(false)}
-        />
-      );
-    }
+    // if (isGeminiModalOpen) { // REMOVIDO: Modal Gemini
+    //   return (
+    //     <GeminiQuestGenerator
+    //       game={selectedGame}
+    //       onClose={() => setIsGeminiModalOpen(false)}
+    //     />
+    //   );
+    // }
 
     if (activeTab === "progress") {
       return (
@@ -403,7 +425,8 @@ function App() {
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
         handleUpdateGameStatus={handleUpdateGameStatus}
-        openGeminiQuest={() => setIsGeminiModalOpen(true)} 
+        // openGeminiQuest={() => setIsGeminiModalOpen(true)} // REMOVIDO
+        openGeminiQuest={openGeminiQuestPlaceholder} // Placeholder
       />
     );
   };
@@ -422,7 +445,7 @@ function App() {
         />
       )}
 
-      {user && !selectedCategory && !selectedGame && !isGeminiModalOpen && (
+      {user && !selectedCategory && !selectedGame && ( // REMOVIDA: !isGeminiModalOpen
         <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
     </div>

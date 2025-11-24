@@ -3,24 +3,59 @@ import React, { useState } from 'react';
 import { X, Gamepad, Save } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 
+// SIMULAÇÃO: Esta função simularia a busca de uma imagem de jogo via API externa (ex: RAWG, GiantBomb).
+// Na vida real, você precisaria de uma chave de API e uma chamada fetch/axios.
+async function fetchGameImage(gameName) {
+  // Substitua este URL pela lógica real de busca de imagens.
+  // Exemplo de URL de placeholder:
+  const placeholderUrl = `https://via.placeholder.com/300x150/1f2937/d1d5db?text=${encodeURIComponent(gameName.toUpperCase())}`;
+  
+  // No seu ambiente real:
+  /*
+  const API_KEY = import.meta.env.VITE_RAWG_API_KEY;
+  const url = `https://api.rawg.io/api/games?search=${encodeURIComponent(gameName)}&key=${API_KEY}`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      return data.results[0].background_image;
+    }
+  } catch (error) {
+    console.error("Erro ao buscar imagem:", error);
+  }
+  */
+  
+  return placeholderUrl; 
+}
+
+
 export default function AddGameModal({ onClose, onAddGame }) {
   const [formData, setFormData] = useState(initialGameData);
+  const [loadingImage, setLoadingImage] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nome.trim()) {
       alert("O nome do jogo é obrigatório!");
       return;
     }
+    
+    setLoadingImage(true);
+    // 1. Busca automática da imagem
+    const imageUrl = await fetchGameImage(formData.nome);
+    setLoadingImage(false);
+
     const finalData = {
       ...formData,
       timeToBeat: parseInt(formData.timeToBeat) || 0,
-      originalStatus: formData.status // Salva o status original para referência
+      originalStatus: formData.status, 
+      imageUrl: imageUrl // Adiciona a URL da imagem
     };
     onAddGame(finalData);
   };
@@ -101,7 +136,7 @@ export default function AddGameModal({ onClose, onAddGame }) {
             />
           </div>
 
-          {/* Status Inicial */}
+          {/* Status Inicial - AGORA INCLUI 'zerados' */}
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">Status Inicial</label>
             <select
@@ -111,7 +146,7 @@ export default function AddGameModal({ onClose, onAddGame }) {
               onChange={handleChange}
               className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
             >
-              {Object.entries(categoryNames).filter(([key]) => key !== 'zerados').map(([key, name]) => (
+              {Object.entries(categoryNames).map(([key, name]) => (
                 <option key={key} value={key}>{name}</option>
               ))}
             </select>
@@ -135,10 +170,15 @@ export default function AddGameModal({ onClose, onAddGame }) {
           {/* Botão de Salvar */}
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 mt-6 hover:from-blue-600 hover:to-cyan-600 transition-all active:scale-[0.99]"
+            disabled={loadingImage}
+            className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 mt-6 hover:from-blue-600 hover:to-cyan-600 transition-all active:scale-[0.99] disabled:opacity-60"
           >
-            <Save className="w-5 h-5" />
-            Salvar Jogo
+            {loadingImage ? 'Buscando Imagem...' : (
+              <>
+                <Save className="w-5 h-5" />
+                Salvar Jogo
+              </>
+            )}
           </button>
         </form>
       </div>

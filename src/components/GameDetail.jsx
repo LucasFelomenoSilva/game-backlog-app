@@ -6,7 +6,7 @@ export default function GameDetail({
   selectedGame,
   setSelectedGame,
   handleUpdateGameStatus,
-  openGeminiQuest,
+  // openGeminiQuest, // REMOVIDO
 }) {
   
   const currentStatus = selectedGame.status;
@@ -52,6 +52,17 @@ export default function GameDetail({
           <div className="w-9" />
         </div>
 
+        {/* Game Image Card (NOVO) */}
+        {selectedGame.imageUrl && (
+            <div className="mb-6 rounded-2xl overflow-hidden shadow-xl border border-gray-700">
+                <img
+                    src={selectedGame.imageUrl}
+                    alt={`Capa do jogo ${selectedGame.nome}`}
+                    className="w-full h-40 object-cover"
+                />
+            </div>
+        )}
+
         {/* Game Info Card */}
         <div className={`bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700 mb-6`}>
           <div className="text-center mb-4">
@@ -94,14 +105,15 @@ export default function GameDetail({
           {isFinished ? '✓ Jogo Zerado (Desmarcar)' : 'Marcar como Zerado'}
         </button>
         
-        {/* Integração Gemini: Botão de Missão Surpresa */}
-        <button
-          onClick={openGeminiQuest}
+        {/* Botão Gemini Removido - Opcional: Adicionar um botão de placeholder se desejar */}
+        {/* <button
+          onClick={openGeminiQuest} // REMOVIDO: openGeminiQuest
           className="w-full flex items-center justify-center gap-3 p-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-2xl font-semibold text-yellow-400 transition-all duration-300 active:scale-[0.98] mb-6"
         >
           <Zap className="w-5 h-5" />
           Gerar Missão Surpresa Gemini
-        </button>
+        </button> 
+        */}
 
 
         {/* Mover Status (para outras categorias) */}
