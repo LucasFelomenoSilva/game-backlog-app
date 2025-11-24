@@ -1,19 +1,25 @@
 // src/components/GeminiQuestGenerator.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Wand2, Loader2, Zap } from 'lucide-react';
+import { X, Wand2, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
-
-// Inicialização do Gemini usando a variável de ambiente do Vite
-// Certifique-se de que VITE_GEMINI_API_KEY está definido no seu .env.local
-const ai = new GoogleGenAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 export default function GeminiQuestGenerator({ game, onClose }) {
   const [quest, setQuest] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Verificar se a API Key existe
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
   const generateQuest = useCallback(async () => {
     if (!game) return;
+
+    // Verificar se a API Key está configurada
+    if (!GEMINI_API_KEY) {
+      setError("⚠️ API Key do Gemini não configurada. Adicione VITE_GEMINI_API_KEY no arquivo .env.local");
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -29,8 +35,11 @@ export default function GeminiQuestGenerator({ game, onClose }) {
     }`;
 
     try {
+      // Inicializar o Gemini apenas quando for usar
+      const ai = new GoogleGenAI(GEMINI_API_KEY);
+      
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash", 
+        model: "gemini-2.0-flash-exp",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -50,15 +59,28 @@ export default function GeminiQuestGenerator({ game, onClose }) {
 
     } catch (err) {
       console.error("Erro na API Gemini:", err);
-      setError("Não foi possível gerar a Quest. Verifique sua API Key no .env.local e permissões.");
+      
+      // Mensagens de erro mais específicas
+      if (err.message && err.message.includes("API key")) {
+        setError("❌ API Key inválida. Verifique se a chave está correta no .env.local");
+      } else if (err.message && err.message.includes("quota")) {
+        setError("❌ Limite de requisições excedido. Tente novamente mais tarde.");
+      } else {
+        setError("❌ Erro ao gerar Quest. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }
-  }, [game]);
+  }, [game, GEMINI_API_KEY]);
 
   useEffect(() => {
-    generateQuest();
-  }, [generateQuest]);
+    // Só gera automaticamente se a API Key estiver configurada
+    if (GEMINI_API_KEY) {
+      generateQuest();
+    } else {
+      setError("⚠️ Configure a VITE_GEMINI_API_KEY no arquivo .env.local para usar este recurso.");
+    }
+  }, [generateQuest, GEMINI_API_KEY]);
 
   if (!game) return null;
 
@@ -69,7 +91,7 @@ export default function GeminiQuestGenerator({ game, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2 bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">
-            <Zap className="w-6 h-6" />
+            <Zap className="w-6 h-6 text-yellow-400" />
             Missão Surpresa Gemini
           </h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
@@ -80,6 +102,25 @@ export default function GeminiQuestGenerator({ game, onClose }) {
         <div className='p-3 bg-blue-500/10 rounded-xl text-blue-300 text-sm mb-4'>
             Desafio gerado por IA para aumentar a diversão em **{game.nome}**.
         </div>
+        
+        {/* Aviso se não houver API Key */}
+        {!GEMINI_API_KEY && (
+          <div className='p-4 bg-orange-500/20 border border-orange-500 rounded-xl text-orange-300 mb-4'>
+            <div className='flex items-start gap-3'>
+              <AlertCircle className='w-5 h-5 mt-0.5 flex-shrink-0' />
+              <div>
+                <p className='font-semibold mb-2'>API Key do Gemini não encontrada</p>
+                <p className='text-sm mb-2'>Para usar este recurso, adicione a seguinte linha no seu arquivo <code className='bg-gray-800 px-2 py-1 rounded'>.env.local</code>:</p>
+                <code className='block bg-gray-800 p-2 rounded text-xs'>
+                  VITE_GEMINI_API_KEY=sua_chave_aqui
+                </code>
+                <p className='text-xs mt-2'>
+                  Obtenha sua chave em: <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className='text-blue-400 hover:underline'>Google AI Studio</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Conteúdo da Quest */}
         <div className='space-y-4'>
@@ -117,8 +158,8 @@ export default function GeminiQuestGenerator({ game, onClose }) {
         <div className='mt-6 flex gap-3'>
             <button
                 onClick={generateQuest}
-                disabled={loading}
-                className="flex-1 py-3 bg-yellow-500/20 border border-yellow-500 text-yellow-400 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                disabled={loading || !GEMINI_API_KEY}
+                className="flex-1 py-3 bg-yellow-500/20 border border-yellow-500 text-yellow-400 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-yellow-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {loading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Wand2 className="w-5 h-5" />}
                 Nova Quest
