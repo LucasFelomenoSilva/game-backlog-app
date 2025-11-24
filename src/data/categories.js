@@ -2,10 +2,10 @@
 import { Joystick, List, CheckCircle, Heart } from 'lucide-react';
 
 export const categoryNames = {
-  jogando: '🕹️ Jogando (In Progress)',
-  a_zerar: '⏳ A Zerar (To Play Soon)',
-  zerados: '✅ Zerados (Finished)',
-  desejados: '🌟 Lista de Desejos (Wishlist)'
+  jogando: '🕹️ Jogando',
+  a_zerar: '⏳ A Zerar',
+  zerados: '✅ Zerados',
+  desejados: '🌟 Lista de Desejos'
 };
 
 export const categoryColors = {
