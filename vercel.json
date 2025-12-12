@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/twitch-auth-proxy/oauth2/token",
+            "destination": "https://id.twitch.tv/oauth2/token"
+        },
+        {
+            "source": "/igdb-proxy/v4/:match*",
+            "destination": "https://api.igdb.com/v4/:match*"
+        }
+    ]
+}
