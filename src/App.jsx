@@ -10,10 +10,13 @@ import ProgressScreen from "./components/ProgressScreen";
 import ProfileScreen from "./components/ProfileScreen";
 import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
-import ReviewGameModal from "./components/ReviewGameModal"; // NOVO IMPORT
+import ReviewGameModal from "./components/ReviewGameModal"; 
 import GeminiQuestGenerator from "./components/GeminiQuestGenerator"; 
 import { Joystick } from "lucide-react";
 import imageCompression from "browser-image-compression";
+
+// Import do Drag and Drop
+import { DragDropContext } from '@hello-pangea/dnd';
 
 // Imports do Firebase
 import { auth, db, googleProvider } from "./firebase"; 
@@ -62,8 +65,8 @@ function App() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isAddGameModalOpen, setIsAddGameModalOpen] = useState(false); 
   const [gameToEdit, setGameToEdit] = useState(null); 
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); // NOVO ESTADO
-  const [gameToReview, setGameToReview] = useState(null); // NOVO ESTADO
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); 
+  const [gameToReview, setGameToReview] = useState(null); 
   
   // Stats e Histórico
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
@@ -74,7 +77,7 @@ function App() {
   const playNotificationSound = () => {
     const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZizcIGWi7eefTRAMUKfj+LZjHAY4ktfzznksBS');
     audio.volume = 0.3;
-    audio.play().catch(() => {}); // Ignora erro se o navegador bloquear
+    audio.play().catch(() => {}); 
   };
 
   // Função para mostrar confetti
@@ -84,7 +87,7 @@ function App() {
     setTimeout(() => setShowConfetti(false), 3000);
   };
 
-  // Funções de Autenticação (Mantidas)
+  // Funções de Autenticação
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -134,7 +137,7 @@ function App() {
     }
   };
 
-  // Efeito de Dark Mode (Mantido)
+  // Efeito de Dark Mode
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -143,7 +146,7 @@ function App() {
     }
   }, [darkMode]);
 
-  // Função para calcular estatísticas e checar conquistas (Mantida)
+  // Função para calcular estatísticas e checar conquistas
   const calculateStats = useCallback((data) => {
     const finishedCount = data.filter(g => g.status === 'zerados').length;
     setTotalFinishedGames(finishedCount);
@@ -169,7 +172,7 @@ function App() {
     });
   }, []);
 
-  // Listener de autenticação (Ajustado)
+  // Listener de autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -198,17 +201,24 @@ function App() {
         
         let fetchedGamesData = firestoreData.gamesData || [];
         
-        // **LÓGICA DE MIGRAÇÃO: Mapeia o status 'a_zerar' para 'jogando'**
+        // **LÓGICA DE MIGRAÇÃO ATUALIZADA**
+        // Mapeia 'a_zerar' -> 'playing' (ou backlog) e 'jogando' (antigo) -> 'playing'
         const migratedGames = fetchedGamesData.map(game => {
+            let updatedGame = { ...game };
+            let changed = false;
+
             if (game.status === 'a_zerar') {
-                needsUpdate = true;
-                return { ...game, status: 'jogando' };
+                updatedGame.status = 'playing'; // Default para playing
+                changed = true;
             }
-            if (game.originalStatus === 'a_zerar') {
-                needsUpdate = true;
-                return { ...game, originalStatus: 'jogando' };
+            // Migra o antigo 'jogando' genérico para 'playing' (Jogando Agora)
+            if (game.status === 'jogando') {
+                updatedGame.status = 'playing'; 
+                changed = true;
             }
-            return game;
+            
+            if (changed) needsUpdate = true;
+            return updatedGame;
         });
         
         if (needsUpdate) {
@@ -234,7 +244,7 @@ function App() {
     return () => unsubscribe();
   }, [calculateStats]);
 
-  // Salvar dados no Firestore (Mantido)
+  // Salvar dados no Firestore
   const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
     if (!user || loading) return;
     const userData = {
@@ -250,7 +260,7 @@ function App() {
     }
   }, [user, loading]);
   
-  // Efeito para salvar dados no debounce (Mantido)
+  // Efeito para salvar dados no debounce
   useEffect(() => {
     if (loading || !user) return;
     const handler = setTimeout(() => {
@@ -260,7 +270,7 @@ function App() {
   }, [gamesData, achievements, gameHistory, saveDataToFirestore, loading, user]);
 
 
-  // Função para adicionar novo jogo (Mantida)
+  // Função para adicionar novo jogo
   const handleAddNewGame = (newGame) => {
     const gameWithId = { ...newGame, id: Date.now().toString() };
     const newGamesData = [...gamesData, gameWithId];
@@ -282,16 +292,22 @@ function App() {
     setIsAddGameModalOpen(false);
   };
   
-  // FUNÇÃO: Editar Jogo (Mantida)
+  // FUNÇÃO: Editar Jogo
   const handleEditGame = (updatedGame) => {
     const newGamesData = gamesData.map(game => 
       game.id === updatedGame.id ? updatedGame : game
     );
     setGamesData(newGamesData);
-    setSelectedGame(updatedGame); 
+    
+    // Se estivermos editando dentro do modal de detalhes, atualiza o selecionado também
+    if (selectedGame && selectedGame.id === updatedGame.id) {
+        setSelectedGame(updatedGame);
+    }
+    
     setGameToEdit(null); 
     toast.success(`"${updatedGame.nome}" atualizado com sucesso!`);
     
+    // Logica de histórico simplificada
     const oldGame = gamesData.find(g => g.id === updatedGame.id);
     if (oldGame && oldGame.status !== 'zerados' && updatedGame.status === 'zerados') {
         setGameHistory(prev => [...prev, { 
@@ -300,12 +316,10 @@ function App() {
             date: new Date().toISOString().split('T')[0] 
         }]);
         triggerConfetti();
-    } else if (oldGame && oldGame.status === 'zerados' && updatedGame.status !== 'zerados') {
-        setGameHistory(prev => prev.filter(item => item.game !== updatedGame.nome || item.status !== 'zerado'));
     }
   };
   
-  // FUNÇÃO: Remover Jogo (Mantida)
+  // FUNÇÃO: Remover Jogo
   const handleDeleteGame = async (gameId) => {
     const gameToDelete = gamesData.find(g => g.id === gameId);
     if (!gameToDelete) return;
@@ -318,33 +332,29 @@ function App() {
     setGameHistory(prev => prev.filter(item => item.game !== gameToDelete.nome || item.status !== 'zerado'));
 
     toast.success(`"${gameToDelete.nome}" removido!`);
+    setSelectedGame(null); // Fecha o detalhe se estiver aberto
   };
 
-  // Função para adicionar ou editar, dependendo do contexto
   const handleSaveGame = (gameData) => {
     if (gameToEdit) {
       handleEditGame(gameData);
     } else {
       handleAddNewGame(gameData);
     }
-    // Fecha o modal de adição
     setIsAddGameModalOpen(false); 
-    setGameToEdit(null); // Fecha o modal de edição
+    setGameToEdit(null); 
   }
   
-  // Função para abrir o modal de edição
   const openEditModal = () => {
-    setGameToEdit(selectedGame); // Define o jogo a ser editado
-    setIsAddGameModalOpen(true); // Abre o modal
+    setGameToEdit(selectedGame); 
+    setIsAddGameModalOpen(true); 
   };
   
-  // NOVA FUNÇÃO: Abre o modal de review
   const openReviewModal = (game) => {
     setGameToReview(game);
     setIsReviewModalOpen(true);
   };
   
-  // NOVA FUNÇÃO: Finaliza o processo de zerar o jogo com a nota e o review
   const handleCompleteGameFinish = (reviewData) => {
       if (!gameToReview) return;
       
@@ -352,25 +362,22 @@ function App() {
       const newStatus = 'zerados';
       const oldStatus = gameToReview.status;
 
-      // 1. Cria a versão atualizada do jogo com a nota e o status
       const updatedGame = {
           ...gameToReview,
           status: newStatus,
-          originalStatus: oldStatus, // Guarda o status anterior (jogando/desejados)
+          originalStatus: oldStatus, 
           rating: reviewData.rating,
           reviewText: reviewData.reviewText,
       };
 
-      // 2. Atualiza o gamesData
       const newGamesData = gamesData.map(game => 
         game.id === gameId ? updatedGame : game
       );
       
       setGamesData(newGamesData);
       calculateStats(newGamesData); 
-      setSelectedGame(updatedGame); // Atualiza a tela de detalhes
+      setSelectedGame(updatedGame); 
       
-      // 3. Atualiza o Histórico
       setGameHistory(prev => [...prev, { 
         game: updatedGame.nome, 
         status: 'zerado', 
@@ -380,19 +387,20 @@ function App() {
       triggerConfetti();
       toast.success(`🎉 ${updatedGame.nome} zerado e avaliado!`);
       
-      // 4. Fecha o modal
       setIsReviewModalOpen(false);
       setGameToReview(null);
   }
 
 
-  // Função para atualizar o status de um jogo (recebe o gameToUpdate opcionalmente)
   const handleUpdateGameStatus = (gameId, newStatus, gameToUpdate = null) => {
     const gameToMap = gameToUpdate || gamesData.find(g => g.id === gameId);
     if (!gameToMap) return;
     
     const oldStatus = gameToMap.status;
     
+    // Se o status não mudou, retorna
+    if (oldStatus === newStatus) return;
+
     const newGamesData = gamesData.map(game => 
       game.id === gameId ? { ...gameToMap, status: newStatus } : game
     );
@@ -400,34 +408,51 @@ function App() {
     setGamesData(newGamesData);
     calculateStats(newGamesData); 
     
-    // Lógica de Histórico (apenas para desmarcar como zerado aqui)
     if (oldStatus === 'zerados' && newStatus !== 'zerados') {
         setGameHistory(prev => prev.filter(item => item.game !== gameToMap.nome || item.status !== 'zerado'));
-        toast(`Jogo desmarcado como zerado. Movido para ${categoryNames[newStatus].split('(')[1].replace(')', '')}`);
+        toast(`Jogo desmarcado como zerado. Movido para ${categoryNames[newStatus] || newStatus}`);
     }
   };
+
+  // --- LÓGICA DE DRAG AND DROP ---
+  const handleDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
+
+    // Se não soltou em lugar nenhum ou soltou no mesmo lugar
+    if (!destination) return;
+    if (
+        destination.droppableId === source.droppableId &&
+        destination.index === source.index
+    ) {
+        return;
+    }
+
+    // Identifica o novo status baseado na coluna (droppableId)
+    const newStatus = destination.droppableId;
+    
+    // Chama a função de atualização existente
+    handleUpdateGameStatus(draggableId, newStatus);
+  };
   
-  // Função para calcular o progresso/contagem de uma categoria (Mantida)
   const getCategoryProgress = useCallback((category) => {
     const categoryGames = gamesData.filter(g => g.status === category);
     return categoryGames.length;
   }, [gamesData]);
 
-  // Função para agrupar os jogos por status (Mantida)
+  // Agrupamento atualizado (suporta qualquer status)
+  // Agrupamento atualizado (suporta qualquer status)
   const groupedGames = gamesData.reduce((acc, game) => {
     const status = game.status;
     if (!acc[status]) acc[status] = [];
     acc[status].push(game);
     return acc;
-  }, { jogando: [], zerados: [], desejados: [] });
+  }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] }); // <--- ESSA LINHA É CRUCIAL
 
-  // Função de placeholder para remover o botão GeminiQuest (Mantida)
   const openGeminiQuestPlaceholder = () => toast('A funcionalidade Gemini Quest foi desativada.', { icon: '🤖' });
 
 
   // Renderização de Conteúdo
   const renderContent = () => {
-    // Loading
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
@@ -439,7 +464,6 @@ function App() {
       );
     }
     
-    // Tela de Login (Mantida)
     if (!user) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center p-4">
@@ -457,12 +481,6 @@ function App() {
               onClick={handleGoogleSignIn}
               className="w-full py-4 bg-white text-gray-900 rounded-2xl font-semibold hover:bg-gray-100 transition-all duration-300 flex items-center justify-center gap-3"
             >
-              <svg className="w-6 h-6" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
               Entrar com Google
             </button>
           </div>
@@ -470,7 +488,6 @@ function App() {
       );
     }
 
-    // Navegação (Mantida)
     if (activeTab === "progress") {
       return (
         <ProgressScreen
@@ -480,7 +497,7 @@ function App() {
         />
       );
     }
-    // ... outros tabs (achievements, profile) ...
+    
     if (activeTab === "achievements") {
       return (
         <EnhancedAchievements
@@ -503,7 +520,6 @@ function App() {
       );
     }
     
-    // Se o modal de Review estiver aberto, renderiza-o primeiro
     if (isReviewModalOpen && gameToReview) {
       return (
         <ReviewGameModal
@@ -517,22 +533,27 @@ function App() {
       );
     }
 
-
     // Fluxo de Jogos
-    if (!selectedCategory) {
+    if (!selectedCategory && !selectedGame) {
+      // **AQUI ESTÁ A MUDANÇA PRINCIPAL:**
+      // Envolvemos o seletor (que agora é o Board) com o Contexto
       return (
-        <CategorySelector 
-          games={groupedGames}
-          setSelectedCategory={setSelectedCategory}
-          getCategoryProgress={getCategoryProgress}
-          user={user}
-          totalFinishedGames={totalFinishedGames}
-          setIsAddGameModalOpen={setIsAddGameModalOpen} 
-        />
+        <DragDropContext onDragEnd={handleDragEnd}>
+            <CategorySelector 
+              games={groupedGames}
+              setSelectedCategory={setSelectedCategory} // Usado para abrir 'Zerados'/'Desejados'
+              setSelectedGame={setSelectedGame} // Usado para clicar no card dentro do Kanban
+              getCategoryProgress={getCategoryProgress}
+              user={user}
+              totalFinishedGames={totalFinishedGames}
+              setIsAddGameModalOpen={setIsAddGameModalOpen} 
+            />
+        </DragDropContext>
       );
     }
 
     if (!selectedGame) {
+      // GameList continua existindo para quando clicarmos em "Zerados" ou "Desejados"
       return (
         <GameList
           selectedCategory={selectedCategory}
@@ -546,13 +567,13 @@ function App() {
     // Detalhe do Jogo
     return (
       <GameDetail
-        selectedCategory={selectedCategory}
+        selectedCategory={selectedCategory || selectedGame.status} // Fallback se vier direto do board
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
         handleUpdateGameStatus={handleUpdateGameStatus}
         handleDeleteGame={handleDeleteGame} 
         openEditModal={openEditModal} 
-        openReviewModal={openReviewModal} // NOVO PROP
+        openReviewModal={openReviewModal} 
         openGeminiQuest={openGeminiQuestPlaceholder} 
       />
     );
@@ -564,7 +585,6 @@ function App() {
       {showConfetti && <Confetti />}
       {renderContent()}
 
-      {/* Modal de Adicionar/Editar Jogo */}
       {isAddGameModalOpen && (
         <AddGameModal
           onClose={() => {
@@ -576,7 +596,7 @@ function App() {
         />
       )}
 
-      {user && !selectedCategory && !selectedGame && !isReviewModalOpen && ( // Adicionado !isReviewModalOpen
+      {user && !selectedGame && !isReviewModalOpen && (
         <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
     </div>

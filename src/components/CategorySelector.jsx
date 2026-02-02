@@ -1,123 +1,150 @@
+// src/components/CategorySelector.jsx
 import React from 'react';
-import { Joystick, TrendingUp, ChevronRight, PlusCircle } from 'lucide-react';
-import { categoryNames, categoryColors, categoryIcons } from '../data/categories';
+import { TrendingUp, PlusCircle, CheckCircle, Heart, Clock, Gamepad2, HardDrive } from 'lucide-react';
+import { categoryNames, categoryColors } from '../data/categories';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function CategorySelector({
-  games, // Jogos agrupados por status (Firebase)
+  games, 
   setSelectedCategory,
+  setSelectedGame, 
   setIsAddGameModalOpen,
 }) {
   
-  // Função para contar jogos em uma categoria
-  const getCategoryProgress = (category) => games[category] ? games[category].length : 0;
+  const kanbanColumns = ['playing', 'installed', 'backlog'];
+  const listCategories = ['zerados', 'desejados'];
+
+  // PROTEÇÃO: Usa optional chaining (?.) e fallback para 0 caso a lista não exista
+  const getCount = (cat) => games?.[cat]?.length || 0;
   
-  const finishedGamesCount = getCategoryProgress('zerados');
-  const inProgressCount = getCategoryProgress('jogando');
-
-  // Filtra as categorias disponíveis
-  const availableCategories = Object.keys(categoryNames);
-
+  const finishedGamesCount = getCount('zerados');
+  const playingCount = getCount('playing'); // Protegido contra undefined
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-32">
-      <div className="max-w-md mx-auto animate-fadeIn">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-32 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto animate-fadeIn">
         
-        {/* Header Adaptado */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-3xl mb-4 shadow-lg">
-            <Joystick className="w-10 h-10" />
+        {/* Header Compacto */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              Meu Backlog
+            </h1>
+            <p className="text-xs text-gray-400">
+               {/* PROTEÇÃO AQUI: games?.playing?.length */}
+               Arraste para organizar • {playingCount} jogando
+            </p>
           </div>
-          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-            Game Backlog
-          </h1>
-          
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full backdrop-blur">
-              <span className="text-sm font-semibold">Total de Jogos: {games.jogando.length + games.zerados.length + games.desejados.length}</span>
+          <button
+              onClick={() => setIsAddGameModalOpen(true)}
+              className="p-3 bg-blue-600 rounded-full hover:bg-blue-500 shadow-lg shadow-blue-500/30 transition-all"
+          >
+              <PlusCircle className="w-6 h-6 text-white" />
+          </button>
+        </div>
+
+        {/* ÁREA KANBAN */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {kanbanColumns.map((columnId) => {
+                // PROTEÇÃO: Garante que columnGames seja sempre um array
+                const columnGames = games?.[columnId] || [];
+                
+                return (
+                    <div key={columnId} className="flex flex-col bg-gray-800/40 backdrop-blur border border-gray-700 rounded-2xl h-[500px]">
+                        {/* Título da Coluna */}
+                        <div className={`p-4 border-b border-gray-700 bg-gradient-to-r ${categoryColors[columnId] || 'from-gray-700 to-gray-600'} bg-opacity-10 rounded-t-2xl`}>
+                            <h2 className="font-bold flex items-center gap-2">
+                                {columnId === 'playing' && <Gamepad2 className="w-4 h-4" />}
+                                {columnId === 'installed' && <HardDrive className="w-4 h-4" />}
+                                {columnId === 'backlog' && <Clock className="w-4 h-4" />}
+                                {categoryNames[columnId] || columnId}
+                                <span className="ml-auto text-xs bg-black/30 px-2 py-1 rounded-full">{columnGames.length}</span>
+                            </h2>
+                        </div>
+
+                        {/* Área Droppable */}
+                        <Droppable droppableId={columnId}>
+                            {(provided, snapshot) => (
+                                <div
+                                    {...provided.droppableProps}
+                                    ref={provided.innerRef}
+                                    className={`flex-1 p-3 overflow-y-auto space-y-3 transition-colors ${
+                                        snapshot.isDraggingOver ? 'bg-gray-700/30' : ''
+                                    }`}
+                                >
+                                    {columnGames.length === 0 && (
+                                        <div className="text-center text-gray-500 text-sm mt-10 italic">
+                                            Arraste jogos para cá
+                                        </div>
+                                    )}
+
+                                    {columnGames.map((game, index) => (
+                                        <Draggable key={game.id} draggableId={game.id} index={index}>
+                                            {(provided, snapshot) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    {...provided.dragHandleProps}
+                                                    onClick={() => setSelectedGame(game)}
+                                                    style={{ ...provided.draggableProps.style }}
+                                                    className={`p-3 bg-gray-800 rounded-xl border border-gray-600 shadow-sm hover:border-gray-500 group relative
+                                                        ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-blue-500 rotate-2 bg-gray-700' : ''}
+                                                    `}
+                                                >
+                                                    {/* Imagem de Capa */}
+                                                    {game.imageBase64 && (
+                                                        <div className="h-24 w-full mb-2 rounded-lg overflow-hidden relative">
+                                                            <img src={game.imageBase64} alt={game.nome} className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <h3 className="font-semibold text-sm truncate">{game.nome}</h3>
+                                                    <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+                                                        <span>{game.platform}</span>
+                                                        {game.timeToBeat > 0 && <span>{game.timeToBeat}h</span>}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </Droppable>
+                    </div>
+                );
+            })}
+        </div>
+
+        {/* Listas Secundárias */}
+        <div className="grid grid-cols-2 gap-4">
+             {listCategories.map(cat => (
+                 <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className="p-4 bg-gray-800/60 border border-gray-700 rounded-2xl flex items-center justify-between hover:bg-gray-800 transition-all"
+                 >
+                     <div className="flex items-center gap-3">
+                         {cat === 'zerados' ? <CheckCircle className="text-green-500" /> : <Heart className="text-yellow-500" />}
+                         <div className="text-left">
+                             <div className="font-bold text-sm">{categoryNames[cat] || cat}</div>
+                             <div className="text-xs text-gray-400">{getCount(cat)} itens</div>
+                         </div>
+                     </div>
+                 </button>
+             ))}
+        </div>
+
+        {/* Footer Stats */}
+        <div className="mt-6 bg-gray-800/40 border border-gray-700 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-green-400">
+                <TrendingUp className="w-5 h-5" />
+                <span className="font-bold">{finishedGamesCount} Zerados</span>
             </div>
-          </div>
-
-          <p className="text-gray-400">
-            {inProgressCount > 0 ? `Você tem ${inProgressCount} título(s) no seu backlog principal.` : 'Adicione seu primeiro jogo!'}
-          </p>
+            <span className="text-xs text-gray-500">Continue assim!</span>
         </div>
 
-        {/* Card de Adição de Novo Jogo (Chama o Modal) */}
-        <button
-            onClick={() => setIsAddGameModalOpen(true)}
-            className={`w-full mb-6 backdrop-blur rounded-3xl p-5 border-2 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]
-                bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-500/50 hover:border-blue-400
-            }`}
-        >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className='w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-r from-blue-500 to-cyan-500'>
-                        <PlusCircle className="w-7 h-7" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-lg mb-1 text-cyan-400">Adicionar Novo Jogo</h3>
-                        <p className="text-sm text-gray-300">Comece a preencher seu backlog!</p>
-                    </div>
-                </div>
-                <ChevronRight className="w-6 h-6 text-gray-400" />
-            </div>
-        </button>
-
-
-        {/* Lista de Categorias */}
-        <div className="space-y-4 mb-6">
-          {availableCategories.map((category) => {
-            const count = getCategoryProgress(category);
-            const Icon = categoryIcons[category] || Joystick;
-            const isFinishedCategory = category === 'zerados';
-            
-            return (
-              <button 
-                key={category} 
-                onClick={() => setSelectedCategory(category)} 
-                className={`w-full backdrop-blur rounded-3xl p-5 border-2 transition-all duration-300 group
-                    border-gray-700 hover:border-gray-600 hover:scale-[1.02] active:scale-[0.98] bg-gray-800/40 hover:bg-gray-800/60
-                `}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${categoryColors[category]} flex items-center justify-center relative transition-transform group-hover:scale-110`}>
-                      <Icon className="w-8 h-8" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
-                        {categoryNames[category]}
-                      </h3>
-                      <p className="text-sm text-gray-400">{count} {count === 1 ? 'jogo' : 'jogos'}</p>
-                      {isFinishedCategory && (
-                        <span className="inline-block mt-1 text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded-full">
-                          {count} Zerados
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-gray-300" />
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Progresso Geral Compacto */}
-        <div className="bg-gray-800/40 backdrop-blur rounded-3xl p-5 border border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-400" />
-              Progresso de Finalização
-            </h3>
-            <span className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
-              {finishedGamesCount}
-            </span>
-          </div>
-          <p className="text-sm text-gray-400 text-center">Parabéns por zerar {finishedGamesCount} títulos!</p>
-        </div>
       </div>
     </div>
   );
