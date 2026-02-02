@@ -1,7 +1,7 @@
 // src/App.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Toaster, toast } from 'react-hot-toast';
-import { categoryNames, categoryColors, categoryIcons } from "./data/categories"; 
+import { categoryNames } from "./data/categories"; 
 import CategorySelector from "./components/CategorySelector";
 import GameList from "./components/GameList";
 import GameDetail from "./components/GameDetail";
@@ -11,8 +11,9 @@ import ProfileScreen from "./components/ProfileScreen";
 import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
-import GeminiQuestGenerator from "./components/GeminiQuestGenerator"; 
-import { Joystick } from "lucide-react";
+// Importamos o novo componente de Recomendação
+import GameRecommender from "./components/GameRecommender"; 
+import { Joystick, Sparkles } from "lucide-react"; // Adicionado Sparkles
 import imageCompression from "browser-image-compression";
 
 // Import do Drag and Drop
@@ -68,6 +69,9 @@ function App() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); 
   const [gameToReview, setGameToReview] = useState(null); 
   
+  // Novo Estado para o Recomendador IA
+  const [isRecommenderOpen, setIsRecommenderOpen] = useState(false);
+
   // Stats e Histórico
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
   const [achievements, setAchievements] = useState([]);
@@ -202,7 +206,6 @@ function App() {
         let fetchedGamesData = firestoreData.gamesData || [];
         
         // **LÓGICA DE MIGRAÇÃO ATUALIZADA**
-        // Mapeia 'a_zerar' -> 'playing' (ou backlog) e 'jogando' (antigo) -> 'playing'
         const migratedGames = fetchedGamesData.map(game => {
             let updatedGame = { ...game };
             let changed = false;
@@ -211,7 +214,6 @@ function App() {
                 updatedGame.status = 'playing'; // Default para playing
                 changed = true;
             }
-            // Migra o antigo 'jogando' genérico para 'playing' (Jogando Agora)
             if (game.status === 'jogando') {
                 updatedGame.status = 'playing'; 
                 changed = true;
@@ -270,7 +272,7 @@ function App() {
   }, [gamesData, achievements, gameHistory, saveDataToFirestore, loading, user]);
 
 
-  // Função para adicionar novo jogo
+  // Função para adicionar novo jogo (Usada também pelo Recomendador)
   const handleAddNewGame = (newGame) => {
     const gameWithId = { ...newGame, id: Date.now().toString() };
     const newGamesData = [...gamesData, gameWithId];
@@ -290,6 +292,8 @@ function App() {
     }
 
     setIsAddGameModalOpen(false);
+    // Se foi aberto pelo recomendador, podemos fechar ou manter
+    setIsRecommenderOpen(false);
   };
   
   // FUNÇÃO: Editar Jogo
@@ -299,7 +303,6 @@ function App() {
     );
     setGamesData(newGamesData);
     
-    // Se estivermos editando dentro do modal de detalhes, atualiza o selecionado também
     if (selectedGame && selectedGame.id === updatedGame.id) {
         setSelectedGame(updatedGame);
     }
@@ -307,7 +310,6 @@ function App() {
     setGameToEdit(null); 
     toast.success(`"${updatedGame.nome}" atualizado com sucesso!`);
     
-    // Logica de histórico simplificada
     const oldGame = gamesData.find(g => g.id === updatedGame.id);
     if (oldGame && oldGame.status !== 'zerados' && updatedGame.status === 'zerados') {
         setGameHistory(prev => [...prev, { 
@@ -328,11 +330,10 @@ function App() {
     setGamesData(newGamesData);
     calculateStats(newGamesData); 
     
-    // Remove do histórico
     setGameHistory(prev => prev.filter(item => item.game !== gameToDelete.nome || item.status !== 'zerado'));
 
     toast.success(`"${gameToDelete.nome}" removido!`);
-    setSelectedGame(null); // Fecha o detalhe se estiver aberto
+    setSelectedGame(null); 
   };
 
   const handleSaveGame = (gameData) => {
@@ -398,7 +399,6 @@ function App() {
     
     const oldStatus = gameToMap.status;
     
-    // Se o status não mudou, retorna
     if (oldStatus === newStatus) return;
 
     const newGamesData = gamesData.map(game => 
@@ -418,7 +418,6 @@ function App() {
   const handleDragEnd = (result) => {
     const { destination, source, draggableId } = result;
 
-    // Se não soltou em lugar nenhum ou soltou no mesmo lugar
     if (!destination) return;
     if (
         destination.droppableId === source.droppableId &&
@@ -427,10 +426,7 @@ function App() {
         return;
     }
 
-    // Identifica o novo status baseado na coluna (droppableId)
     const newStatus = destination.droppableId;
-    
-    // Chama a função de atualização existente
     handleUpdateGameStatus(draggableId, newStatus);
   };
   
@@ -439,14 +435,12 @@ function App() {
     return categoryGames.length;
   }, [gamesData]);
 
-  // Agrupamento atualizado (suporta qualquer status)
-  // Agrupamento atualizado (suporta qualquer status)
   const groupedGames = gamesData.reduce((acc, game) => {
     const status = game.status;
     if (!acc[status]) acc[status] = [];
     acc[status].push(game);
     return acc;
-  }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] }); // <--- ESSA LINHA É CRUCIAL
+  }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] }); 
 
   const openGeminiQuestPlaceholder = () => toast('A funcionalidade Gemini Quest foi desativada.', { icon: '🤖' });
 
@@ -533,16 +527,24 @@ function App() {
       );
     }
 
+    // Modal de Recomendação da IA (Renderizado condicionalmente)
+    if (isRecommenderOpen) {
+      return (
+        <GameRecommender
+          onClose={() => setIsRecommenderOpen(false)}
+          onAddGame={handleAddNewGame}
+        />
+      );
+    }
+
     // Fluxo de Jogos
     if (!selectedCategory && !selectedGame) {
-      // **AQUI ESTÁ A MUDANÇA PRINCIPAL:**
-      // Envolvemos o seletor (que agora é o Board) com o Contexto
       return (
         <DragDropContext onDragEnd={handleDragEnd}>
             <CategorySelector 
               games={groupedGames}
-              setSelectedCategory={setSelectedCategory} // Usado para abrir 'Zerados'/'Desejados'
-              setSelectedGame={setSelectedGame} // Usado para clicar no card dentro do Kanban
+              setSelectedCategory={setSelectedCategory} 
+              setSelectedGame={setSelectedGame} 
               getCategoryProgress={getCategoryProgress}
               user={user}
               totalFinishedGames={totalFinishedGames}
@@ -553,7 +555,6 @@ function App() {
     }
 
     if (!selectedGame) {
-      // GameList continua existindo para quando clicarmos em "Zerados" ou "Desejados"
       return (
         <GameList
           selectedCategory={selectedCategory}
@@ -567,7 +568,7 @@ function App() {
     // Detalhe do Jogo
     return (
       <GameDetail
-        selectedCategory={selectedCategory || selectedGame.status} // Fallback se vier direto do board
+        selectedCategory={selectedCategory || selectedGame.status} 
         selectedGame={selectedGame}
         setSelectedGame={setSelectedGame}
         handleUpdateGameStatus={handleUpdateGameStatus}
@@ -583,7 +584,19 @@ function App() {
     <div className="relative">
       <Toaster position="top-center" />
       {showConfetti && <Confetti />}
+      
       {renderContent()}
+
+      {/* Botão Flutuante da IA (Só aparece na tela principal) */}
+      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && (
+        <button
+            onClick={() => setIsRecommenderOpen(true)}
+            className="fixed bottom-24 right-4 z-40 p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg text-white hover:scale-110 transition-transform animate-bounce-slow"
+            title="Pedir recomendação à IA"
+        >
+            <Sparkles className="w-6 h-6" />
+        </button>
+      )}
 
       {isAddGameModalOpen && (
         <AddGameModal
@@ -596,7 +609,7 @@ function App() {
         />
       )}
 
-      {user && !selectedGame && !isReviewModalOpen && (
+      {user && !selectedGame && !isReviewModalOpen && !isRecommenderOpen && (
         <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
       )}
     </div>
