@@ -1,13 +1,12 @@
-// src/components/GameRecommender.jsx
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { searchGameIGDB } from '../services/igdbService';
 import { toast } from 'react-hot-toast';
-import { Sparkles, Plus, AlertCircle } from 'lucide-react';
+import { Sparkles, ArrowRight, AlertCircle } from 'lucide-react'; // Ícone novo
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-export default function GameRecommender({ onAddGame, onClose }) {
+export default function GameRecommender({ onSelectGame, onClose }) { // prop onSelectGame
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
@@ -25,10 +24,7 @@ export default function GameRecommender({ onAddGame, onClose }) {
       }
 
       const genAI = new GoogleGenerativeAI(API_KEY);
-      
-      // Tenta usar o modelo mais rápido e novo. 
-      // Se der erro de versão, o catch captura.
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Modelo atualizado
 
       const systemPrompt = `
         Você é um especialista em videogames. 
@@ -49,38 +45,26 @@ export default function GameRecommender({ onAddGame, onClose }) {
       const response = await result.response;
       const text = response.text();
       
-      console.log("Resposta bruta da IA:", text);
-
       const gameNames = text.split(',').map(name => name.trim());
       const gamesFound = [];
       
       for (const name of gameNames) {
         if (!name) continue;
-        const searchResults = await searchGameIGDB(name); //
+        const searchResults = await searchGameIGDB(name);
         if (searchResults && searchResults.length > 0) {
           gamesFound.push({ ...searchResults[0], isRecommendation: true });
         }
       }
 
       if (gamesFound.length === 0) {
-        setErrorMsg("A IA sugeriu jogos, mas não encontramos detalhes deles.");
+        setErrorMsg("A IA sugeriu jogos, mas não encontramos detalhes deles na API do IGDB.");
       } else {
         setRecommendations(gamesFound);
       }
 
     } catch (error) {
-      console.error("Erro detalhado da IA:", error);
-      
-      // Tratamento específico para o erro 404 de modelo
-      if (error.message.includes('404') || error.message.includes('not found')) {
-        setErrorMsg(
-          "Erro de configuração da API (404). \n" +
-          "1. Verifique se atualizou a lib: npm install @google/generative-ai@latest \n" +
-          "2. Verifique se sua Key no Google AI Studio está ativa."
-        );
-      } else {
-        setErrorMsg(`Erro: ${error.message}`);
-      }
+      console.error("Erro IA:", error);
+      setErrorMsg(`Erro: ${error.message}`);
       toast.error("Ops! Tivemos um problema com o Oráculo.");
     } finally {
       setLoading(false);
@@ -120,7 +104,7 @@ export default function GameRecommender({ onAddGame, onClose }) {
           <button
             onClick={handleAskGemini}
             disabled={loading || !prompt}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
               <span className="animate-pulse">Consultando os astros...</span>
@@ -149,13 +133,11 @@ export default function GameRecommender({ onAddGame, onClose }) {
                     <p className="text-xs text-gray-400">{game.genre} • {game.platform}</p>
                   </div>
                   <button
-                    onClick={() => {
-                      onAddGame({ ...game, status: 'playing' }); 
-                    }}
-                    className="p-3 bg-green-600 hover:bg-green-500 rounded-lg text-white transition-colors flex items-center gap-2 font-medium"
+                    onClick={() => onSelectGame(game)} // Chama função de revisar
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white transition-colors flex items-center gap-2 font-medium"
                   >
-                    <Plus className="w-5 h-5" />
-                    <span className="text-sm">Jogar</span>
+                    <span className="text-sm">Revisar</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               ))}

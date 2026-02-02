@@ -1,4 +1,3 @@
-// src/App.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { Toaster, toast } from 'react-hot-toast';
 import { categoryNames } from "./data/categories"; 
@@ -11,20 +10,14 @@ import ProfileScreen from "./components/ProfileScreen";
 import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
-// Importamos o novo componente de Recomendação
 import GameRecommender from "./components/GameRecommender"; 
-import { Joystick, Sparkles } from "lucide-react"; // Adicionado Sparkles
+import { Joystick, Sparkles } from "lucide-react";
 import imageCompression from "browser-image-compression";
-
-// Import do Drag and Drop
 import { DragDropContext } from '@hello-pangea/dnd';
-
-// Imports do Firebase
 import { auth, db, googleProvider } from "./firebase"; 
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-// Componente de Confetti
 const Confetti = () => {
   const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
   const pieces = Array.from({ length: 50 }).map((_, i) => ({
@@ -53,14 +46,12 @@ const Confetti = () => {
 };
 
 function App() {
-  // Estados de Autenticação, UI e DarkMode
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("categories"); 
   const [showConfetti, setShowConfetti] = useState(false);
   const [darkMode] = useState(true);
 
-  // Estados de Jogo
   const [gamesData, setGamesData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -69,29 +60,27 @@ function App() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false); 
   const [gameToReview, setGameToReview] = useState(null); 
   
-  // Novo Estado para o Recomendador IA
   const [isRecommenderOpen, setIsRecommenderOpen] = useState(false);
+  
+  // NOVO ESTADO: Rascunho vindo da IA
+  const [draftGame, setDraftGame] = useState(null);
 
-  // Stats e Histórico
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
   const [achievements, setAchievements] = useState([]);
   const [gameHistory, setGameHistory] = useState([]);
 
-  // Função para reproduzir som de notificação
   const playNotificationSound = () => {
     const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZizcIGWi7eefTRAMUKfj+LZjHAY4ktfzznksBS');
     audio.volume = 0.3;
     audio.play().catch(() => {}); 
   };
 
-  // Função para mostrar confetti
   const triggerConfetti = () => {
     setShowConfetti(true);
     playNotificationSound();
     setTimeout(() => setShowConfetti(false), 3000);
   };
 
-  // Funções de Autenticação
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -141,7 +130,6 @@ function App() {
     }
   };
 
-  // Efeito de Dark Mode
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -150,7 +138,6 @@ function App() {
     }
   }, [darkMode]);
 
-  // Função para calcular estatísticas e checar conquistas
   const calculateStats = useCallback((data) => {
     const finishedCount = data.filter(g => g.status === 'zerados').length;
     setTotalFinishedGames(finishedCount);
@@ -176,7 +163,6 @@ function App() {
     });
   }, []);
 
-  // Listener de autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -205,13 +191,12 @@ function App() {
         
         let fetchedGamesData = firestoreData.gamesData || [];
         
-        // **LÓGICA DE MIGRAÇÃO ATUALIZADA**
         const migratedGames = fetchedGamesData.map(game => {
             let updatedGame = { ...game };
             let changed = false;
 
             if (game.status === 'a_zerar') {
-                updatedGame.status = 'playing'; // Default para playing
+                updatedGame.status = 'playing'; 
                 changed = true;
             }
             if (game.status === 'jogando') {
@@ -246,7 +231,6 @@ function App() {
     return () => unsubscribe();
   }, [calculateStats]);
 
-  // Salvar dados no Firestore
   const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
     if (!user || loading) return;
     const userData = {
@@ -262,7 +246,6 @@ function App() {
     }
   }, [user, loading]);
   
-  // Efeito para salvar dados no debounce
   useEffect(() => {
     if (loading || !user) return;
     const handler = setTimeout(() => {
@@ -271,8 +254,6 @@ function App() {
     return () => clearTimeout(handler);
   }, [gamesData, achievements, gameHistory, saveDataToFirestore, loading, user]);
 
-
-  // Função para adicionar novo jogo (Usada também pelo Recomendador)
   const handleAddNewGame = (newGame) => {
     const gameWithId = { ...newGame, id: Date.now().toString() };
     const newGamesData = [...gamesData, gameWithId];
@@ -292,11 +273,16 @@ function App() {
     }
 
     setIsAddGameModalOpen(false);
-    // Se foi aberto pelo recomendador, podemos fechar ou manter
-    setIsRecommenderOpen(false);
+    setDraftGame(null); // Limpa rascunho
   };
   
-  // FUNÇÃO: Editar Jogo
+  // NOVA FUNÇÃO: Quando o usuário escolhe uma recomendação da IA
+  const handleSelectRecommendation = (game) => {
+    setDraftGame(game);        // Salva o jogo no state temporário
+    setIsRecommenderOpen(false); // Fecha a IA
+    setIsAddGameModalOpen(true); // Abre o Modal de Adicionar
+  };
+
   const handleEditGame = (updatedGame) => {
     const newGamesData = gamesData.map(game => 
       game.id === updatedGame.id ? updatedGame : game
@@ -321,7 +307,6 @@ function App() {
     }
   };
   
-  // FUNÇÃO: Remover Jogo
   const handleDeleteGame = async (gameId) => {
     const gameToDelete = gamesData.find(g => g.id === gameId);
     if (!gameToDelete) return;
@@ -392,13 +377,11 @@ function App() {
       setGameToReview(null);
   }
 
-
   const handleUpdateGameStatus = (gameId, newStatus, gameToUpdate = null) => {
     const gameToMap = gameToUpdate || gamesData.find(g => g.id === gameId);
     if (!gameToMap) return;
     
     const oldStatus = gameToMap.status;
-    
     if (oldStatus === newStatus) return;
 
     const newGamesData = gamesData.map(game => 
@@ -414,7 +397,6 @@ function App() {
     }
   };
 
-  // --- LÓGICA DE DRAG AND DROP ---
   const handleDragEnd = (result) => {
     const { destination, source, draggableId } = result;
 
@@ -444,8 +426,6 @@ function App() {
 
   const openGeminiQuestPlaceholder = () => toast('A funcionalidade Gemini Quest foi desativada.', { icon: '🤖' });
 
-
-  // Renderização de Conteúdo
   const renderContent = () => {
     if (loading) {
       return (
@@ -527,17 +507,16 @@ function App() {
       );
     }
 
-    // Modal de Recomendação da IA (Renderizado condicionalmente)
+    // Modal de Recomendação da IA 
     if (isRecommenderOpen) {
       return (
         <GameRecommender
           onClose={() => setIsRecommenderOpen(false)}
-          onAddGame={handleAddNewGame}
+          onSelectGame={handleSelectRecommendation} // <-- Passando a função correta
         />
       );
     }
 
-    // Fluxo de Jogos
     if (!selectedCategory && !selectedGame) {
       return (
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -565,7 +544,6 @@ function App() {
       );
     }
 
-    // Detalhe do Jogo
     return (
       <GameDetail
         selectedCategory={selectedCategory || selectedGame.status} 
@@ -587,7 +565,6 @@ function App() {
       
       {renderContent()}
 
-      {/* Botão Flutuante da IA (Só aparece na tela principal) */}
       {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && (
         <button
             onClick={() => setIsRecommenderOpen(true)}
@@ -603,9 +580,11 @@ function App() {
           onClose={() => {
             setIsAddGameModalOpen(false);
             setGameToEdit(null); 
+            setDraftGame(null); // Limpar rascunho ao cancelar
           }}
           onSaveGame={handleSaveGame} 
           gameToEdit={gameToEdit} 
+          initialData={draftGame} // <-- Passando o jogo da IA para o modal
         />
       )}
 

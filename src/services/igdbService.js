@@ -14,23 +14,37 @@ let accessToken = '';
  * 1. Obtém o Access Token do Twitch/IGDB.
  */
 async function getAccessToken() {
+    // Se já temos um token, reutiliza (você pode adicionar lógica de expiração aqui futuramente)
     if (accessToken) {
         return accessToken;
     }
 
-    const url = `${AUTH_PROXY_URL}?client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&grant_type=client_credentials`;
-
     try {
-        const response = await fetch(url, { method: 'POST' });
+        // CORREÇÃO AQUI: Enviar credenciais no Body em vez da URL
+        const response = await fetch(AUTH_PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                grant_type: 'client_credentials'
+            })
+        });
+
         if (!response.ok) {
-            throw new Error(`Auth Failed: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            console.error("Erro Auth Twitch:", errorData);
+            throw new Error(`Auth Failed: ${response.status} - ${response.statusText}`);
         }
+
         const data = await response.json();
         accessToken = data.access_token;
         return accessToken;
     } catch (error) {
-        console.error("Erro na autenticação IGDB/Twitch:", error);
-        toast.error("Erro de autenticação IGDB. Verifique Client ID e Secret.");
+        console.error("Erro crítico na autenticação IGDB/Twitch:", error);
+        toast.error("Erro de conexão com IGDB. Verifique suas chaves no .env");
         return null;
     }
 }
@@ -40,7 +54,7 @@ async function getAccessToken() {
  */
 export async function searchGameIGDB(gameName) {
     if (!CLIENT_ID || !CLIENT_SECRET) {
-        toast.error("Credenciais IGDB não configuradas no .env.local.");
+        toast.error("Credenciais IGDB não configuradas no .env");
         return [];
     }
 
@@ -48,8 +62,6 @@ export async function searchGameIGDB(gameName) {
     if (!token) {
         return [];
     }
-
-    const url = IGDB_PROXY_URL;
 
     // O corpo da requisição é escrito na linguagem de consulta do IGDB (AQL)
     const body = `
@@ -60,7 +72,7 @@ export async function searchGameIGDB(gameName) {
     `;
 
     try {
-        const response = await fetch(url, {
+        const response = await fetch(IGDB_PROXY_URL, {
             method: 'POST',
             headers: {
                 'Client-ID': CLIENT_ID,
@@ -79,19 +91,16 @@ export async function searchGameIGDB(gameName) {
         return results.map(game => ({
             id: game.id.toString(),
             nome: game.name,
-            // IGDB não fornece tempo médio. Usamos um placeholder.
-            timeToBeat: 0,
-            // URL da imagem é construída a partir da URL miniatura (thumb) para uma versão maior (cover_big)
+            timeToBeat: 0, // Placeholder
+            // Melhora a qualidade da imagem trocando 'thumb' por 'cover_big'
             imageUrl: game.cover?.url ? `https:${game.cover.url}`.replace('thumb', 'cover_big') : '',
-            // Pega o primeiro gênero
-            genre: game.genres?.[0]?.name || 'Ação (API)',
-            // Usa o nome da primeira empresa envolvida como "Plataforma" (placeholder)
-            platform: game.involved_companies?.[0]?.company?.name || 'Múltiplas (API)',
+            genre: game.genres?.[0]?.name || 'Outro',
+            platform: game.involved_companies?.[0]?.company?.name || 'PC',
         }));
 
     } catch (error) {
         console.error("Erro ao buscar jogos no IGDB:", error);
-        toast.error("Erro ao buscar jogos na IGDB. Tente novamente.");
+        toast.error("Erro na busca de jogos.");
         return [];
     }
 }
