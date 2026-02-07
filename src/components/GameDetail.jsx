@@ -1,15 +1,32 @@
-// src/components/GameDetail.jsx
 import React from 'react';
-import { ChevronLeft, CheckCircle, Zap, Gamepad, Edit, Trash, Star, MoveRight } from 'lucide-react'; 
-import { categoryNames, categoryColors, categoryIcons } from '../data/categories';
+import { ChevronLeft, CheckCircle, Zap, Gamepad, Edit, Trash, Star, MoveRight, Share2, Clock } from 'lucide-react'; 
+import { categoryNames, categoryIcons } from '../data/categories';
+import { toast } from 'react-hot-toast';
 
 // Função auxiliar segura
 const getCleanCategoryName = (name) => {
-    if (!name) return ""; // Proteção contra crash
+    if (!name) return "";
     return name
-        .replace(/[^a-zA-Z\u00C0-\u00FF\s]/g, '') // Mantém letras (incluindo acentos) e espaços
+        .replace(/[^a-zA-Z\u00C0-\u00FF\s]/g, '')
         .replace(/\(.*\)/, '')       
         .trim();                     
+};
+
+// Cores dinâmicas para a nota (Igual à GameList)
+const getRatingColor = (rating) => {
+  if (rating >= 9) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'; 
+  if (rating >= 7) return 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10';       
+  if (rating >= 5) return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';   
+  return 'text-red-400 border-red-500/30 bg-red-500/10';                          
+};
+
+// Classificação da duração do jogo
+const getGameLengthLabel = (hours) => {
+    if (!hours) return null;
+    if (hours <= 5) return { label: 'Curto', color: 'text-green-400' };
+    if (hours <= 15) return { label: 'Médio', color: 'text-blue-400' };
+    if (hours <= 40) return { label: 'Longo', color: 'text-purple-400' };
+    return { label: 'Épico', color: 'text-orange-400' };
 };
 
 export default function GameDetail({
@@ -23,7 +40,6 @@ export default function GameDetail({
   
   const currentStatus = selectedGame.status;
   
-  // ATUALIZADO: Agora lista as categorias novas do Kanban + Desejados
   const statusOptions = [
     { id: 'playing', label: categoryNames.playing, color: 'bg-orange-600 hover:bg-orange-500' },
     { id: 'installed', label: categoryNames.installed, color: 'bg-blue-600 hover:bg-blue-500' },
@@ -37,16 +53,11 @@ export default function GameDetail({
     : 'bg-green-500 hover:bg-green-600';
   
   const handleFinishToggle = () => {
-    // Se o jogo NÃO está zerado e queremos marcar, ABRE O MODAL DE REVIEW
     if (!isFinished) {
         openReviewModal(selectedGame);
         return;
     } 
-    
-    // Se está zerado, volta para 'playing' (ou o status original)
     const newStatus = selectedGame.originalStatus || 'playing'; 
-    
-    // Remove a nota e o review ao desmarcar como zerado
     const gameToUpdate = { ...selectedGame, rating: null, reviewText: "" };
     handleUpdateGameStatus(selectedGame.id, newStatus, gameToUpdate);
     setSelectedGame({ ...gameToUpdate, status: newStatus }); 
@@ -58,10 +69,28 @@ export default function GameDetail({
         gameToUpdate = { ...selectedGame, rating: null, reviewText: "" };
     }
     handleUpdateGameStatus(selectedGame.id, newStatus, gameToUpdate);
-    setSelectedGame(null); // Fecha o detalhe após mover
+    setSelectedGame(null); 
   };
   
-  const CurrentIcon = categoryIcons[currentStatus];
+  const handleShare = async () => {
+    const text = isFinished 
+        ? `Acabei de zerar ${selectedGame.nome} no meu Backlog! Minha nota: ${selectedGame.rating}/10 🎮`
+        : `Estou jogando ${selectedGame.nome} e organizando meu backlog! 🎮`;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Meu Game Backlog',
+                text: text,
+            });
+        } catch (error) {
+            console.log('Erro ao compartilhar', error);
+        }
+    } else {
+        navigator.clipboard.writeText(text);
+        toast.success('Texto copiado para a área de transferência!');
+    }
+  };
 
   const handleRemove = () => {
       if (window.confirm(`Tem certeza que deseja remover o jogo "${selectedGame.nome}" do seu backlog?`)) {
@@ -70,9 +99,9 @@ export default function GameDetail({
       }
   };
 
-  // Filtra para não mostrar o botão do status atual nem 'zerados' (que tem botão próprio)
+  const CurrentIcon = categoryIcons[currentStatus];
   const filteredMoveOptions = statusOptions.filter(opt => opt.id !== currentStatus && opt.id !== 'zerados');
-
+  const lengthInfo = getGameLengthLabel(selectedGame.timeToBeat);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-20">
@@ -85,10 +114,16 @@ export default function GameDetail({
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-bold text-center flex-1 truncate px-2">{selectedGame.nome}</h2>
           
-          {/* Botões de Ação */}
-          <div className='flex gap-2'>
+          <div className="flex gap-2">
+             {/* Botão de Share */}
+             <button
+                onClick={handleShare}
+                className="p-2 bg-gray-800/50 rounded-xl border border-gray-700 hover:border-green-500 text-green-400 transition-all"
+                title="Compartilhar"
+            >
+                <Share2 className="w-5 h-5" />
+            </button>
             <button
                 onClick={openEditModal}
                 className="p-2 bg-gray-800/50 rounded-xl border border-gray-700 hover:border-blue-500 text-blue-400 transition-all"
@@ -105,71 +140,91 @@ export default function GameDetail({
         </div>
 
         {/* Game Image Card */}
-        <div className="mb-6 rounded-2xl overflow-hidden shadow-xl border border-gray-700 bg-gray-800 h-48 md:h-64 flex items-center justify-center relative group">
+        <div className="mb-6 rounded-3xl overflow-hidden shadow-2xl border border-gray-700 bg-gray-800 h-56 md:h-72 flex items-center justify-center relative group">
             {selectedGame.imageBase64 ? ( 
                 <img
                     src={selectedGame.imageBase64} 
                     alt={`Capa do jogo ${selectedGame.nome}`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
             ) : (
-                 <Gamepad className="w-20 h-20 text-gray-600" />
+                 <Gamepad className="w-24 h-24 text-gray-600" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60" />
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-80" />
             
-            {/* Badge de Status flutuante */}
-            <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/60 backdrop-blur rounded-full text-xs border border-white/10 flex items-center gap-2">
-                 {CurrentIcon && <CurrentIcon className="w-3 h-3 text-cyan-400" />}
-                 {categoryNames[currentStatus]}
+            <div className="absolute bottom-0 left-0 p-6 w-full">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-3 py-1 bg-black/60 backdrop-blur rounded-full text-xs border border-white/10 flex items-center gap-2 uppercase tracking-wide font-bold`}>
+                        {CurrentIcon && <CurrentIcon className="w-3 h-3 text-cyan-400" />}
+                        {categoryNames[currentStatus]}
+                    </span>
+                </div>
+                <h1 className="text-3xl font-bold text-white leading-tight shadow-black drop-shadow-lg">
+                    {selectedGame.nome}
+                </h1>
             </div>
         </div>
 
         {/* Game Info Card */}
-        <div className={`bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700 mb-6`}>
+        <div className={`bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 mb-6 shadow-lg`}>
           
-          {/* Se estiver Zerado, mostra a Nota com destaque */}
+          {/* Se estiver Zerado, mostra a Nota com destaque e cores dinâmicas */}
           {isFinished && selectedGame.rating !== null && (
-            <div className="flex flex-col items-center justify-center py-4 border-b border-gray-700 mb-4 bg-green-500/10 rounded-xl border-dashed border-green-500/30">
+            <div className={`flex flex-col items-center justify-center py-6 border-b border-gray-700 mb-6 rounded-2xl border-dashed ${getRatingColor(selectedGame.rating)} bg-opacity-10`}>
                 <div className='flex items-center gap-2 mb-1'>
-                    <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
-                    <span className="text-4xl font-bold text-white tracking-tighter">
+                    <Star className={`w-8 h-8 fill-current`} />
+                    <span className="text-5xl font-extrabold tracking-tighter">
                         {selectedGame.rating}
                     </span>
-                    <span className="text-xl text-gray-400 mt-2">/10</span>
+                    <span className="text-xl opacity-70 mt-3">/10</span>
                 </div>
-                <span className="text-xs text-green-400 uppercase tracking-widest font-bold">Avaliação Final</span>
+                <span className="text-xs uppercase tracking-[0.2em] font-bold opacity-80">Avaliação Final</span>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4 text-center border-b border-gray-700 pb-4 mb-4">
-            <div>
-              <div className="text-lg font-bold text-cyan-400 truncate">{selectedGame.platform}</div>
-              <div className="text-xs text-gray-400">Plataforma</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-purple-400 truncate">
-                {selectedGame.genre}
+          <div className="grid grid-cols-3 gap-4 text-center border-b border-gray-700 pb-6 mb-6">
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center mb-2">
+                <Gamepad className="w-5 h-5 text-cyan-400" />
               </div>
-              <div className="text-xs text-gray-400">Gênero</div>
+              <div className="text-sm font-bold text-gray-200 truncate w-full">{selectedGame.platform}</div>
+              <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Plataforma</div>
             </div>
-            <div>
-              <div className="text-lg font-bold text-green-400">{selectedGame.timeToBeat}h</div>
-              <div className="text-xs text-gray-400">Tempo Médio</div>
+            
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mb-2">
+                <Zap className="w-5 h-5 text-purple-400" />
+              </div>
+              <div className="text-sm font-bold text-gray-200 truncate w-full">{selectedGame.genre}</div>
+              <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Gênero</div>
+            </div>
+            
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center mb-2">
+                <Clock className="w-5 h-5 text-green-400" />
+              </div>
+              <div className="text-sm font-bold text-gray-200">{selectedGame.timeToBeat}h</div>
+              {lengthInfo && (
+                  <div className={`text-[10px] uppercase tracking-wider font-bold ${lengthInfo.color}`}>{lengthInfo.label}</div>
+              )}
             </div>
           </div>
           
           {/* Notas Pessoais */}
           {selectedGame.notes && selectedGame.notes.trim() && (
-            <div className='p-4 bg-gray-700/30 rounded-xl mb-4 border border-gray-700'>
-              <p className='text-xs text-gray-400 font-bold uppercase mb-2 tracking-wider'>Suas Anotações</p>
-              <p className='text-gray-200 text-sm leading-relaxed'>{selectedGame.notes}</p>
+            <div className='p-5 bg-gray-900/50 rounded-2xl mb-4 border border-gray-700/50'>
+              <p className='text-xs text-gray-400 font-bold uppercase mb-3 tracking-wider flex items-center gap-2'>
+                <Edit className="w-3 h-3" />
+                Suas Anotações
+              </p>
+              <p className='text-gray-300 text-sm leading-relaxed whitespace-pre-line'>{selectedGame.notes}</p>
             </div>
           )}
 
           {/* Review Final */}
           {isFinished && selectedGame.reviewText && selectedGame.reviewText.trim() && (
-            <div className='p-4 bg-green-900/20 border border-green-500/30 rounded-xl'>
-              <p className='text-xs text-green-400 font-bold uppercase mb-2 tracking-wider flex items-center gap-2'>
+            <div className='p-5 bg-gradient-to-br from-green-900/20 to-emerald-900/20 border border-green-500/20 rounded-2xl'>
+              <p className='text-xs text-green-400 font-bold uppercase mb-3 tracking-wider flex items-center gap-2'>
                 <CheckCircle className='w-3 h-3' />
                 Review Final
               </p>
@@ -188,8 +243,8 @@ export default function GameDetail({
         </button>
         
         {/* Mover Status */}
-        <div className='bg-gray-800/50 backdrop-blur rounded-2xl p-5 border border-gray-700 mb-6'>
-          <h3 className='font-semibold text-sm text-gray-400 uppercase tracking-wider mb-4 text-center flex items-center justify-center gap-2'>
+        <div className='bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 mb-6'>
+          <h3 className='font-semibold text-xs text-gray-400 uppercase tracking-widest mb-4 text-center flex items-center justify-center gap-2'>
             <MoveRight className="w-4 h-4" />
             Mover para...
           </h3>
