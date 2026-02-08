@@ -57,7 +57,6 @@ export default function ProgressScreen({
   ].filter(item => item.count > 0);
   
   // Preparar histórico recente ordenado (Limitado a 5)
-  // Calculado aqui para evitar lógica complexa dentro do JSX
   const recentHistory = useMemo(() => {
       return [...gameHistory]
         .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -65,7 +64,7 @@ export default function ProgressScreen({
   }, [gameHistory]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pb-24 pt-6">
+    <div className="min-h-screen bg-gray-900 text-white pb-24 pt-6">
       <div className="max-w-md mx-auto px-4">
         {/* Header */}
         <div className="mb-6">
@@ -77,53 +76,53 @@ export default function ProgressScreen({
         <div className="grid grid-cols-2 gap-3 mb-6">
           
           {/* Card: Zerados */}
-          <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur rounded-2xl p-4 border border-green-500/30">
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="w-5 h-5 text-green-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-green-200">Zerados</span>
             </div>
             <div className="text-3xl font-bold text-white">{totalFinishedGames}</div>
-            <div className="text-xs text-gray-300">jogos concluídos</div>
+            <div className="text-xs text-gray-400">jogos concluídos</div>
           </div>
 
           {/* Card: Tempo Total */}
-          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur rounded-2xl p-4 border border-blue-500/30">
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-5 h-5 text-blue-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-blue-200">Horas</span>
             </div>
             <div className="text-3xl font-bold text-white">{totalHours}h</div>
-            <div className="text-xs text-gray-300">de jogatina estimada</div>
+            <div className="text-xs text-gray-400">de jogatina estimada</div>
           </div>
           
           {/* Card: Nota Média */}
-          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 backdrop-blur rounded-2xl p-4 border border-yellow-500/30">
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
             <div className="flex items-center gap-2 mb-2">
               <Star className="w-5 h-5 text-yellow-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-yellow-200">Nota Média</span>
             </div>
             <div className="text-3xl font-bold text-white">{advancedStats.avgRating}</div>
-            <div className="text-xs text-gray-300">nos jogos zerados</div>
+            <div className="text-xs text-gray-400">nos jogos zerados</div>
           </div>
 
           {/* Card: Gênero Favorito */}
-          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur rounded-2xl p-4 border border-purple-500/30">
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
             <div className="flex items-center gap-2 mb-2">
               <Heart className="w-5 h-5 text-pink-400" />
               <span className="text-xs font-bold uppercase tracking-wider text-pink-200">Vício</span>
             </div>
             <div className="text-xl font-bold text-white truncate leading-8 pt-1">{advancedStats.favoriteGenre}</div>
-            <div className="text-xs text-gray-300">gênero mais zerado</div>
+            <div className="text-xs text-gray-400">gênero mais zerado</div>
           </div>
 
         </div>
 
         {/* Gráfico de Status */}
         {gamesData.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 mb-6 shadow-xl relative z-10">
+          <div className="bg-gray-800 rounded-3xl p-6 border border-gray-700 mb-6">
             <h3 className="font-semibold mb-6 flex items-center gap-2 text-gray-200">
               <TrendingUp className="w-5 h-5 text-cyan-400" />
-              Distribuição da Biblioteca
+              Distribuição
             </h3>
             
             <div style={{ width: '100%', height: 250, position: 'relative' }}>
@@ -140,13 +139,12 @@ export default function ProgressScreen({
                     paddingAngle={5}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.3)" />
+                      <Cell key={`cell-${index}`} fill={entry.fill} strokeWidth={0} />
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '12px' }}
                     itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                    formatter={(value) => [`${value} jogos`, 'Quantidade']}
                   />
                   <Legend 
                     layout="horizontal" 
@@ -166,38 +164,29 @@ export default function ProgressScreen({
           </div>
         )}
 
-        {/* Histórico Recente - CORRIGIDO */}
+        {/* Histórico Recente (ESTÁTICO - LISTA SIMPLES) */}
         {recentHistory.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 overflow-hidden relative z-10">
+          <div className="bg-gray-800 rounded-3xl p-6 border border-gray-700">
             <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-200">
               <History className="w-5 h-5 text-yellow-400" />
-              Linha do Tempo (Zerados)
+              Recém Zerados
             </h3>
-            <div className="space-y-4 relative">
+            
+            <div className="flex flex-col gap-3">
               {recentHistory.map((item, index) => (
                   <div
                     key={index}
-                    className="relative flex items-center gap-4 p-3 rounded-xl hover:bg-gray-700/30 transition-colors"
+                    className="flex items-center gap-4 p-4 rounded-xl bg-gray-700/50 border border-gray-700"
                   >
-                    {/* Linha vertical conectora 
-                        - left-[31px]: Centraliza perfeitamente no ícone (12px padding + 20px metade ícone - 1px metade linha)
-                        - height: calc(100% + 16px): Cobre a altura do item + o espaçamento (gap-4 do pai)
-                        - Lógica: Não renderiza no último item
-                    */}
-                    {index !== recentHistory.length - 1 && (
-                        <div className="absolute left-[31px] top-8 w-0.5 h-[calc(100%+16px)] bg-gray-700/50 -z-10" />
-                    )}
-                    
-                    <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center shrink-0 z-10 bg-gray-800">
-                        <CheckCircle className="w-5 h-5 text-green-400" />
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center shrink-0 text-green-400">
+                        <CheckCircle className="w-5 h-5" />
                     </div>
                     
-                    {/* min-w-0 e truncate evitam que nomes longos quebrem o layout */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-gray-200 truncate pr-2" title={item.game}>
+                      <div className="font-bold text-gray-200 truncate" title={item.game}>
                         {item.game}
                       </div>
-                      <div className="text-xs text-gray-400 flex items-center gap-1">
+                      <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
                         <Clock className="w-3 h-3" />
                         {new Date(item.date).toLocaleDateString("pt-BR", { day: 'numeric', month: 'long' })}
                       </div>
