@@ -1,204 +1,132 @@
-import React from "react";
-import { Droppable, Draggable } from "@hello-pangea/dnd";
-import { Gamepad2, List, Trophy, Clock, Star, PlusCircle, Box } from "lucide-react";
-import { categoryNames } from "../data/categories";
+import React from 'react';
+import { Droppable } from '@hello-pangea/dnd';
+import { categoryNames, categoryIcons, categoryColors } from '../data/categories';
+import { Plus, Trophy, Dice5 } from 'lucide-react'; // Importe o Dice5
+import { toast } from 'react-hot-toast';
 
-// --- Componente do Cartão (Draggable) ---
-const GameCard = ({ game, index, onClick }) => {
-  // CORREÇÃO CRÍTICA: Se não tiver ID ou jogo, não renderiza para evitar crash
-  if (!game || game.id === undefined || game.id === null) return null;
-  
-  // CORREÇÃO CRÍTICA: Converte ID para string OBRIGATORIAMENTE
-  const safeId = String(game.id);
-
-  return (
-    <Draggable draggableId={safeId} index={index}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          onClick={(e) => {
-            e.stopPropagation(); // Impede que o clique no card abra a coluna
-            onClick(game);
-          }}
-          className={`
-            mb-3 p-3 rounded-xl border border-gray-700/50 shadow-lg backdrop-blur-md transition-all group cursor-grab active:cursor-grabbing flex gap-3 items-center
-            ${snapshot.isDragging ? "bg-cyan-900/90 scale-105 z-50 ring-2 ring-cyan-400 rotate-2 shadow-2xl" : "bg-gray-800/60 hover:bg-gray-700/80 hover:border-cyan-500/30"}
-          `}
-          style={{ ...provided.draggableProps.style }} // Mantém o estilo necessário da lib
-        >
-            {/* Imagem Pequena */}
-            <div className="w-12 h-16 rounded-lg bg-gray-900 overflow-hidden flex-shrink-0 border border-gray-700 relative">
-              {game.imageBase64 ? (
-                <img src={game.imageBase64} alt={game.nome} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-800">
-                  <Gamepad2 size={20} />
-                </div>
-              )}
-            </div>
-
-            {/* Informações */}
-            <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-gray-100 text-sm truncate leading-tight mb-1 group-hover:text-cyan-400 transition-colors">
-                {game.nome || "Jogo sem nome"}
-              </h4>
-              <p className="text-xs text-gray-400 truncate mb-1">{game.platform || "Plataforma"}</p>
-              
-              <div className="flex items-center gap-2 text-[10px] text-gray-500 font-medium">
-                {game.rating && (
-                   <span className="text-yellow-500 flex items-center gap-0.5 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">
-                     <Star size={10} fill="currentColor" /> {game.rating}
-                   </span>
-                )}
-                {game.timeToBeat > 0 && (
-                   <span className="flex items-center gap-0.5 bg-gray-700/50 px-1.5 py-0.5 rounded text-gray-400">
-                     <Clock size={10} /> {game.timeToBeat}h
-                   </span>
-                )}
-              </div>
-            </div>
-        </div>
-      )}
-    </Draggable>
-  );
-};
-
-// --- Componente da Coluna (Droppable) ---
-const KanbanColumn = ({ id, title, games, icon: Icon, color, onHeaderClick, onGameClick }) => {
-  return (
-    <div className="flex flex-col h-full min-w-[280px] md:w-1/3 bg-gray-900/40 rounded-2xl border border-gray-800/50 overflow-hidden flex-shrink-0">
-      {/* Cabeçalho */}
-      <div 
-        onClick={() => onHeaderClick(id)}
-        className={`p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors border-b border-white/5 ${color}`}
-      >
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
-            <Icon size={18} className="text-current opacity-90" />
-          </div>
-          <span className="font-bold text-gray-100">{title}</span>
-        </div>
-        <span className="text-xs font-bold bg-gray-900/50 px-2.5 py-1 rounded-md text-gray-400 border border-gray-700/50 min-w-[1.5rem] text-center">
-          {games.length}
-        </span>
-      </div>
-
-      {/* Área de Drop */}
-      <Droppable droppableId={id}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={`
-              flex-1 p-3 overflow-y-auto custom-scrollbar transition-colors
-              ${snapshot.isDraggingOver ? "bg-cyan-500/5 ring-inset ring-2 ring-cyan-500/20" : "bg-transparent"}
-            `}
-            style={{ minHeight: "150px" }} // Garante altura mínima para soltar
-          >
-            {games && games.length > 0 ? (
-              games.map((game, index) => {
-                 // Proteção extra: garante que key é string única
-                 const safeKey = game.id ? String(game.id) : `temp-${index}`;
-                 return (
-                    <GameCard 
-                        key={safeKey} 
-                        game={game} 
-                        index={index} 
-                        onClick={onGameClick} 
-                    />
-                 );
-              })
-            ) : (
-               <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-60 min-h-[120px]">
-                  <Box size={32} strokeWidth={1.5} className="mb-2 opacity-50" />
-                  <p className="text-xs font-medium">Vazio</p>
-               </div>
-            )}
-            {provided.placeholder}
-          </div>
-        )}
-      </Droppable>
-    </div>
-  );
-};
-
-export default function CategorySelector({
-  games,
-  setSelectedCategory,
-  setSelectedGame,
-  getCategoryProgress,
+export default function CategorySelector({ 
+  games, 
+  setSelectedCategory, 
+  setSelectedGame, // Precisamos disto para abrir o jogo
+  getCategoryProgress, 
   user,
   totalFinishedGames,
-  setIsAddGameModalOpen
+  setIsAddGameModalOpen 
 }) {
   
-  const columns = [
-    { id: "playing", title: categoryNames.playing || "Jogando", icon: Gamepad2, color: "text-orange-400" },
-    { id: "backlog", title: categoryNames.backlog || "Backlog", icon: List, color: "text-purple-400" },
-    { id: "zerados", title: categoryNames.zerados || "Zerados", icon: Trophy, color: "text-emerald-400" }
-  ];
+  // FUNÇÃO CRIATIVA: Backlog Buster
+  const handleRandomPick = (e) => {
+    e.stopPropagation();
+    
+    // Junta jogos que são jogáveis (exclui zerados e desejados se quiser focar no backlog)
+    const playableGames = [
+        ...(games['playing'] || []),
+        ...(games['installed'] || []),
+        ...(games['backlog'] || [])
+    ];
+
+    if (playableGames.length === 0) {
+        toast.error("Adicione jogos ao backlog primeiro!");
+        return;
+    }
+
+    // Efeito de "Rolagem"
+    const toastId = toast.loading('Rolando os dados do destino...');
+    
+    setTimeout(() => {
+        const randomGame = playableGames[Math.floor(Math.random() * playableGames.length)];
+        toast.dismiss(toastId);
+        toast.success(`O destino escolheu: ${randomGame.nome}`, { duration: 4000 });
+        setSelectedGame(randomGame); // Abre o jogo diretamente
+    }, 1500);
+  };
 
   return (
-    <div className="p-4 max-w-7xl mx-auto h-[calc(100vh-140px)] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 shrink-0">
-         <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              Olá, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">{user.displayName?.split(' ')[0]}</span> 👋
-            </h2>
-            <p className="text-gray-400 text-sm flex items-center gap-2 mt-1">
-               <Trophy size={14} className="text-yellow-500" /> 
-               <span className="font-semibold text-gray-300">{totalFinishedGames}</span> Jogos Zerados
-            </p>
-         </div>
-         
-         <div className="flex gap-2">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4 pb-24">
+      {/* Header com Perfil */}
+      <div className="flex items-center justify-between mb-8 pt-2">
+        <div className="flex items-center gap-3">
+          <div className="relative group cursor-pointer">
+            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-transform group-hover:scale-105">
+               {user?.photoBase64 || user?.photoURL ? (
+                  <img src={user.photoBase64 || user.photoURL} alt="Perfil" className="w-full h-full object-cover" />
+               ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-lg font-bold">
+                    {user?.displayName?.charAt(0) || 'G'}
+                  </div>
+               )}
+            </div>
+            <div className="absolute -bottom-1 -right-1 bg-gray-900 rounded-full p-0.5">
+               <div className="bg-yellow-500 text-[10px] font-bold px-1.5 rounded-full text-black flex items-center gap-0.5">
+                 <Trophy className="w-2 h-2" />
+                 {totalFinishedGames}
+               </div>
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">Olá, {user?.displayName?.split(' ')[0] || 'Gamer'}!</h1>
+            <p className="text-xs text-gray-400">Pronto para jogar?</p>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+            {/* BOTÃO BACKLOG BUSTER */}
+            <button
+                onClick={handleRandomPick}
+                className="p-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl shadow-lg hover:shadow-purple-500/20 active:scale-95 transition-all"
+                title="Escolher jogo aleatório"
+            >
+                <Dice5 className="w-5 h-5 text-white animate-pulse" />
+            </button>
+
             <button
                 onClick={() => setIsAddGameModalOpen(true)}
-                className="p-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/20 transition-all active:scale-95 flex items-center gap-2 font-bold group"
+                className="p-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all"
             >
-                <PlusCircle size={20} className="group-hover:rotate-90 transition-transform" />
-                <span className="hidden md:inline">Novo Jogo</span>
+                <Plus className="w-5 h-5 text-white" />
             </button>
-         </div>
-      </div>
-
-      {/* Colunas */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
-        <div className="flex flex-col md:flex-row gap-4 h-full min-w-full md:min-w-0">
-            {columns.map(col => (
-                <KanbanColumn
-                    key={col.id}
-                    id={col.id}
-                    title={col.title}
-                    icon={col.icon}
-                    color={col.color}
-                    games={games[col.id] || []}
-                    onHeaderClick={setSelectedCategory}
-                    onGameClick={setSelectedGame}
-                />
-            ))}
         </div>
       </div>
-      
-      {/* Botões extras rodapé */}
-      <div className="flex gap-2 mt-2 overflow-x-auto pb-2 shrink-0 no-scrollbar">
-          {['installed', 'desejados'].map(cat => {
-              const count = games[cat]?.length || 0;
-              if (count === 0) return null;
-              return (
-                  <button 
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className="px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-xs font-bold text-gray-400 hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap active:scale-95"
-                  >
-                    <span>{categoryNames[cat]}</span>
-                    <span className="bg-gray-700 px-1.5 py-0.5 rounded text-[10px] text-gray-300 min-w-[1.2rem]">{count}</span>
-                  </button>
-              )
-          })}
+
+      {/* Grid de Categorias (Kanban) */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+         {Object.entries(categoryNames).map(([key, label]) => {
+           // ... (Mantenha o código existente do map aqui)
+           // Apenas certifique-se de que está tudo igual ao anterior
+           const Icon = categoryIcons[key];
+           const colorClass = categoryColors[key];
+           const count = getCategoryProgress(key);
+           
+           return (
+             <Droppable droppableId={key} key={key}>
+               {(provided, snapshot) => (
+                 <div
+                   ref={provided.innerRef}
+                   {...provided.droppableProps}
+                   onClick={() => setSelectedCategory(key)}
+                   className={`relative p-4 rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden group ${
+                     snapshot.isDraggingOver 
+                       ? 'bg-gray-700 border-white scale-105 shadow-xl z-10' 
+                       : 'bg-gray-800/50 border-gray-700 hover:border-gray-500 hover:shadow-lg'
+                   }`}
+                 >
+                   <div className={`absolute top-0 right-0 p-2 opacity-10 transition-opacity group-hover:opacity-20`}>
+                     <Icon className="w-16 h-16" />
+                   </div>
+                   
+                   <div className="relative z-10">
+                     <div className={`w-10 h-10 rounded-xl ${colorClass} bg-opacity-20 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                       <Icon className={`w-5 h-5 ${colorClass.replace('bg-', 'text-')}`} />
+                     </div>
+                     <div className="text-2xl font-bold mb-1">{count}</div>
+                     <div className="text-sm text-gray-400 font-medium">{label}</div>
+                   </div>
+                   {provided.placeholder}
+                 </div>
+               )}
+             </Droppable>
+           );
+         })}
       </div>
     </div>
   );

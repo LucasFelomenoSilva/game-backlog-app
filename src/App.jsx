@@ -371,12 +371,11 @@ function App() {
   const openGeminiQuestPlaceholder = () => toast('Quest não disponível hoje, aventureiro!', { icon: '🛡️' });
 
   // RENDERIZAÇÃO
-  // RENDERIZAÇÃO
   const renderContent = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
-          <ParticleBackground />
+          <ParticleBackground /> {/* Partículas no loading também */}
           <div className="text-center z-10 p-6 bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-cyan-500/30 shadow-2xl">
             <Gamepad2 className="w-16 h-16 text-cyan-500 mx-auto mb-4 animate-bounce" />
             <div className="w-48 h-2 bg-gray-700 rounded-full mx-auto mb-4 overflow-hidden">
@@ -414,20 +413,17 @@ function App() {
       );
     }
 
-    // --- AQUI ESTÁ A MUDANÇA PRINCIPAL PARA O BOTÃO VOLTAR ---
+    // ... (Mantenha o resto dos renderContent: Progress, Achievements, Profile, etc.) ...
     
     if (activeTab === "progress") {
-      // Passamos a função goBack
-      return <ProgressScreen gameHistory={gameHistory} gamesData={gamesData} totalFinishedGames={totalFinishedGames} goBack={() => setActiveTab('categories')} />;
+      return <ProgressScreen gameHistory={gameHistory} gamesData={gamesData} totalFinishedGames={totalFinishedGames} />;
     }
     
     if (activeTab === "achievements") {
-       // Se quiser no Achievements também, precisaria editar o componente, mas vamos focar nos principais
       return <EnhancedAchievements achievements={achievements} personalRecords={{}} />;
     }
 
     if (activeTab === "profile") {
-      // Passamos a função goBack
       return (
         <ProfileScreen
           user={user}
@@ -436,7 +432,6 @@ function App() {
           totalCategories={Object.keys(categoryNames).length}
           totalAchievements={achievements.length}
           handleProfileImageUpload={handleProfileImageUpload}
-          goBack={() => setActiveTab('categories')} 
         />
       );
     }
