@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight } from 'lucide-react';
+import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight, Monitor, Tv } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
@@ -38,9 +38,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         nome: initialData.nome || '',
         genre: initialData.genre || 'RPG',
         platform: initialData.platform || 'PC',
-        // Se vier imagem da IA, prepara para carregar
         imageBase64: initialData.imageUrl ? `LOADING_URL:${initialData.imageUrl}` : "",
-        status: 'jogando' // Sugestão padrão
+        status: 'jogando'
       }));
       toast.success("Dados da recomendação carregados! Salve para confirmar.", { icon: '✨' });
     } else if (isEditing && gameToEdit) {
@@ -52,6 +51,26 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  // --- NOVA LÓGICA DE PLATAFORMAS MÚLTIPLAS ---
+  const togglePlatform = (platform) => {
+    // Separa a string atual em um array (ex: "PC | PS5" vira ["PC", "PS5"])
+    // Se estiver vazio ou for undefined, começa com array vazio
+    const currentPlatforms = formData.platform ? formData.platform.split(' | ').filter(p => p.trim() !== '') : [];
+    
+    let newPlatforms;
+    if (currentPlatforms.includes(platform)) {
+        // Se já tem, remove
+        newPlatforms = currentPlatforms.filter(p => p !== platform);
+    } else {
+        // Se não tem, adiciona
+        newPlatforms = [...currentPlatforms, platform];
+    }
+    
+    // Junta de volta em uma string bonita para salvar
+    setFormData(prev => ({ ...prev, platform: newPlatforms.join(' | ') }));
+  };
+  // ---------------------------------------------
 
   const handleFileChange = (e) => {
     setImageFile(e.target.files[0]);
@@ -100,7 +119,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
       timeToBeat: gameResult.timeToBeat,
       imageBase64: gameResult.imageUrl ? `LOADING_URL:${gameResult.imageUrl}` : "",
       genre: gameResult.genre,
-      platform: gameResult.platform,
+      platform: gameResult.platform, // A API geralmente retorna uma só, mas agora você pode adicionar mais depois
     }));
 
     setSearchQuery('');
@@ -135,6 +154,12 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     if (!formData.nome.trim()) {
       alert("O nome do jogo é obrigatório!");
       return;
+    }
+    
+    // Validação extra: garantir que tem pelo menos uma plataforma
+    if (!formData.platform) {
+        toast.error("Selecione pelo menos uma plataforma!");
+        return;
     }
 
     setLoading(true);
@@ -187,10 +212,16 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const displayImage = previewImageURL || (formData.imageBase64 && !formData.imageBase64.startsWith('LOADING_URL:') ? formData.imageBase64 : null);
 
   const availableCategories = Object.entries(categoryNames);
+  
+  // Helper para verificar se a plataforma está selecionada
+  const isPlatformSelected = (p) => {
+      if (!formData.platform) return false;
+      return formData.platform.split(' | ').includes(p);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-gray-800 dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto">
+      <div className="bg-gray-800 dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto custom-scrollbar">
 
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -264,6 +295,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             accept="image/*"
           />
 
+          {/* Seção da Imagem (Capa) */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Capa do Jogo</label>
             <div className='flex items-center space-x-4'>
@@ -304,18 +336,36 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             />
           </div>
 
+          {/* --- NOVA SEÇÃO DE PLATAFORMAS (BADGES) --- */}
           <div>
-            <label htmlFor="platform" className="block text-sm font-medium text-gray-300 mb-1">Plataforma</label>
-            <select
-              id="platform"
-              name="platform"
-              value={formData.platform}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
-            >
-              {platformOptions.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Plataformas (Selecione todas que possui)</label>
+            <div className="flex flex-wrap gap-2 p-3 bg-gray-700/30 rounded-xl border border-gray-700">
+                {platformOptions.map((p) => {
+                    const selected = isPlatformSelected(p);
+                    return (
+                        <button
+                            key={p}
+                            type="button"
+                            onClick={() => togglePlatform(p)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                                selected
+                                ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                                : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:border-gray-500'
+                            }`}
+                        >
+                            {selected && <Zap className="w-3 h-3" />}
+                            {p}
+                        </button>
+                    )
+                })}
+            </div>
+            {formData.platform && (
+                <p className="text-xs text-gray-400 mt-1 ml-1">
+                    Selecionado: <span className="text-cyan-400">{formData.platform}</span>
+                </p>
+            )}
           </div>
+          {/* ------------------------------------------- */}
 
           <div>
             <label htmlFor="genre" className="block text-sm font-medium text-gray-300 mb-1">Gênero</label>
@@ -359,14 +409,15 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
           </div>
 
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-1">Notas (Opcional)</label>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-1">Anotações Extras</label>
             <textarea
               id="notes"
               name="notes"
               rows="2"
+              placeholder="Ex: Peguei na promoção, versão GOTY..."
               value={formData.notes}
               onChange={handleChange}
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all"
+              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-500"
             ></textarea>
           </div>
 
