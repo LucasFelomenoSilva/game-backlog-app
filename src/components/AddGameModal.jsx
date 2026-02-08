@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight } from 'lucide-react';
+import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight, Clock } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
@@ -38,7 +38,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         genre: initialData.genre || 'RPG',
         platform: initialData.platform || 'PC',
         imageBase64: initialData.imageUrl ? `LOADING_URL:${initialData.imageUrl}` : "",
-        status: 'jogando'
+        status: 'jogando',
+        timeToBeat: initialData.timeToBeat || 0
       }));
       toast.success("Dados carregados!");
     } else if (isEditing && gameToEdit) {
@@ -108,7 +109,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     setFormData(prev => ({
       ...prev,
       nome: gameResult.nome,
-      timeToBeat: gameResult.timeToBeat,
+      timeToBeat: gameResult.timeToBeat || 0,
       imageBase64: gameResult.imageUrl ? `LOADING_URL:${gameResult.imageUrl}` : "",
       genre: gameResult.genre,
       platform: gameResult.platform,
@@ -144,7 +145,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nome.trim()) {
-      alert("Selecione um jogo na busca!");
+      alert("O nome do jogo é obrigatório!");
       return;
     }
     
@@ -209,70 +210,79 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-      <div className="bg-gray-800 rounded-3xl w-full max-w-md p-6 border border-gray-700 max-h-[90vh] overflow-y-auto">
+    // [!] Tela Estática (Full Screen)
+    <div className="fixed inset-0 z-50 bg-gray-900 overflow-y-auto flex flex-col">
+      <div className="w-full max-w-2xl mx-auto p-4 md:p-6 pb-20">
 
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Gamepad className="w-6 h-6 text-cyan-400" />
-            {isEditing ? 'Editar Jogo' : 'Adicionar Jogo'}
+        <div className="flex items-center justify-between mb-8 mt-2">
+          <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Gamepad className="w-8 h-8 text-cyan-400" />
+            {isEditing ? 'Editar Jogo' : 'Novo Jogo'}
           </h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white">
+          <button onClick={onClose} className="p-2 bg-gray-800 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {!isEditing && (
-          <div className="mb-6">
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-cyan-400 mb-2 uppercase tracking-wide">Buscar na API</label>
             <form onSubmit={handleSearchSubmit} className='flex items-center gap-2'>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Busque o título..."
-                className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-xl text-white"
-              />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="Digite o nome para buscar informações..."
+                  className="w-full pl-10 p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:ring-2 focus:ring-cyan-500 transition-all"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={isSearching || searchQuery.length < 3}
-                className="p-3 bg-purple-600 rounded-xl hover:bg-purple-700 disabled:opacity-50"
+                className="p-4 bg-cyan-600 rounded-xl hover:bg-cyan-500 disabled:opacity-50 transition-colors"
               >
-                {isSearching ? <Loader2 className='w-5 h-5 animate-spin' /> : <Search className="w-5 h-5" />}
+                {isSearching ? <Loader2 className='w-6 h-6 animate-spin' /> : <Search className="w-6 h-6" />}
               </button>
             </form>
 
             {showSearchResults && (
-              <div className="mt-3 max-h-40 overflow-y-auto bg-gray-700 rounded-xl border border-gray-600">
+              <div className="mt-3 bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-2xl">
                 {isSearching ? (
-                  <p className='p-3 text-center text-gray-400 flex items-center justify-center gap-2'>
-                    <Loader2 className='w-4 h-4 animate-spin' /> Buscando...
+                  <p className='p-6 text-center text-gray-400 flex items-center justify-center gap-2'>
+                    <Loader2 className='w-5 h-5 animate-spin' /> Buscando dados do jogo...
                   </p>
                 ) : searchResults.length > 0 ? (
-                  searchResults.map(game => (
-                    <div
-                      key={game.id}
-                      onClick={() => handleSelectGame(game)}
-                      className='p-3 flex items-center justify-between border-b border-gray-600 hover:bg-gray-600 cursor-pointer'
-                    >
-                      <div className='flex items-center gap-3'>
-                        <Zap className='w-4 h-4 text-purple-400' />
-                        <div>
-                          <p className='font-semibold text-sm text-white'>{game.nome}</p>
-                          <p className='text-xs text-gray-400'>{game.genre} / {game.platform}</p>
+                  <div className="max-h-60 overflow-y-auto">
+                    {searchResults.map(game => (
+                        <div
+                        key={game.id}
+                        onClick={() => handleSelectGame(game)}
+                        className='p-4 flex items-center justify-between border-b border-gray-700 hover:bg-gray-700 cursor-pointer transition-colors'
+                        >
+                        <div className='flex items-center gap-4'>
+                            <div className="w-12 h-16 bg-gray-900 rounded overflow-hidden flex-shrink-0">
+                                {game.imageUrl ? <img src={game.imageUrl} className="w-full h-full object-cover" alt="" /> : <Gamepad className="w-full h-full p-2 text-gray-600" />}
+                            </div>
+                            <div>
+                            <p className='font-bold text-white text-lg'>{game.nome}</p>
+                            <p className='text-sm text-gray-400'>{game.genre} • {game.platform}</p>
+                            </div>
                         </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </div>
-                  ))
+                        <ChevronRight className="w-6 h-6 text-gray-500" />
+                        </div>
+                    ))}
+                  </div>
                 ) : (
-                  !isSearching && <p className='p-3 text-center text-gray-400'>Nenhum resultado.</p>
+                  !isSearching && <p className='p-6 text-center text-gray-400'>Nenhum resultado encontrado.</p>
                 )}
               </div>
             )}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <input
             type="file"
             ref={fileInputRef}
@@ -281,40 +291,103 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             accept="image/*"
           />
 
-          {/* Imagem */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Capa</label>
-            <div className='flex items-center space-x-4'>
-              <div className='flex-shrink-0 w-24 h-24 rounded-xl border border-gray-600 overflow-hidden bg-gray-700 flex items-center justify-center'>
-                {displayImage ? (
-                  <img
-                    src={displayImage}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    onLoad={() => { if (previewImageURL) URL.revokeObjectURL(previewImageURL) }}
-                  />
-                ) : (
-                  <Gamepad className="w-10 h-10 text-gray-500" />
-                )}
+          {/* Seção Principal: Capa e Dados Básicos */}
+          <div className="flex flex-col md:flex-row gap-6">
+              {/* Capa */}
+              <div className='flex flex-col gap-2 w-full md:w-1/3'>
+                <label className="block text-sm font-medium text-gray-400">Capa do Jogo</label>
+                <div 
+                    onClick={handleImageUploadClick}
+                    className='aspect-[3/4] rounded-2xl border-2 border-dashed border-gray-700 overflow-hidden bg-gray-800 flex items-center justify-center cursor-pointer hover:border-cyan-500 transition-colors group relative'
+                >
+                    {displayImage ? (
+                    <>
+                        <img
+                            src={displayImage}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            onLoad={() => { if (previewImageURL) URL.revokeObjectURL(previewImageURL) }}
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <Upload className="w-8 h-8 text-white" />
+                        </div>
+                    </>
+                    ) : (
+                    <div className="text-center p-4">
+                        <Upload className="w-10 h-10 text-gray-500 mx-auto mb-2 group-hover:text-cyan-400" />
+                        <span className="text-sm text-gray-500 group-hover:text-gray-300">Clique para upload</span>
+                    </div>
+                    )}
+                </div>
               </div>
-              <button
-                type='button'
-                onClick={handleImageUploadClick}
-                disabled={loading}
-                className="flex-1 py-2 px-4 bg-gray-700 border border-gray-600 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-gray-600 disabled:opacity-50"
-              >
-                <Upload className="w-5 h-5" />
-                Mudar Imagem
-              </button>
-            </div>
-          </div>
 
-          {/* Campos de Texto (Nome, Tempo, Notas) REMOVIDOS conforme solicitado */}
+              {/* Campos de Texto (Restaurados) */}
+              <div className="flex-1 space-y-4">
+                  <div>
+                    <label htmlFor="nome" className="block text-sm font-medium text-gray-300 mb-1">Nome do Jogo</label>
+                    <input
+                        type="text"
+                        id="nome"
+                        name="nome"
+                        value={formData.nome}
+                        onChange={handleChange}
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:border-cyan-500 focus:outline-none"
+                        placeholder="Ex: The Legend of Zelda..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="genre" className="block text-sm font-medium text-gray-300 mb-1">Gênero</label>
+                        <select
+                        id="genre"
+                        name="genre"
+                        value={formData.genre}
+                        onChange={handleChange}
+                        className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl text-white appearance-none focus:border-cyan-500 focus:outline-none"
+                        >
+                        {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label htmlFor="timeToBeat" className="block text-sm font-medium text-gray-300 mb-1">Tempo (horas)</label>
+                        <div className="relative">
+                            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                            <input
+                                type="number"
+                                id="timeToBeat"
+                                name="timeToBeat"
+                                value={formData.timeToBeat}
+                                onChange={handleChange}
+                                className="w-full pl-9 p-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:border-cyan-500 focus:outline-none"
+                                placeholder="0"
+                            />
+                        </div>
+                      </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">Status Inicial</label>
+                    <select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full p-3 bg-gray-800 border border-gray-700 rounded-xl text-white appearance-none focus:border-cyan-500 focus:outline-none"
+                    >
+                    {availableCategories.map(([key, name]) => (
+                        <option key={key} value={key}>{name}</option>
+                    ))}
+                    </select>
+                  </div>
+              </div>
+          </div>
           
-          {/* Seção de Plataformas (Badges) - Mantida pois é seleção */}
+          {/* Seção de Plataformas */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Plataformas</label>
-            <div className="flex flex-wrap gap-2 p-3 bg-gray-700 rounded-xl border border-gray-600">
+            <div className="flex flex-wrap gap-2 p-4 bg-gray-800 rounded-xl border border-gray-700">
                 {platformOptions.map((p) => {
                     const selected = isPlatformSelected(p);
                     return (
@@ -322,13 +395,12 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                             key={p}
                             type="button"
                             onClick={() => togglePlatform(p)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1 ${
+                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
                                 selected
-                                ? 'bg-cyan-900 border-cyan-500 text-cyan-400'
-                                : 'bg-gray-800 border-gray-600 text-gray-400'
+                                ? 'bg-cyan-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                                : 'bg-gray-900 border-gray-700 text-gray-500 hover:bg-gray-700'
                             }`}
                         >
-                            {selected && <Zap className="w-3 h-3" />}
                             {p}
                         </button>
                     )
@@ -336,44 +408,16 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             </div>
           </div>
 
-          {/* Gênero (Select) */}
-          <div>
-            <label htmlFor="genre" className="block text-sm font-medium text-gray-300 mb-1">Gênero</label>
-            <select
-              id="genre"
-              name="genre"
-              value={formData.genre}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-xl text-white appearance-none"
+          <div className="pt-6">
+            <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold rounded-xl flex items-center justify-center gap-3 shadow-lg transform transition-transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
+                {loading ? <Loader2 className='w-6 h-6 animate-spin' /> : <Save className="w-6 h-6" />}
+                {loading ? 'Salvando Jogo...' : 'Salvar na Coleção'}
+            </button>
           </div>
-
-          {/* Status (Select) */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">Status Inicial</label>
-            <select
-              id="status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-xl text-white appearance-none"
-            >
-              {availableCategories.map(([key, name]) => (
-                <option key={key} value={key}>{name}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 mt-6 hover:bg-blue-700 disabled:opacity-60"
-          >
-            {loading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Save className="w-5 h-5" />}
-            {loading ? 'Salvando...' : 'Salvar Jogo'}
-          </button>
         </form>
       </div>
     </div>

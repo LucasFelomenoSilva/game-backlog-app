@@ -11,7 +11,7 @@ import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
 import GameRecommender from "./components/GameRecommender"; 
-import { Joystick, Sparkles, Gamepad2 } from "lucide-react"; 
+import { Joystick, Sparkles, Gamepad2, Plus } from "lucide-react"; 
 import imageCompression from "browser-image-compression";
 import { DragDropContext } from '@hello-pangea/dnd';
 import { auth, db, googleProvider } from "./firebase"; 
@@ -462,6 +462,17 @@ function App() {
             title="Pedir recomendação à IA"
         >
             <Sparkles className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* [!] Botão de Adicionar Jogo - MOVIDO PARA TOP-RIGHT */}
+      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isReviewModalOpen && !isAddGameModalOpen && (
+        <button
+            onClick={() => { setIsAddGameModalOpen(true); setDraftGame(null); }}
+            className="fixed top-6 right-6 z-40 p-3 bg-cyan-600 rounded-full shadow-xl text-white hover:bg-cyan-500 transition-transform hover:scale-110 border-2 border-white/20"
+            title="Adicionar Novo Jogo"
+        >
+            <Plus className="w-6 h-6" />
         </button>
       )}
 
