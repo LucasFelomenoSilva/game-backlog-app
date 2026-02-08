@@ -128,27 +128,3 @@ select {
 .dark {
   color-scheme: dark;
 }
-
-/* src/index.css */
-
-/* ... (seu css existente) ... */
-
-/* Animação de Partículas de Fundo */
-@keyframes float-particle {
-  0% { transform: translateY(0) translateX(0); opacity: 0; }
-  50% { opacity: 0.5; }
-  100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
-}
-
-.particle {
-  position: absolute;
-  background: white;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0;
-}
-
-/* Classes para diferentes tamanhos e velocidades */
-.p-1 { width: 2px; height: 2px; animation: float-particle 10s linear infinite; }
-.p-2 { width: 4px; height: 4px; animation: float-particle 15s linear infinite; }
-.p-3 { width: 1px; height: 1px; animation: float-particle 20s linear infinite; }
