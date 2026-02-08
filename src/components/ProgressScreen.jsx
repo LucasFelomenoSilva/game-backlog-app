@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, Clock, History, Star, Heart, Activity } from "lucide-react";
+import { TrendingUp, CheckCircle, Clock, History, Star, Heart } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'; 
 
 export default function ProgressScreen({
@@ -56,7 +56,13 @@ export default function ProgressScreen({
     { name: 'Desejos', count: statusCounts.desejados || 0, fill: '#f59e0b' }, 
   ].filter(item => item.count > 0);
   
-  const COLORS = ['#10b981', '#0ea5e9', '#8b5cf6', '#f59e0b']; 
+  // Preparar histórico recente ordenado (Limitado a 5)
+  // Calculado aqui para evitar lógica complexa dentro do JSX
+  const recentHistory = useMemo(() => {
+      return [...gameHistory]
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+  }, [gameHistory]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white pb-24 pt-6">
@@ -114,7 +120,7 @@ export default function ProgressScreen({
 
         {/* Gráfico de Status */}
         {gamesData.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 mb-6 shadow-xl">
+          <div className="bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 mb-6 shadow-xl relative z-10">
             <h3 className="font-semibold mb-6 flex items-center gap-2 text-gray-200">
               <TrendingUp className="w-5 h-5 text-cyan-400" />
               Distribuição da Biblioteca
@@ -132,7 +138,6 @@ export default function ProgressScreen({
                     innerRadius={60} 
                     outerRadius={85}
                     paddingAngle={5}
-                    data={chartData}
                   >
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.3)" />
@@ -153,7 +158,6 @@ export default function ProgressScreen({
                 </PieChart>
               </ResponsiveContainer>
               
-              {/* Centro do Gráfico */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none pb-8">
                 <span className="text-2xl font-bold text-white">{gamesData.length}</span>
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider">Total</p>
@@ -162,33 +166,37 @@ export default function ProgressScreen({
           </div>
         )}
 
-        {/* Histórico Recente */}
-        {gameHistory.length > 0 && (
-          <div className="bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700">
+        {/* Histórico Recente - CORRIGIDO */}
+        {recentHistory.length > 0 && (
+          <div className="bg-gray-800/50 backdrop-blur rounded-3xl p-6 border border-gray-700 overflow-hidden relative z-10">
             <h3 className="font-semibold mb-4 flex items-center gap-2 text-gray-200">
               <History className="w-5 h-5 text-yellow-400" />
               Linha do Tempo (Zerados)
             </h3>
-            <div className="space-y-4">
-              {[...gameHistory]
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5)
-                .map((item, index) => (
+            <div className="space-y-4 relative">
+              {recentHistory.map((item, index) => (
                   <div
                     key={index}
                     className="relative flex items-center gap-4 p-3 rounded-xl hover:bg-gray-700/30 transition-colors"
                   >
-                    {/* Linha vertical conectora */}
-                    {index !== 4 && (
-                        <div className="absolute left-[19px] top-10 w-0.5 h-full bg-gray-700 -z-10" />
+                    {/* Linha vertical conectora 
+                        - left-[31px]: Centraliza perfeitamente no ícone (12px padding + 20px metade ícone - 1px metade linha)
+                        - height: calc(100% + 16px): Cobre a altura do item + o espaçamento (gap-4 do pai)
+                        - Lógica: Não renderiza no último item
+                    */}
+                    {index !== recentHistory.length - 1 && (
+                        <div className="absolute left-[31px] top-8 w-0.5 h-[calc(100%+16px)] bg-gray-700/50 -z-10" />
                     )}
                     
-                    <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center shrink-0 z-10 bg-gray-800">
                         <CheckCircle className="w-5 h-5 text-green-400" />
                     </div>
                     
-                    <div className="flex-1">
-                      <div className="font-bold text-gray-200">{item.game}</div>
+                    {/* min-w-0 e truncate evitam que nomes longos quebrem o layout */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-200 truncate pr-2" title={item.game}>
+                        {item.game}
+                      </div>
                       <div className="text-xs text-gray-400 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {new Date(item.date).toLocaleDateString("pt-BR", { day: 'numeric', month: 'long' })}
