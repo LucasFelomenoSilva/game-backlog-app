@@ -85,14 +85,7 @@ export default function CategorySelector({
           
           <div className="flex gap-2">
             {/* Botão Escolher Aleatório */}
-            <button
-              onClick={handleRandomPick}
-              className="group px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl shadow-lg shadow-purple-500/30 active:scale-95 transition-all flex items-center gap-2"
-              title="Escolher jogo aleatório"
-            >
-              <Dice5 className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
-              <span className="hidden sm:inline font-bold text-sm">Surpresa</span>
-            </button>
+
           </div>
         </div>
 
