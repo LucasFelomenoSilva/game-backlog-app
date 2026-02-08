@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight, Monitor, Tv } from 'lucide-react';
+import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
@@ -30,7 +30,6 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // Efeito para preencher dados se vierem da IA (initialData)
   useEffect(() => {
     if (initialData && !isEditing) {
       setFormData(prev => ({
@@ -41,7 +40,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         imageBase64: initialData.imageUrl ? `LOADING_URL:${initialData.imageUrl}` : "",
         status: 'jogando'
       }));
-      toast.success("Dados da recomendação carregados! Salve para confirmar.", { icon: '✨' });
+      toast.success("Dados carregados!");
     } else if (isEditing && gameToEdit) {
       setFormData(gameToEdit);
     }
@@ -52,25 +51,18 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- NOVA LÓGICA DE PLATAFORMAS MÚLTIPLAS ---
   const togglePlatform = (platform) => {
-    // Separa a string atual em um array (ex: "PC | PS5" vira ["PC", "PS5"])
-    // Se estiver vazio ou for undefined, começa com array vazio
     const currentPlatforms = formData.platform ? formData.platform.split(' | ').filter(p => p.trim() !== '') : [];
     
     let newPlatforms;
     if (currentPlatforms.includes(platform)) {
-        // Se já tem, remove
         newPlatforms = currentPlatforms.filter(p => p !== platform);
     } else {
-        // Se não tem, adiciona
         newPlatforms = [...currentPlatforms, platform];
     }
     
-    // Junta de volta em uma string bonita para salvar
     setFormData(prev => ({ ...prev, platform: newPlatforms.join(' | ') }));
   };
-  // ---------------------------------------------
 
   const handleFileChange = (e) => {
     setImageFile(e.target.files[0]);
@@ -91,7 +83,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const handleSearchSubmit = async (e) => {
     e.preventDefault();
     if (searchQuery.length < 3) {
-      toast.error("Digite pelo menos 3 caracteres para buscar.");
+      toast.error("Digite pelo menos 3 caracteres.");
       return;
     }
 
@@ -103,10 +95,10 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
       const results = await searchGameIGDB(searchQuery);
       setSearchResults(results);
       if (results.length === 0) {
-        toast.error(`Nenhum jogo encontrado para "${searchQuery}".`);
+        toast.error("Nenhum jogo encontrado.");
       }
     } catch (error) {
-      toast.error("Erro ao realizar a busca na API.");
+      toast.error("Erro na busca.");
     } finally {
       setIsSearching(false);
     }
@@ -119,14 +111,14 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
       timeToBeat: gameResult.timeToBeat,
       imageBase64: gameResult.imageUrl ? `LOADING_URL:${gameResult.imageUrl}` : "",
       genre: gameResult.genre,
-      platform: gameResult.platform, // A API geralmente retorna uma só, mas agora você pode adicionar mais depois
+      platform: gameResult.platform,
     }));
 
     setSearchQuery('');
     setSearchResults([]);
     setShowSearchResults(false);
 
-    toast.success(`Dados de "${gameResult.nome}" pré-preenchidos!`);
+    toast.success("Jogo selecionado!");
   };
 
   const convertFileToBase64 = async (file) => {
@@ -152,13 +144,12 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.nome.trim()) {
-      alert("O nome do jogo é obrigatório!");
+      alert("Selecione um jogo na busca!");
       return;
     }
     
-    // Validação extra: garantir que tem pelo menos uma plataforma
     if (!formData.platform) {
-        toast.error("Selecione pelo menos uma plataforma!");
+        toast.error("Selecione a plataforma!");
         return;
     }
 
@@ -178,14 +169,13 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
           imageToProcess = fileFromUrl;
         } catch (fetchError) {
           console.error("Falha ao baixar imagem:", fetchError);
-          toast.error('Falha ao baixar capa da API.', { id: 'img-proc' });
           imageBase64Data = ""; 
         }
       }
 
       if (imageToProcess) {
         imageBase64Data = await convertFileToBase64(imageToProcess);
-        toast.success('Capa processada!', { id: 'img-proc' });
+        toast.success('Capa ok!', { id: 'img-proc' });
       } else if (imageBase64Data && imageBase64Data.startsWith('LOADING_URL:')) {
         imageBase64Data = "";
       }
@@ -201,7 +191,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar o jogo.");
+      toast.error("Erro ao salvar.");
     } finally {
       setLoading(false);
       setImageFile(null);
@@ -213,22 +203,21 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
   const availableCategories = Object.entries(categoryNames);
   
-  // Helper para verificar se a plataforma está selecionada
   const isPlatformSelected = (p) => {
       if (!formData.platform) return false;
       return formData.platform.split(' | ').includes(p);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-gray-800 dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+      <div className="bg-gray-800 rounded-3xl w-full max-w-md p-6 border border-gray-700 max-h-[90vh] overflow-y-auto">
 
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <Gamepad className="w-6 h-6 text-cyan-400" />
-            {isEditing ? 'Editar Jogo' : 'Adicionar Novo Jogo'}
+            {isEditing ? 'Editar Jogo' : 'Adicionar Jogo'}
           </h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -240,20 +229,20 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder="Busque por título na API (IGDB)..."
-                className="flex-1 p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-purple-500 focus:border-purple-500 transition-all"
+                placeholder="Busque o título..."
+                className="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-xl text-white"
               />
               <button
                 type="submit"
                 disabled={isSearching || searchQuery.length < 3}
-                className="p-3 bg-purple-600 rounded-xl hover:bg-purple-700 transition-all disabled:opacity-50"
+                className="p-3 bg-purple-600 rounded-xl hover:bg-purple-700 disabled:opacity-50"
               >
                 {isSearching ? <Loader2 className='w-5 h-5 animate-spin' /> : <Search className="w-5 h-5" />}
               </button>
             </form>
 
             {showSearchResults && (
-              <div className="mt-3 max-h-40 overflow-y-auto bg-gray-700/50 rounded-xl border border-gray-600">
+              <div className="mt-3 max-h-40 overflow-y-auto bg-gray-700 rounded-xl border border-gray-600">
                 {isSearching ? (
                   <p className='p-3 text-center text-gray-400 flex items-center justify-center gap-2'>
                     <Loader2 className='w-4 h-4 animate-spin' /> Buscando...
@@ -263,12 +252,12 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     <div
                       key={game.id}
                       onClick={() => handleSelectGame(game)}
-                      className='p-3 flex items-center justify-between border-b border-gray-600 hover:bg-gray-600/50 cursor-pointer transition-colors'
+                      className='p-3 flex items-center justify-between border-b border-gray-600 hover:bg-gray-600 cursor-pointer'
                     >
                       <div className='flex items-center gap-3'>
                         <Zap className='w-4 h-4 text-purple-400' />
                         <div>
-                          <p className='font-semibold text-sm'>{game.nome}</p>
+                          <p className='font-semibold text-sm text-white'>{game.nome}</p>
                           <p className='text-xs text-gray-400'>{game.genre} / {game.platform}</p>
                         </div>
                       </div>
@@ -276,13 +265,10 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     </div>
                   ))
                 ) : (
-                  !isSearching && <p className='p-3 text-center text-gray-400'>Nenhum resultado encontrado.</p>
+                  !isSearching && <p className='p-3 text-center text-gray-400'>Nenhum resultado.</p>
                 )}
               </div>
             )}
-            <div className='text-center mt-3 text-sm text-gray-400'>
-              {isEditing ? 'Edite os dados manualmente abaixo.' : 'Ou preencha o formulário manualmente:'}
-            </div>
           </div>
         )}
 
@@ -295,11 +281,11 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             accept="image/*"
           />
 
-          {/* Seção da Imagem (Capa) */}
+          {/* Imagem */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Capa do Jogo</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Capa</label>
             <div className='flex items-center space-x-4'>
-              <div className='flex-shrink-0 w-24 h-24 rounded-xl border border-gray-700 overflow-hidden bg-gray-700/50 flex items-center justify-center'>
+              <div className='flex-shrink-0 w-24 h-24 rounded-xl border border-gray-600 overflow-hidden bg-gray-700 flex items-center justify-center'>
                 {displayImage ? (
                   <img
                     src={displayImage}
@@ -315,31 +301,20 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                 type='button'
                 onClick={handleImageUploadClick}
                 disabled={loading}
-                className="flex-1 py-2 px-4 bg-gray-600/50 border border-gray-700 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-gray-700 transition-all disabled:opacity-50"
+                className="flex-1 py-2 px-4 bg-gray-700 border border-gray-600 text-white rounded-xl flex items-center justify-center gap-2 hover:bg-gray-600 disabled:opacity-50"
               >
                 <Upload className="w-5 h-5" />
-                {imageFile ? 'Mudar Imagem' : (formData.imageBase64 ? 'Mudar Imagem' : 'Escolher Imagem')}
+                Mudar Imagem
               </button>
             </div>
           </div>
 
+          {/* Campos de Texto (Nome, Tempo, Notas) REMOVIDOS conforme solicitado */}
+          
+          {/* Seção de Plataformas (Badges) - Mantida pois é seleção */}
           <div>
-            <label htmlFor="nome" className="block text-sm font-medium text-gray-300 mb-1">Nome do Jogo *</label>
-            <input
-              id="nome"
-              name="nome"
-              type="text"
-              value={formData.nome}
-              onChange={handleChange}
-              required
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all"
-            />
-          </div>
-
-          {/* --- NOVA SEÇÃO DE PLATAFORMAS (BADGES) --- */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Plataformas (Selecione todas que possui)</label>
-            <div className="flex flex-wrap gap-2 p-3 bg-gray-700/30 rounded-xl border border-gray-700">
+            <label className="block text-sm font-medium text-gray-300 mb-2">Plataformas</label>
+            <div className="flex flex-wrap gap-2 p-3 bg-gray-700 rounded-xl border border-gray-600">
                 {platformOptions.map((p) => {
                     const selected = isPlatformSelected(p);
                     return (
@@ -347,10 +322,10 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                             key={p}
                             type="button"
                             onClick={() => togglePlatform(p)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1 ${
                                 selected
-                                ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                                : 'bg-gray-800 border-gray-600 text-gray-400 hover:bg-gray-700 hover:border-gray-500'
+                                ? 'bg-cyan-900 border-cyan-500 text-cyan-400'
+                                : 'bg-gray-800 border-gray-600 text-gray-400'
                             }`}
                         >
                             {selected && <Zap className="w-3 h-3" />}
@@ -359,14 +334,9 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     )
                 })}
             </div>
-            {formData.platform && (
-                <p className="text-xs text-gray-400 mt-1 ml-1">
-                    Selecionado: <span className="text-cyan-400">{formData.platform}</span>
-                </p>
-            )}
           </div>
-          {/* ------------------------------------------- */}
 
+          {/* Gênero (Select) */}
           <div>
             <label htmlFor="genre" className="block text-sm font-medium text-gray-300 mb-1">Gênero</label>
             <select
@@ -374,25 +344,13 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
               name="genre"
               value={formData.genre}
               onChange={handleChange}
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-xl text-white appearance-none"
             >
               {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
 
-          <div>
-            <label htmlFor="timeToBeat" className="block text-sm font-medium text-gray-300 mb-1">Tempo Médio (Horas)</label>
-            <input
-              id="timeToBeat"
-              name="timeToBeat"
-              type="number"
-              min="0"
-              value={formData.timeToBeat}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all"
-            />
-          </div>
-
+          {/* Status (Select) */}
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">Status Inicial</label>
             <select
@@ -400,7 +358,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
               name="status"
               value={formData.status}
               onChange={handleChange}
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all appearance-none"
+              className="w-full p-3 bg-gray-700 border border-gray-600 rounded-xl text-white appearance-none"
             >
               {availableCategories.map(([key, name]) => (
                 <option key={key} value={key}>{name}</option>
@@ -408,26 +366,13 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             </select>
           </div>
 
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-1">Anotações Extras</label>
-            <textarea
-              id="notes"
-              name="notes"
-              rows="2"
-              placeholder="Ex: Peguei na promoção, versão GOTY..."
-              value={formData.notes}
-              onChange={handleChange}
-              className="w-full p-3 bg-gray-700/50 border border-gray-700 rounded-xl text-white focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-500"
-            ></textarea>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 mt-6 hover:from-blue-600 hover:to-cyan-600 transition-all active:scale-[0.99] disabled:opacity-60"
+            className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 mt-6 hover:bg-blue-700 disabled:opacity-60"
           >
             {loading ? <Loader2 className='w-5 h-5 animate-spin' /> : <Save className="w-5 h-5" />}
-            {loading ? 'Salvando...' : (isEditing ? 'Salvar Edição' : 'Salvar Jogo')}
+            {loading ? 'Salvando...' : 'Salvar Jogo'}
           </button>
         </form>
       </div>

@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Toaster, toast } from 'react-hot-toast';
-// ... (mantenha suas importações existentes) ...
-// Adicione SoundEffect se tiver, senão usaremos Audio nativo
 import { categoryNames } from "./data/categories"; 
 import CategorySelector from "./components/CategorySelector";
 import GameList from "./components/GameList";
@@ -13,16 +11,14 @@ import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
 import GameRecommender from "./components/GameRecommender"; 
-import { Joystick, Sparkles, Gamepad2 } from "lucide-react"; // Importei Gamepad2
+import { Joystick, Sparkles, Gamepad2 } from "lucide-react"; 
 import imageCompression from "browser-image-compression";
 import { DragDropContext } from '@hello-pangea/dnd';
 import { auth, db, googleProvider } from "./firebase"; 
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-// --- NOVO: Componente de Background ---
 const ParticleBackground = () => {
-  // Cria partículas estáticas para não pesar a renderização
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       {[...Array(20)].map((_, i) => (
@@ -41,7 +37,6 @@ const ParticleBackground = () => {
   );
 };
 
-// --- NOVO: Frases de Loading Gamer ---
 const LOADING_TIPS = [
     "Carregando texturas...",
     "Spawnando NPCs...",
@@ -53,7 +48,6 @@ const LOADING_TIPS = [
 ];
 
 const Confetti = () => {
-    // ... (Mantenha seu código de Confetti existente)
     const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
     const pieces = Array.from({ length: 50 }).map((_, i) => ({
       id: i,
@@ -81,7 +75,6 @@ const Confetti = () => {
 };
 
 function App() {
-  // ... (Mantenha seus estados existentes)
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("categories"); 
@@ -101,29 +94,20 @@ function App() {
   const [totalFinishedGames, setTotalFinishedGames] = useState(0); 
   const [achievements, setAchievements] = useState([]);
   const [gameHistory, setGameHistory] = useState([]);
-  
-  // NOVO: Estado para a frase de loading
   const [loadingTip, setLoadingTip] = useState(LOADING_TIPS[0]);
 
-  // NOVO: Konami Code Sequence
   const [konamiIndex, setKonamiIndex] = useState(0);
   const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
 
-  // EFEITO: Konami Code Listener
   useEffect(() => {
     const handleKeyDown = (e) => {
         if (e.key === konamiCode[konamiIndex]) {
             const nextIndex = konamiIndex + 1;
             if (nextIndex === konamiCode.length) {
-                // ATIVAR EASTER EGG
                 triggerConfetti();
                 toast('🌟 GOD MODE ACTIVATED! 🌟', {
                     icon: '🎮',
-                    style: {
-                        background: '#FFD700',
-                        color: '#000',
-                        fontWeight: 'bold',
-                    },
+                    style: { background: '#FFD700', color: '#000', fontWeight: 'bold' },
                     duration: 5000
                 });
                 setKonamiIndex(0);
@@ -138,8 +122,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [konamiIndex]);
 
-  // ... (Mantenha playNotificationSound, triggerConfetti, Auth handlers, etc.) ...
-  
   const playNotificationSound = () => {
     const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZizcIGWi7eefTRAMUKfj+LZjHAY4ktfzznksBS');
     audio.volume = 0.3;
@@ -155,7 +137,7 @@ function App() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-      toast.success('Player 1 Connected!'); // Texto mais gamer
+      toast.success('Player 1 Connected!'); 
     } catch (error) {
       console.error("Erro no login:", error);
       toast.error('Erro ao conectar controle (Login).');
@@ -170,8 +152,6 @@ function App() {
       toast.error('Erro ao fazer logout.');
     }
   };
-  
-  // ... (Mantenha handleProfileImageUpload e useEffects de DarkMode/Firestore) ...
   
   const handleProfileImageUpload = async (file) => {
     try {
@@ -198,7 +178,6 @@ function App() {
   }, [darkMode]);
 
   const calculateStats = useCallback((data) => {
-     // ... (Mantenha a lógica existente)
      const finishedCount = data.filter(g => g.status === 'zerados').length;
      setTotalFinishedGames(finishedCount);
      
@@ -213,11 +192,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Escolhe frase aleatória no mount
     setLoadingTip(LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]);
     
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      // ... (Mantenha a lógica de fetch do Firestore EXATAMENTE como estava) ...
       if (currentUser) {
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
@@ -231,7 +208,6 @@ function App() {
         }
         setUser({ ...currentUser, photoBase64: firestoreData.photoBase64 || null });
         
-        // Migração simples
         let fetchedGamesData = firestoreData.gamesData || [];
         fetchedGamesData = fetchedGamesData.map(game => {
              if(game.status === 'a_zerar' || game.status === 'jogando') return { ...game, status: 'playing' };
@@ -254,7 +230,6 @@ function App() {
     return () => unsubscribe();
   }, [calculateStats]);
 
-  // ... (Mantenha saveDataToFirestore e handlers: handleAddNewGame, etc.) ...
   const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
     if (!user || loading) return;
     try {
@@ -274,7 +249,6 @@ function App() {
   }, [gamesData, achievements, gameHistory, saveDataToFirestore, loading, user]);
 
   const handleAddNewGame = (newGame) => {
-      // ... (Mantenha igual)
       const gameWithId = { ...newGame, id: Date.now().toString() };
       setGamesData(prev => [...prev, gameWithId]);
       if (newGame.status === 'zerados') {
@@ -293,7 +267,6 @@ function App() {
   };
 
   const handleEditGame = (updatedGame) => {
-    // ... (Mantenha igual)
     const newGamesData = gamesData.map(game => game.id === updatedGame.id ? updatedGame : game);
     setGamesData(newGamesData);
     if (selectedGame && selectedGame.id === updatedGame.id) setSelectedGame(updatedGame);
@@ -302,7 +275,6 @@ function App() {
   };
   
   const handleDeleteGame = async (gameId) => {
-    // ... (Mantenha igual)
     const gameToDelete = gamesData.find(g => g.id === gameId);
     setGamesData(prev => prev.filter(game => game.id !== gameId));
     setGameHistory(prev => prev.filter(item => item.game !== gameToDelete?.nome));
@@ -321,7 +293,6 @@ function App() {
   const openReviewModal = (game) => { setGameToReview(game); setIsReviewModalOpen(true); };
   
   const handleCompleteGameFinish = (reviewData) => {
-      // ... (Mantenha igual)
       if (!gameToReview) return;
       const updatedGame = {
           ...gameToReview,
@@ -341,7 +312,6 @@ function App() {
   }
 
   const handleUpdateGameStatus = (gameId, newStatus, gameToUpdate = null) => {
-    // ... (Mantenha igual)
     const gameToMap = gameToUpdate || gamesData.find(g => g.id === gameId);
     if (!gameToMap) return;
     const newGamesData = gamesData.map(game => game.id === gameId ? { ...gameToMap, status: newStatus } : game);
@@ -350,7 +320,6 @@ function App() {
   };
 
   const handleDragEnd = (result) => {
-    // ... (Mantenha igual)
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
@@ -368,14 +337,11 @@ function App() {
     return acc;
   }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] }); 
 
-  const openGeminiQuestPlaceholder = () => toast('Quest não disponível hoje, aventureiro!', { icon: '🛡️' });
-
-  // RENDERIZAÇÃO
   const renderContent = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
-          <ParticleBackground /> {/* Partículas no loading também */}
+          <ParticleBackground />
           <div className="text-center z-10 p-6 bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-cyan-500/30 shadow-2xl">
             <Gamepad2 className="w-16 h-16 text-cyan-500 mx-auto mb-4 animate-bounce" />
             <div className="w-48 h-2 bg-gray-700 rounded-full mx-auto mb-4 overflow-hidden">
@@ -413,8 +379,6 @@ function App() {
       );
     }
 
-    // ... (Mantenha o resto dos renderContent: Progress, Achievements, Profile, etc.) ...
-    
     if (activeTab === "progress") {
       return <ProgressScreen gameHistory={gameHistory} gamesData={gamesData} totalFinishedGames={totalFinishedGames} />;
     }
@@ -432,6 +396,8 @@ function App() {
           totalCategories={Object.keys(categoryNames).length}
           totalAchievements={achievements.length}
           handleProfileImageUpload={handleProfileImageUpload}
+          gamesData={gamesData} // PASSANDO DADOS COMPLETOS PARA O DASHBOARD
+          goBack={() => setActiveTab('categories')} // BOTÃO VOLTAR DO PERFIL
         />
       );
     }
@@ -471,14 +437,15 @@ function App() {
         handleUpdateGameStatus={handleUpdateGameStatus}
         handleDeleteGame={handleDeleteGame} 
         openEditModal={openEditModal} 
-        openReviewModal={openReviewModal} 
+        openReviewModal={openReviewModal}
+        triggerConfetti={triggerConfetti} // PASSANDO FUNÇÃO DE CONFETE
       />
     );
   };
 
   return (
     <div className="relative min-h-screen bg-gray-900">
-      <ParticleBackground /> {/* PARTÍCULAS EM TODA A APP */}
+      <ParticleBackground />
       <Toaster position="top-center" toastOptions={{
           style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' }
       }}/>
