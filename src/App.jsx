@@ -11,31 +11,12 @@ import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
 import GameRecommender from "./components/GameRecommender"; 
-import { Joystick, Sparkles, Gamepad2, Plus } from "lucide-react"; 
+import { Joystick, Sparkles, Gamepad2, Plus, LogOut } from "lucide-react"; 
 import imageCompression from "browser-image-compression";
 import { DragDropContext } from '@hello-pangea/dnd';
 import { auth, db, googleProvider } from "./firebase"; 
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-
-const ParticleBackground = () => {
-  return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {[...Array(20)].map((_, i) => (
-        <div 
-            key={i}
-            className={`particle p-${(i % 3) + 1}`}
-            style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                opacity: 0.3
-            }}
-        />
-      ))}
-    </div>
-  );
-};
 
 const LOADING_TIPS = [
     "Carregando texturas...",
@@ -340,8 +321,7 @@ function App() {
   const renderContent = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 relative overflow-hidden">
-          <ParticleBackground />
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
           <div className="text-center z-10 p-6 bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-cyan-500/30 shadow-2xl">
             <Gamepad2 className="w-16 h-16 text-cyan-500 mx-auto mb-4 animate-bounce" />
             <div className="w-48 h-2 bg-gray-700 rounded-full mx-auto mb-4 overflow-hidden">
@@ -355,8 +335,7 @@ function App() {
     
     if (!user) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center p-4 relative overflow-hidden">
-          <ParticleBackground />
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center p-4">
           <div className="max-w-md w-full text-center z-10">
             <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-3xl mb-6 shadow-[0_0_30px_rgba(6,182,212,0.6)]">
               <Joystick className="w-12 h-12 text-white" />
@@ -396,8 +375,8 @@ function App() {
           totalCategories={Object.keys(categoryNames).length}
           totalAchievements={achievements.length}
           handleProfileImageUpload={handleProfileImageUpload}
-          gamesData={gamesData} // PASSANDO DADOS COMPLETOS PARA O DASHBOARD
-          goBack={() => setActiveTab('categories')} // BOTÃO VOLTAR DO PERFIL
+          gamesData={gamesData}
+          goBack={() => setActiveTab('categories')}
         />
       );
     }
@@ -438,41 +417,42 @@ function App() {
         handleDeleteGame={handleDeleteGame} 
         openEditModal={openEditModal} 
         openReviewModal={openReviewModal}
-        triggerConfetti={triggerConfetti} // PASSANDO FUNÇÃO DE CONFETE
+        triggerConfetti={triggerConfetti} 
       />
     );
   };
 
   return (
     <div className="relative min-h-screen bg-gray-900">
-      <ParticleBackground />
       <Toaster position="top-center" toastOptions={{
           style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' }
       }}/>
       {showConfetti && <Confetti />}
-      
-      <div className="relative z-10">
-          {renderContent()}
-      </div>
 
-      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && (
+      {/* Botão Adicionar Jogo - Canto Superior Direito */}
+      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
         <button
-            onClick={() => setIsRecommenderOpen(true)}
-            className="fixed bottom-24 right-4 z-40 p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg text-white hover:scale-110 transition-transform animate-bounce-slow border-2 border-white/20"
-            title="Pedir recomendação à IA"
+          onClick={() => setIsAddGameModalOpen(true)}
+          className="fixed top-6 right-6 z-40 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-2xl shadow-2xl shadow-green-500/30 text-white font-bold transition-all duration-300 hover:scale-110 flex items-center gap-2 border border-green-400/30"
+          title="Adicionar novo jogo"
         >
-            <Sparkles className="w-6 h-6" />
+          <Plus className="w-5 h-5" />
+          <span className="hidden sm:inline">Adicionar Jogo</span>
         </button>
       )}
 
-      {/* [!] Botão de Adicionar Jogo - MOVIDO PARA TOP-RIGHT */}
-      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isReviewModalOpen && !isAddGameModalOpen && (
+      <div className={`relative z-10 ${user ? 'pt-6' : ''} pb-24`}>
+          {renderContent()}
+      </div>
+
+      {/* Botão de Recomendação IA - Inferior Direito */}
+      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
         <button
-            onClick={() => { setIsAddGameModalOpen(true); setDraftGame(null); }}
-            className="fixed top-6 right-6 z-40 p-3 bg-cyan-600 rounded-full shadow-xl text-white hover:bg-cyan-500 transition-transform hover:scale-110 border-2 border-white/20"
-            title="Adicionar Novo Jogo"
+            onClick={() => setIsRecommenderOpen(true)}
+            className="fixed bottom-24 right-6 z-30 p-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-full shadow-2xl shadow-purple-500/30 text-white transition-all duration-300 hover:scale-110 border-2 border-purple-400/30"
+            title="Pedir recomendação à IA"
         >
-            <Plus className="w-6 h-6" />
+            <Sparkles className="w-6 h-6" />
         </button>
       )}
 
