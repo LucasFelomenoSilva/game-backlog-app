@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { searchGameIGDB } from '../services/igdbService';
 import { toast } from 'react-hot-toast';
-import { Sparkles, ArrowRight, AlertCircle, X, Search, Zap, Star, Gamepad2 } from 'lucide-react';
+import { Sparkles, ArrowRight, AlertCircle, ArrowLeft, Plus, Calendar, Monitor, Tag } from 'lucide-react';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -11,12 +11,14 @@ export default function GameRecommender({ onSelectGame, onClose }) {
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [viewingGame, setViewingGame] = useState(null);
 
   const handleAskGemini = async () => {
     if (!prompt.trim()) return;
     setLoading(true);
     setRecommendations([]);
     setErrorMsg(null);
+    setViewingGame(null);
 
     try {
       if (!API_KEY) {
@@ -71,222 +73,164 @@ export default function GameRecommender({ onSelectGame, onClose }) {
     }
   };
 
+  const handleReviewClick = (game) => {
+    setViewingGame(game);
+  };
+
+  const handleBackToList = () => {
+    setViewingGame(null);
+  };
+
+  const handleConfirmAdd = () => {
+    onSelectGame(viewingGame);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
-      {/* Backdrop com blur */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/90 via-purple-900/20 to-black/90 backdrop-blur-md" onClick={onClose}></div>
-      
-      {/* Modal Container */}
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden animate-scaleIn">
-        {/* Glow Effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 rounded-3xl blur-xl opacity-30 animate-pulse"></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-gray-800 rounded-3xl w-full max-w-2xl p-6 shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto relative">
         
-        {/* Modal Content */}
-        <div className="relative bg-gradient-to-br from-gray-900/95 to-gray-950/95 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl overflow-y-auto max-h-[90vh]">
-          
-          {/* Header */}
-          <div className="sticky top-0 z-10 bg-gradient-to-br from-gray-900/98 to-gray-950/98 backdrop-blur-xl border-b border-white/5 px-6 py-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
-                  <Sparkles className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
-                    Oráculo de Jogos
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Powered by Gemini AI</p>
+        {viewingGame ? (
+          <div className="animate-fadeIn space-y-6">
+            <div className="flex items-center gap-3 border-b border-gray-700 pb-4">
+              <button 
+                onClick={handleBackToList}
+                className="p-2 hover:bg-gray-700 rounded-full transition-colors group"
+              >
+                <ArrowLeft className="w-6 h-6 text-gray-400 group-hover:text-white" />
+              </button>
+              <h2 className="text-2xl font-bold text-white truncate flex-1">
+                {viewingGame.nome}
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-[200px,1fr] gap-6">
+              <div className="space-y-3">
+                <img 
+                  src={viewingGame.imageUrl || 'https://placehold.co/300x400?text=No+Image'} 
+                  alt={viewingGame.nome}
+                  className="w-full aspect-[3/4] object-cover rounded-xl shadow-lg border border-gray-700" 
+                />
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <span className="px-3 py-1 bg-gray-900 rounded-lg text-xs text-gray-400 border border-gray-700 flex items-center gap-1">
+                    <Monitor className="w-3 h-3" />
+                    {viewingGame.platform || 'Multi'}
+                  </span>
+                  <span className="px-3 py-1 bg-gray-900 rounded-lg text-xs text-gray-400 border border-gray-700 flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    {viewingGame.genre || 'Geral'}
+                  </span>
                 </div>
               </div>
-              
-              <button 
-                onClick={onClose} 
-                className="group p-2.5 bg-gray-800/50 hover:bg-gray-700/50 rounded-xl border border-white/5 hover:border-white/10 transition-all duration-300"
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-purple-400 mb-2">Sobre o jogo</h3>
+                  <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 h-48 overflow-y-auto">
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      {viewingGame.summary || "Nenhuma descrição disponível para este jogo no momento."}
+                    </p>
+                  </div>
+                </div>
+
+                {viewingGame.releaseDate && (
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                    <Calendar className="w-4 h-4" />
+                    <span>Lançamento: {viewingGame.releaseDate}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 border-t border-gray-700">
+              <button
+                onClick={handleBackToList}
+                className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-bold transition-all"
               >
-                <X className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+                Voltar
+              </button>
+              <button
+                onClick={handleConfirmAdd}
+                className="flex-[2] py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+              >
+                <Plus className="w-5 h-5" />
+                Adicionar à Coleção
               </button>
             </div>
           </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-purple-400" />
+                Oráculo de Jogos
+              </h2>
+              <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">X</button>
+            </div>
 
-          {/* Content */}
-          <div className="p-6 space-y-6">
-            
-            {/* Input Section */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Search className="w-4 h-4 text-purple-400" />
-                <label className="text-sm font-semibold text-gray-300">
-                  O que você quer jogar hoje?
-                </label>
-              </div>
+              <label className="block text-gray-300 text-sm">
+                O que você quer jogar hoje?
+              </label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Ex: Quero um RPG de turno com história emocionante tipo Final Fantasy..."
+                className="w-full h-32 bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-purple-500 outline-none resize-none placeholder-gray-500"
+              />
               
-              <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-300"></div>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Ex: Quero um RPG de turno com história emocionante tipo Final Fantasy..."
-                  className="relative w-full h-32 bg-gray-800/50 backdrop-blur-xl border border-white/10 focus:border-purple-500/50 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-500/20 outline-none resize-none placeholder-gray-500 transition-all duration-300"
-                />
-              </div>
-              
-              {/* Error Message */}
               {errorMsg && (
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur opacity-20"></div>
-                  <div className="relative p-4 bg-red-900/20 backdrop-blur-xl border border-red-500/30 rounded-2xl text-red-200 text-sm flex gap-3 items-start">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
-                    <div className="whitespace-pre-line">{errorMsg}</div>
-                  </div>
+                <div className="p-4 bg-red-900/30 border border-red-500/50 rounded-xl text-red-200 text-sm flex gap-3 items-start">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <div className="whitespace-pre-line">{errorMsg}</div>
                 </div>
               )}
               
-              {/* Submit Button */}
               <button
                 onClick={handleAskGemini}
-                disabled={loading || !prompt.trim()}
-                className="group relative w-full"
+                disabled={loading || !prompt}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
-                <div className="relative py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-2xl font-bold text-white transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
-                  {loading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Consultando os astros...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5" />
-                      <span>Me Recomende!</span>
-                    </>
-                  )}
-                </div>
+                {loading ? (
+                  <span className="animate-pulse">Consultando os astros...</span>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Me Recomende!
+                  </>
+                )}
               </button>
             </div>
 
-            {/* Recommendations Grid */}
             {recommendations.length > 0 && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                  <h3 className="text-white font-bold text-lg">Recomendações Perfeitas</h3>
-                  <div className="flex-1 h-px bg-gradient-to-r from-purple-500/50 to-transparent"></div>
-                </div>
-                
+              <div className="mt-8 space-y-4 animate-fadeIn">
+                <h3 className="text-white font-semibold">Jogos Encontrados:</h3>
                 <div className="grid grid-cols-1 gap-4">
-                  {recommendations.map((game, index) => (
-                    <div 
-                      key={game.id} 
-                      className="group relative animate-slideUp"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      {/* Card Glow */}
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300"></div>
-                      
-                      {/* Card Content */}
-                      <div className="relative flex bg-gray-800/50 backdrop-blur-xl rounded-2xl p-4 border border-white/10 group-hover:border-white/20 gap-4 items-center transition-all duration-300">
-                        
-                        {/* Game Image */}
-                        <div className="relative flex-shrink-0">
-                          <div className="absolute -inset-1 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl blur opacity-20"></div>
-                          <img 
-                            src={game.imageUrl || 'https://placehold.co/100x140?text=No+Image'} 
-                            alt={game.nome}
-                            className="relative w-20 h-28 object-cover rounded-xl shadow-lg border border-white/10" 
-                          />
-                        </div>
-                        
-                        {/* Game Info */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-white font-bold text-lg mb-1.5 truncate group-hover:text-purple-300 transition-colors">
-                            {game.nome}
-                          </h4>
-                          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                            <span className="px-2 py-1 bg-purple-500/20 rounded-lg text-purple-300 text-xs font-semibold">
-                              {game.genre}
-                            </span>
-                            {game.platform && (
-                              <span className="px-2 py-1 bg-gray-700/50 rounded-lg text-gray-300 text-xs font-semibold flex items-center gap-1">
-                                <Gamepad2 className="w-3 h-3" />
-                                {game.platform}
-                              </span>
-                            )}
-                          </div>
-                          {game.timeToBeat && (
-                            <p className="text-xs text-gray-500">~{game.timeToBeat}h para zerar</p>
-                          )}
-                        </div>
-                        
-                        {/* Action Button */}
-                        <button
-                          onClick={() => onSelectGame(game)}
-                          className="group/btn relative flex-shrink-0"
-                        >
-                          <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl blur opacity-0 group-hover/btn:opacity-50 transition duration-300"></div>
-                          <div className="relative px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl text-white transition-all duration-300 flex items-center gap-2 font-semibold shadow-lg">
-                            <span className="text-sm">Ver Detalhes</span>
-                            <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" />
-                          </div>
-                        </button>
+                  {recommendations.map((game) => (
+                    <div key={game.id} className="flex bg-gray-900 rounded-xl p-3 border border-gray-700 gap-4 items-center hover:border-purple-500 transition-colors">
+                      <img 
+                        src={game.imageUrl || 'https://placehold.co/100x140?text=No+Image'} 
+                        alt={game.nome}
+                        className="w-16 h-20 object-cover rounded-lg shadow-sm" 
+                      />
+                      <div className="flex-1">
+                        <h4 className="text-white font-bold">{game.nome}</h4>
+                        <p className="text-xs text-gray-400">{game.genre} • {game.platform}</p>
                       </div>
+                      <button
+                        onClick={() => handleReviewClick(game)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white transition-colors flex items-center gap-2 font-medium"
+                      >
+                        <span className="text-sm">Revisar</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Empty State quando não há recomendações */}
-            {!loading && recommendations.length === 0 && !errorMsg && prompt.trim() === '' && (
-              <div className="py-12 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl mb-4">
-                  <Sparkles className="w-10 h-10 text-purple-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-300 mb-2">Pronto para descobrir?</h3>
-                <p className="text-sm text-gray-500">Digite o que você procura e deixe a magia acontecer ✨</p>
-              </div>
-            )}
-
-          </div>
-        </div>
+          </>
+        )}
       </div>
-
-      {/* CSS Animations */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes scaleIn {
-          from { 
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to { 
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-        .animate-scaleIn {
-          animation: scaleIn 0.3s ease-out;
-        }
-        .animate-slideUp {
-          animation: slideUp 0.4s ease-out forwards;
-          opacity: 0;
-        }
-      `}</style>
     </div>
   );
 }

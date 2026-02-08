@@ -14,13 +14,11 @@ let accessToken = '';
  * 1. Obtém o Access Token do Twitch/IGDB.
  */
 async function getAccessToken() {
-    // Se já temos um token, reutiliza (você pode adicionar lógica de expiração aqui futuramente)
     if (accessToken) {
         return accessToken;
     }
 
     try {
-        // CORREÇÃO AQUI: Enviar credenciais no Body em vez da URL
         const response = await fetch(AUTH_PROXY_URL, {
             method: 'POST',
             headers: {
@@ -63,9 +61,9 @@ export async function searchGameIGDB(gameName) {
         return [];
     }
 
-    // O corpo da requisição é escrito na linguagem de consulta do IGDB (AQL)
+    // ADICIONADO: 'summary' e 'first_release_date' na query
     const body = `
-        fields name, cover.url, genres.name, involved_companies.company.name;
+        fields name, cover.url, genres.name, involved_companies.company.name, summary, first_release_date;
         search "${gameName}";
         where cover != null;
         limit 10;
@@ -91,11 +89,14 @@ export async function searchGameIGDB(gameName) {
         return results.map(game => ({
             id: game.id.toString(),
             nome: game.name,
-            timeToBeat: 0, // Placeholder
-            // Melhora a qualidade da imagem trocando 'thumb' por 'cover_big'
+            timeToBeat: 0, 
             imageUrl: game.cover?.url ? `https:${game.cover.url}`.replace('thumb', 'cover_big') : '',
             genre: game.genres?.[0]?.name || 'Outro',
             platform: game.involved_companies?.[0]?.company?.name || 'PC',
+            summary: game.summary || '', // Mapeando a descrição
+            releaseDate: game.first_release_date 
+                ? new Date(game.first_release_date * 1000).toLocaleDateString() 
+                : 'Data desconhecida'
         }));
 
     } catch (error) {

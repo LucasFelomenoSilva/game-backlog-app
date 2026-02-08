@@ -11,7 +11,7 @@ import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
 import GameRecommender from "./components/GameRecommender"; 
-import { Joystick, Sparkles, Gamepad2, Plus, LogOut } from "lucide-react"; 
+import { Joystick, Sparkles, Gamepad2, Plus } from "lucide-react"; 
 import imageCompression from "browser-image-compression";
 import { DragDropContext } from '@hello-pangea/dnd';
 import { auth, db, googleProvider } from "./firebase"; 
@@ -190,14 +190,40 @@ function App() {
         setUser({ ...currentUser, photoBase64: firestoreData.photoBase64 || null });
         
         let fetchedGamesData = firestoreData.gamesData || [];
+        const fetchedHistory = firestoreData.gameHistory || [];
+
+        // --- LÓGICA DE CORREÇÃO DE DATAS ---
+        // Cria um mapa para busca rápida: 'Nome do Jogo' -> '2023-10-25'
+        const historyMap = {};
+        fetchedHistory.forEach(item => {
+             if (item.status === 'zerado' && item.date) {
+                 // Usa o nome do jogo como chave
+                 historyMap[item.game] = item.date; 
+             }
+        });
+
+        // Itera sobre os jogos para corrigir status e injetar datas faltantes
         fetchedGamesData = fetchedGamesData.map(game => {
-             if(game.status === 'a_zerar' || game.status === 'jogando') return { ...game, status: 'playing' };
+             // Normaliza status antigo
+             if(game.status === 'a_zerar' || game.status === 'jogando') {
+                 return { ...game, status: 'playing' };
+             }
+             
+             // Se for zerado e NÃO tiver data salva no card, tenta pegar do histórico
+             if (game.status === 'zerados' && !game.finishedDate) {
+                 const historyDate = historyMap[game.nome];
+                 if (historyDate) {
+                     // Adiciona T12:00:00 para garantir que o fuso horário não volte um dia
+                     return { ...game, finishedDate: new Date(historyDate + 'T12:00:00').toISOString() };
+                 }
+             }
              return game;
         });
+        // -----------------------------------
 
         setGamesData(fetchedGamesData);
         setAchievements(firestoreData.achievements || []);
-        setGameHistory(firestoreData.gameHistory || []);
+        setGameHistory(fetchedHistory);
         calculateStats(fetchedGamesData); 
       } else {
         setUser(null);
@@ -231,6 +257,12 @@ function App() {
 
   const handleAddNewGame = (newGame) => {
       const gameWithId = { ...newGame, id: Date.now().toString() };
+      
+      // Se adicionar direto como zerado, já coloca a data de hoje
+      if (gameWithId.status === 'zerados' && !gameWithId.finishedDate) {
+         gameWithId.finishedDate = new Date().toISOString();
+      }
+
       setGamesData(prev => [...prev, gameWithId]);
       if (newGame.status === 'zerados') {
           setGameHistory(prev => [...prev, { game: newGame.nome, status: 'zerado', date: new Date().toISOString().split('T')[0] }]);
@@ -248,6 +280,11 @@ function App() {
   };
 
   const handleEditGame = (updatedGame) => {
+    // Se mudou para zerado na edição, garante a data
+    if (updatedGame.status === 'zerados' && !updatedGame.finishedDate) {
+        updatedGame.finishedDate = new Date().toISOString();
+    }
+
     const newGamesData = gamesData.map(game => game.id === updatedGame.id ? updatedGame : game);
     setGamesData(newGamesData);
     if (selectedGame && selectedGame.id === updatedGame.id) setSelectedGame(updatedGame);
@@ -275,18 +312,20 @@ function App() {
   
   const handleCompleteGameFinish = (reviewData) => {
       if (!gameToReview) return;
+      const today = new Date().toISOString();
       const updatedGame = {
           ...gameToReview,
           status: 'zerados',
           originalStatus: gameToReview.status, 
           rating: reviewData.rating,
           reviewText: reviewData.reviewText,
+          finishedDate: today // Salva data no objeto
       };
       const newGamesData = gamesData.map(game => game.id === gameToReview.id ? updatedGame : game);
       setGamesData(newGamesData);
       calculateStats(newGamesData); 
       setSelectedGame(updatedGame); 
-      setGameHistory(prev => [...prev, { game: updatedGame.nome, status: 'zerado', date: new Date().toISOString().split('T')[0] }]);
+      setGameHistory(prev => [...prev, { game: updatedGame.nome, status: 'zerado', date: today.split('T')[0] }]);
       triggerConfetti();
       setIsReviewModalOpen(false);
       setGameToReview(null);
@@ -295,7 +334,14 @@ function App() {
   const handleUpdateGameStatus = (gameId, newStatus, gameToUpdate = null) => {
     const gameToMap = gameToUpdate || gamesData.find(g => g.id === gameId);
     if (!gameToMap) return;
-    const newGamesData = gamesData.map(game => game.id === gameId ? { ...gameToMap, status: newStatus } : game);
+
+    // Se arrastou para zerados, adiciona data
+    let updatedGame = { ...gameToMap, status: newStatus };
+    if (newStatus === 'zerados' && !updatedGame.finishedDate) {
+        updatedGame.finishedDate = new Date().toISOString();
+    }
+
+    const newGamesData = gamesData.map(game => game.id === gameId ? updatedGame : game);
     setGamesData(newGamesData);
     calculateStats(newGamesData); 
   };
