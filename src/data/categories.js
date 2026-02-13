@@ -30,11 +30,12 @@ export const initialGameData = {
   platform: "PC",
   genre: "Ação",
   timeToBeat: 20,
-  status: "backlog", // O padrão agora é ir para a fila, não direto para 'jogando'
+  status: "backlog",
   notes: "",
   imageBase64: "",
   rating: null,
   reviewText: "",
+  isPlatinum: false, // NOVO: Campo para marcar jogos platinados
 };
 
 export const platformOptions = ["PC", "PS5", "Switch", "Xbox Series", "PS4", "Xbox One", "Mobile", "Outra"];

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight, Clock, Image as ImageIcon, FileText } from 'lucide-react';
+import { X, Gamepad, Save, Upload, Loader2, Search, Zap, ChevronRight, Clock, Image as ImageIcon, FileText, Trophy } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
@@ -40,7 +40,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         imageBase64: initialData.imageUrl ? `LOADING_URL:${initialData.imageUrl}` : "",
         status: 'jogando',
         timeToBeat: initialData.timeToBeat || 0,
-        notes: '' // Reset notes for new recommendation
+        notes: '',
+        isPlatinum: false
       }));
       toast.success("Dados carregados!");
     } else if (isEditing && gameToEdit) {
@@ -49,8 +50,11 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   }, [initialData, gameToEdit, isEditing]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const togglePlatform = (platform) => {
@@ -114,7 +118,6 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
       imageBase64: gameResult.imageUrl ? `LOADING_URL:${gameResult.imageUrl}` : "",
       genre: gameResult.genre,
       platform: gameResult.platform,
-      // Não sobrescrevemos 'notes' aqui para manter o que o usuário possa já ter digitado
     }));
 
     setSearchQuery('');
@@ -187,7 +190,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         ...formData,
         timeToBeat: parseInt(formData.timeToBeat) || 0,
         originalStatus: formData.status,
-        imageBase64: imageBase64Data
+        imageBase64: imageBase64Data,
+        isPlatinum: formData.isPlatinum || false
       };
 
       onSaveGame(finalData);
@@ -436,7 +440,33 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
               </div>
             </div>
 
-            {/* --- NOVO CAMPO: ANOTAÇÕES --- */}
+            {/* NOVO: Checkbox de Platina */}
+            {(formData.status === 'zerados' || isEditing) && (
+              <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-2 border-yellow-500/30 rounded-2xl p-4">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    name="isPlatinum"
+                    checked={formData.isPlatinum || false}
+                    onChange={handleChange}
+                    className="w-5 h-5 rounded border-2 border-yellow-500 bg-gray-800 checked:bg-yellow-500 checked:border-yellow-500 focus:ring-2 focus:ring-yellow-500 cursor-pointer"
+                  />
+                  <div className="flex items-center gap-2 flex-1">
+                    <Trophy className="w-5 h-5 text-yellow-400" />
+                    <div>
+                      <span className="text-sm font-bold text-yellow-300 block">
+                        Platinado / 100% Completo
+                      </span>
+                      <span className="text-xs text-yellow-500/70">
+                        Marque se você conquistou todas as conquistas
+                      </span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {/* Anotações */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4 text-cyan-400" />

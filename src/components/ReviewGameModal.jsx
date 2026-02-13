@@ -1,6 +1,6 @@
 // src/components/ReviewGameModal.jsx
 import React, { useState } from 'react';
-import { X, Star, CheckCircle } from 'lucide-react';
+import { X, Star, CheckCircle, Trophy } from 'lucide-react';
 import { categoryNames } from '../data/categories';
 
 // Componente para a seleção de estrela
@@ -19,9 +19,9 @@ const RatingStar = ({ rating, setRating, index }) => {
 };
 
 export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
-    // A nota é de 1 a 10, mas vamos usar de 1 a 5 estrelas visuais, mapeando o clique para a nota.
-    const [rating, setRating] = useState(10); // Começa com a nota máxima
+    const [rating, setRating] = useState(10);
     const [reviewText, setReviewText] = useState('');
+    const [isPlatinum, setIsPlatinum] = useState(game.isPlatinum || false);
     const [loading, setLoading] = useState(false);
 
     const handleSave = (e) => {
@@ -30,17 +30,15 @@ export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
 
         const reviewData = {
             rating: rating,
-            reviewText: reviewText.trim()
+            reviewText: reviewText.trim(),
+            isPlatinum: isPlatinum
         };
         
-        // Chama a função no App.jsx para finalizar a marcação
         onReviewSubmit(reviewData);
         setLoading(false);
     };
 
     const cleanCategoryName = categoryNames['zerados'].split('(')[0].trim();
-    
-    // Mapeamento visual: 1-10 para 10 "estrelas"/ícones de nota (para melhor precisão visual de 1 a 10)
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
@@ -79,6 +77,29 @@ export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
                             ))}
                         </div>
                         <p className="text-center text-sm text-gray-400 mt-2">Clique no ícone para selecionar a nota (1 a 10).</p>
+                    </div>
+
+                    {/* NOVO: Checkbox de Platina */}
+                    <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-2 border-yellow-500/30 rounded-2xl p-4">
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={isPlatinum}
+                                onChange={(e) => setIsPlatinum(e.target.checked)}
+                                className="w-5 h-5 rounded border-2 border-yellow-500 bg-gray-800 checked:bg-yellow-500 checked:border-yellow-500 focus:ring-2 focus:ring-yellow-500 cursor-pointer"
+                            />
+                            <div className="flex items-center gap-2 flex-1">
+                                <Trophy className="w-5 h-5 text-yellow-400" />
+                                <div>
+                                    <span className="text-sm font-bold text-yellow-300 block">
+                                        Platinado / 100% Completo
+                                    </span>
+                                    <span className="text-xs text-yellow-500/70">
+                                        Conquistei todas as conquistas
+                                    </span>
+                                </div>
+                            </div>
+                        </label>
                     </div>
 
                     {/* Comentários */}

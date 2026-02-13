@@ -12,11 +12,11 @@ import {
   Clock,
   Trophy,
   Calendar,
+  Award,
 } from "lucide-react";
 import { categoryNames, categoryIcons } from "../data/categories";
 import { toast } from "react-hot-toast";
 
-// Função auxiliar segura
 const getCleanCategoryName = (name) => {
   if (!name) return "";
   return name
@@ -25,7 +25,6 @@ const getCleanCategoryName = (name) => {
     .trim();
 };
 
-// Cores dinâmicas para a nota
 const getRatingColor = (rating) => {
   if (rating >= 9) return "from-emerald-500 to-teal-500";
   if (rating >= 7) return "from-cyan-500 to-blue-500";
@@ -33,7 +32,6 @@ const getRatingColor = (rating) => {
   return "from-red-500 to-pink-500";
 };
 
-// Classificação da duração do jogo
 const getGameLengthLabel = (hours) => {
   if (!hours) return null;
   if (hours <= 5) return { label: "Curto", color: "text-green-400", bg: "bg-green-500/10" };
@@ -87,7 +85,7 @@ export default function GameDetail({
       return;
     }
     const newStatus = selectedGame.originalStatus || "playing";
-    const gameToUpdate = { ...selectedGame, rating: null, reviewText: "" };
+    const gameToUpdate = { ...selectedGame, rating: null, reviewText: "", isPlatinum: false };
     handleUpdateGameStatus(selectedGame.id, newStatus, gameToUpdate);
     setSelectedGame({ ...gameToUpdate, status: newStatus });
   };
@@ -95,15 +93,16 @@ export default function GameDetail({
   const handleMoveToStatus = (newStatus) => {
     let gameToUpdate = selectedGame;
     if (selectedGame.status === "zerados") {
-      gameToUpdate = { ...selectedGame, rating: null, reviewText: "" };
+      gameToUpdate = { ...selectedGame, rating: null, reviewText: "", isPlatinum: false };
     }
     handleUpdateGameStatus(selectedGame.id, newStatus, gameToUpdate);
     setSelectedGame(null);
   };
 
   const handleShare = async () => {
+    const platinumText = selectedGame.isPlatinum ? " 🏆 PLATINA!" : "";
     const text = isFinished
-      ? `Acabei de zerar ${selectedGame.nome} no meu Backlog! Minha nota: ${selectedGame.rating}/10 🎮`
+      ? `Acabei de zerar ${selectedGame.nome} no meu Backlog! Minha nota: ${selectedGame.rating}/10${platinumText} 🎮`
       : `Estou jogando ${selectedGame.nome} e organizando meu backlog! 🎮`;
 
     if (navigator.share) {
@@ -213,6 +212,16 @@ export default function GameDetail({
               </div>
             </div>
 
+            {/* Badge de Platina - Top Right */}
+            {isFinished && selectedGame.isPlatinum && (
+              <div className="absolute top-4 left-4 mt-12">
+                <div className="px-3 py-1.5 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 rounded-full shadow-xl flex items-center gap-1.5 border-2 border-yellow-300 animate-pulse">
+                  <Trophy className="w-4 h-4 text-yellow-900 fill-yellow-900" />
+                  <span className="text-xs font-black text-yellow-900 uppercase tracking-wider">Platina</span>
+                </div>
+              </div>
+            )}
+
             {/* Rating Badge - Se zerado */}
             {isFinished && selectedGame.rating !== null && (
               <div className="absolute top-4 right-4">
@@ -276,6 +285,28 @@ export default function GameDetail({
             )}
           </div>
         </div>
+
+        {/* Badge de Platina Destacado (se tiver) */}
+        {isFinished && selectedGame.isPlatinum && (
+          <div className="mb-6 relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-300"></div>
+            <div className="relative bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border-2 border-yellow-500/50 rounded-2xl p-5 backdrop-blur-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <Trophy className="w-9 h-9 text-yellow-900 fill-yellow-900" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-black text-yellow-300 mb-1 flex items-center gap-2">
+                    🏆 CONQUISTA PLATINADA
+                  </h3>
+                  <p className="text-sm text-yellow-200/80">
+                    Você conquistou 100% das conquistas deste jogo!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notas Pessoais */}
         {selectedGame.notes && selectedGame.notes.trim() && (

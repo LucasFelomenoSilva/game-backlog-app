@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, Clock, History, Star, Heart, Sparkles, Target, Flame } from "lucide-react";
+import { TrendingUp, CheckCircle, Clock, History, Star, Heart, Sparkles, Target, Flame, Trophy, Award } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'; 
 
 export default function ProgressScreen({
@@ -22,6 +22,10 @@ export default function ProgressScreen({
     const totalRating = ratedGames.reduce((sum, g) => sum + parseInt(g.rating), 0);
     const avgRating = ratedGames.length > 0 ? (totalRating / ratedGames.length).toFixed(1) : '-';
 
+    // NOVO: Contagem de platinas
+    const platinumGames = finishedGames.filter(g => g.isPlatinum);
+    const platinumCount = platinumGames.length;
+
     const genres = {};
     finishedGames.forEach(g => {
         if (g.genre) {
@@ -38,7 +42,7 @@ export default function ProgressScreen({
         }
     });
 
-    return { avgRating, favoriteGenre };
+    return { avgRating, favoriteGenre, platinumCount };
   }, [gamesData]);
 
   const totalHours = gamesData.reduce((sum, game) => sum + (Number(game.timeToBeat) || 0), 0);
@@ -147,6 +151,53 @@ export default function ProgressScreen({
           </div>
 
         </div>
+
+        {/* NOVO: Card de Platinas (destaque especial) */}
+        {advancedStats.platinumCount > 0 && (
+          <div className="relative group mb-6">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-500 rounded-3xl blur opacity-40 group-hover:opacity-60 transition duration-300 animate-pulse"></div>
+            <div className="relative bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-xl rounded-3xl p-6 border-2 border-yellow-500/50">
+              
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <Trophy className="w-10 h-10 text-yellow-900 fill-yellow-900" />
+                </div>
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="w-5 h-5 text-yellow-400" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-yellow-300">Conquistas Épicas</span>
+                  </div>
+                  <div className="text-5xl font-black bg-gradient-to-r from-yellow-300 to-amber-300 bg-clip-text text-transparent mb-1">
+                    {advancedStats.platinumCount}
+                  </div>
+                  <div className="text-sm font-bold text-yellow-200">
+                    {advancedStats.platinumCount === 1 ? 'Jogo Platinado' : 'Jogos Platinados'}
+                  </div>
+                  <div className="text-xs text-yellow-400/70 mt-1">
+                    100% de conclusão alcançados
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra de progresso de platinas */}
+              <div className="mt-4 pt-4 border-t border-yellow-500/30">
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="text-yellow-300 font-semibold">Taxa de Platinação</span>
+                  <span className="text-yellow-200 font-bold">
+                    {totalFinishedGames > 0 ? Math.round((advancedStats.platinumCount / totalFinishedGames) * 100) : 0}%
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-yellow-900/30 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-yellow-500 to-amber-500 rounded-full transition-all duration-700"
+                    style={{ width: `${totalFinishedGames > 0 ? (advancedStats.platinumCount / totalFinishedGames) * 100 : 0}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Gráfico de Distribuição Modernizado */}
         {gamesData.length > 0 && (
