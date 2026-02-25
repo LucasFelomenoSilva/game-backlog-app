@@ -261,7 +261,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-3xl bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950 rounded-3xl shadow-2xl border border-gray-800 flex flex-col max-h-[85vh] overflow-hidden">
+      <div className="w-full max-w-3xl bg-gradient-to-br from-gray-900 via-gray-900 to-gray-950 rounded-3xl shadow-2xl border border-gray-800 flex flex-col max-h-[80vh] overflow-hidden">
 
         {/* Header */}
         <div className="flex-shrink-0 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 px-6 py-4">

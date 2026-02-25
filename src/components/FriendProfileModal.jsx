@@ -105,8 +105,7 @@ export default function FriendProfileModal({ friendUid, friendProfile, onClose, 
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="relative w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-950 rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden flex flex-col"
-        style={{ maxHeight: '90vh' }}
+        className="relative w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-950 rounded-3xl border border-gray-700/60 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
       >
         {/* ── Botão Fechar ── */}
         <button
