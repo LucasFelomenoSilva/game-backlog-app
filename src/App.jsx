@@ -11,12 +11,19 @@ import EnhancedAchievements from "./components/EnhancedAchievements";
 import AddGameModal from "./components/AddGameModal"; 
 import ReviewGameModal from "./components/ReviewGameModal"; 
 import GameRecommender from "./components/GameRecommender"; 
+import FriendsScreen from "./components/FriendsScreen";
+import ChatScreen from "./components/ChatScreen";
+import FriendProfileScreen from "./components/FriendProfileScreen";
 import { Joystick, Sparkles, Gamepad2, Plus } from "lucide-react"; 
 import imageCompression from "browser-image-compression";
 import { DragDropContext } from '@hello-pangea/dnd';
 import { auth, db, googleProvider } from "./firebase"; 
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  initUserSocialProfile,
+  subscribeToSocialProfile,
+} from "./services/socialService";
 
 const LOADING_TIPS = [
     "Carregando texturas...",
@@ -25,7 +32,8 @@ const LOADING_TIPS = [
     "Limpando o cartucho...",
     "Gerando mundos procedurais...",
     "A princesa está em outro castelo...",
-    "Recarregando mana..."
+    "Recarregando mana...",
+    "Conectando ao servidor social...",
 ];
 
 const Confetti = () => {
@@ -76,6 +84,11 @@ function App() {
   const [achievements, setAchievements] = useState([]);
   const [gameHistory, setGameHistory] = useState([]);
   const [loadingTip, setLoadingTip] = useState(LOADING_TIPS[0]);
+
+  // --- SOCIAL STATE ---
+  const [socialProfile, setSocialProfile] = useState(null);
+  const [chatOpen, setChatOpen] = useState(null); // { uid, profile }
+  const [viewingFriend, setViewingFriend] = useState(null); // { uid, profile }
 
   const [konamiIndex, setKonamiIndex] = useState(0);
   const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
@@ -189,37 +202,35 @@ function App() {
         }
         setUser({ ...currentUser, photoBase64: firestoreData.photoBase64 || null });
         
+        // --- INIT SOCIAL PROFILE ---
+        const userCode = await initUserSocialProfile(
+          currentUser.uid,
+          currentUser.displayName,
+          currentUser.photoURL
+        );
+
         let fetchedGamesData = firestoreData.gamesData || [];
         const fetchedHistory = firestoreData.gameHistory || [];
 
-        // --- LÓGICA DE CORREÇÃO DE DATAS ---
-        // Cria um mapa para busca rápida: 'Nome do Jogo' -> '2023-10-25'
         const historyMap = {};
         fetchedHistory.forEach(item => {
              if (item.status === 'zerado' && item.date) {
-                 // Usa o nome do jogo como chave
                  historyMap[item.game] = item.date; 
              }
         });
 
-        // Itera sobre os jogos para corrigir status e injetar datas faltantes
         fetchedGamesData = fetchedGamesData.map(game => {
-             // Normaliza status antigo
              if(game.status === 'a_zerar' || game.status === 'jogando') {
                  return { ...game, status: 'playing' };
              }
-             
-             // Se for zerado e NÃO tiver data salva no card, tenta pegar do histórico
              if (game.status === 'zerados' && !game.finishedDate) {
                  const historyDate = historyMap[game.nome];
                  if (historyDate) {
-                     // Adiciona T12:00:00 para garantir que o fuso horário não volte um dia
                      return { ...game, finishedDate: new Date(historyDate + 'T12:00:00').toISOString() };
                  }
              }
              return game;
         });
-        // -----------------------------------
 
         setGamesData(fetchedGamesData);
         setAchievements(firestoreData.achievements || []);
@@ -231,11 +242,31 @@ function App() {
         setTotalFinishedGames(0);
         setAchievements([]);
         setGameHistory([]);
+        setSocialProfile(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, [calculateStats]);
+
+  // Subscribe to social profile in real-time (for friend requests, etc.)
+  useEffect(() => {
+    if (!user) return;
+    const unsub = subscribeToSocialProfile(user.uid, (profile) => {
+      setSocialProfile(profile);
+      // Notifica novo pedido de amizade
+      const prevCount = socialProfile?.friendRequests?.length || 0;
+      const newCount = profile?.friendRequests?.length || 0;
+      if (newCount > prevCount) {
+        toast('📬 Novo pedido de amizade!', {
+          icon: '👾',
+          style: { background: '#1e3a5f', color: '#7dd3fc', border: '1px solid #0ea5e9' },
+          duration: 5000,
+        });
+      }
+    });
+    return () => unsub();
+  }, [user?.uid]);
 
   const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
     if (!user || loading) return;
@@ -257,12 +288,9 @@ function App() {
 
   const handleAddNewGame = (newGame) => {
       const gameWithId = { ...newGame, id: Date.now().toString() };
-      
-      // Se adicionar direto como zerado, já coloca a data de hoje
       if (gameWithId.status === 'zerados' && !gameWithId.finishedDate) {
          gameWithId.finishedDate = new Date().toISOString();
       }
-
       setGamesData(prev => [...prev, gameWithId]);
       if (newGame.status === 'zerados') {
           setGameHistory(prev => [...prev, { game: newGame.nome, status: 'zerado', date: new Date().toISOString().split('T')[0] }]);
@@ -280,11 +308,9 @@ function App() {
   };
 
   const handleEditGame = (updatedGame) => {
-    // Se mudou para zerado na edição, garante a data
     if (updatedGame.status === 'zerados' && !updatedGame.finishedDate) {
         updatedGame.finishedDate = new Date().toISOString();
     }
-
     const newGamesData = gamesData.map(game => game.id === updatedGame.id ? updatedGame : game);
     setGamesData(newGamesData);
     if (selectedGame && selectedGame.id === updatedGame.id) setSelectedGame(updatedGame);
@@ -319,7 +345,8 @@ function App() {
           originalStatus: gameToReview.status, 
           rating: reviewData.rating,
           reviewText: reviewData.reviewText,
-          finishedDate: today // Salva data no objeto
+          isPlatinum: reviewData.isPlatinum,
+          finishedDate: today
       };
       const newGamesData = gamesData.map(game => game.id === gameToReview.id ? updatedGame : game);
       setGamesData(newGamesData);
@@ -334,13 +361,10 @@ function App() {
   const handleUpdateGameStatus = (gameId, newStatus, gameToUpdate = null) => {
     const gameToMap = gameToUpdate || gamesData.find(g => g.id === gameId);
     if (!gameToMap) return;
-
-    // Se arrastou para zerados, adiciona data
     let updatedGame = { ...gameToMap, status: newStatus };
     if (newStatus === 'zerados' && !updatedGame.finishedDate) {
         updatedGame.finishedDate = new Date().toISOString();
     }
-
     const newGamesData = gamesData.map(game => game.id === gameId ? updatedGame : game);
     setGamesData(newGamesData);
     calculateStats(newGamesData); 
@@ -363,6 +387,45 @@ function App() {
     acc[status].push(game);
     return acc;
   }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] }); 
+
+  // Social handlers
+  const handleOpenChat = (friendUid, friendProfile) => {
+    setChatOpen({ uid: friendUid, profile: friendProfile });
+  };
+
+  const handleOpenFriendProfile = (friendUid, friendProfile) => {
+    setViewingFriend({ uid: friendUid, profile: friendProfile });
+  };
+
+  // Se o chat está aberto, renderiza por cima de tudo
+  if (chatOpen) {
+    return (
+      <>
+        <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
+        <ChatScreen
+          currentUser={{ ...user, photoURL: user.photoBase64 || user.photoURL }}
+          friendUid={chatOpen.uid}
+          friendProfile={chatOpen.profile}
+          onBack={() => setChatOpen(null)}
+        />
+      </>
+    );
+  }
+
+  // Se está visualizando perfil de amigo
+  if (viewingFriend) {
+    return (
+      <>
+        <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
+        <FriendProfileScreen
+          friendUid={viewingFriend.uid}
+          friendProfile={viewingFriend.profile}
+          onBack={() => setViewingFriend(null)}
+          onOpenChat={handleOpenChat}
+        />
+      </>
+    );
+  }
 
   const renderContent = () => {
     if (loading) {
@@ -410,6 +473,17 @@ function App() {
     
     if (activeTab === "achievements") {
       return <EnhancedAchievements achievements={achievements} personalRecords={{}} />;
+    }
+
+    if (activeTab === "friends") {
+      return (
+        <FriendsScreen
+          currentUser={{ ...user, photoURL: user.photoBase64 || user.photoURL }}
+          socialProfile={socialProfile}
+          onOpenChat={handleOpenChat}
+          onViewFriendProfile={handleOpenFriendProfile}
+        />
+      );
     }
 
     if (activeTab === "profile") {
@@ -475,7 +549,6 @@ function App() {
       }}/>
       {showConfetti && <Confetti />}
 
-      {/* Botão Adicionar Jogo - Canto Superior Direito */}
       {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
         <button
           onClick={() => setIsAddGameModalOpen(true)}
@@ -491,7 +564,6 @@ function App() {
           {renderContent()}
       </div>
 
-      {/* Botão de Recomendação IA - Inferior Direito */}
       {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
         <button
             onClick={() => setIsRecommenderOpen(true)}
@@ -512,7 +584,11 @@ function App() {
       )}
 
       {user && !selectedGame && !isReviewModalOpen && !isRecommenderOpen && (
-        <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+        <BottomNavigation
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          friendRequestCount={socialProfile?.friendRequests?.length || 0}
+        />
       )}
     </div>
   );
