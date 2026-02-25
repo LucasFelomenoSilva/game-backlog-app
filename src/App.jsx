@@ -432,7 +432,7 @@ function App() {
     }
 
     if (activeTab === "progress") return <ProgressScreen gameHistory={gameHistory} gamesData={gamesData} totalFinishedGames={totalFinishedGames} />;
-    if (activeTab === "achievements") return <EnhancedAchievements achievements={achievements} personalRecords={{}} />;
+    if (activeTab === "achievements") return <EnhancedAchievements achievements={achievements} gamesData={gamesData} />;
     if (activeTab === "friends") return (
       <FriendsScreen
         currentUser={{ ...user, photoURL: user.photoBase64 || user.photoURL }}
