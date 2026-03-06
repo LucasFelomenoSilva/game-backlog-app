@@ -31,6 +31,7 @@ import LevelUpOverlay from "./components/LevelUpOverlay";
 import WeeklyMissions from "./components/WeeklyMissions";
 import SurpriseMe from "./components/SurpriseMe";
 import CollabList from "./components/CollabList";
+import { useUndoDelete } from "./hooks/useUndoDelete";
 
 const LOADING_TIPS = [
   "Carregando texturas...",
@@ -83,6 +84,7 @@ function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [darkMode] = useState(true);
   const { theme: V } = useTheme();
+  const { deleteWithUndo } = useUndoDelete();
 
   const [gamesData, setGamesData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -125,6 +127,27 @@ function App() {
     "b",
     "a",
   ];
+
+  const requestNotificationPermission = async (userId) => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: "SUA_CHAVE_VAPID_AQUI", // Substitua pela sua VAPID Key gerada no Firebase
+          });
+          await setDoc(doc(db, "pushSubs", userId), {
+            subscription: JSON.stringify(sub),
+          });
+          toast.success("Notificações ativadas!");
+        } catch (error) {
+          console.error("Erro ao assinar push:", error);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -262,6 +285,8 @@ function App() {
           currentUser.displayName,
           currentUser.photoURL,
         );
+
+        requestNotificationPermission(currentUser.uid);
 
         let fetchedGamesData = firestoreData.gamesData || [];
         const fetchedHistory = firestoreData.gameHistory || [];
@@ -408,12 +433,14 @@ function App() {
 
   const handleDeleteGame = async (gameId) => {
     const gameToDelete = gamesData.find((g) => g.id === gameId);
-    setGamesData((prev) => prev.filter((game) => game.id !== gameId));
-    setGameHistory((prev) =>
-      prev.filter((item) => item.game !== gameToDelete?.nome),
-    );
-    toast.success("Jogo removido!");
-    setSelectedGame(null);
+    setSelectedGame(null); // Fecha a tela de detalhes primeiro
+
+    deleteWithUndo(gameToDelete, user.uid, (deletedId) => {
+      setGamesData((prev) => prev.filter((game) => game.id !== deletedId));
+      setGameHistory((prev) =>
+        prev.filter((item) => item.game !== gameToDelete?.nome),
+      );
+    });
   };
 
   const handleSaveGame = (gameData) => {
@@ -701,6 +728,8 @@ function App() {
           setSelectedCategory={setSelectedCategory}
           games={groupedGames}
           setSelectedGame={setSelectedGame}
+          gamesData={gamesData}       // <-- ADICIONADO AQUI
+          setGamesData={setGamesData} // <-- ADICIONADO AQUI
         />
       );
 

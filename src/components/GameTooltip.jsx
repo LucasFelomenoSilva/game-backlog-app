@@ -22,12 +22,19 @@ export default function GameTooltip({ game, children }) {
     timerRef.current = setTimeout(() => {
       const rect = ref.current?.getBoundingClientRect();
       if (rect) {
-        const x = rect.right + 8;
-        const y = rect.top;
-        setPos({ x: Math.min(x, window.innerWidth - 220), y: Math.max(y, 10) });
+        // Pega a posição logo à direita do card
+        let x = rect.right + 12;
+        let y = rect.top;
+
+        // Proteção para telas menores (ex: celular). Se for vazar da tela pela direita, joga pro canto.
+        if (x + 220 > window.innerWidth) {
+           x = Math.max(10, window.innerWidth - 230);
+        }
+        
+        setPos({ x, y: Math.max(y, 10) });
       }
       setVisible(true);
-    }, 400);
+    }, 400); // Aparece depois de 400ms do mouse parado
   };
 
   const hide = () => {
@@ -42,9 +49,11 @@ export default function GameTooltip({ game, children }) {
 
   return (
     <>
-      <div ref={ref} onMouseEnter={show} onMouseLeave={hide} className="contents">
+      {/* CORREÇÃO: Removido o 'contents' e adicionado 'block w-full relative' para manter o box model */}
+      <div ref={ref} onMouseEnter={show} onMouseLeave={hide} className="block w-full relative">
         {children}
       </div>
+      
       {visible && (
         <div className="fixed z-[300] pointer-events-none animate-fadeIn"
           style={{ left: pos.x, top: pos.y, width: '200px', transformOrigin: 'left top' }}>
@@ -70,6 +79,7 @@ export default function GameTooltip({ game, children }) {
                 </span>
               </div>
             </div>
+            
             {/* Info */}
             <div className="p-3 space-y-2">
               <p className="text-sm font-black leading-tight" style={{ color: V.text }}>{game.nome}</p>

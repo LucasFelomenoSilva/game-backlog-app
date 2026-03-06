@@ -12,6 +12,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
 import SettingsModal from './SettingsModal';
+import PublicProfile from './PublicProfile';
 
 // ── Badges ────────────────────────────────────────────────────────────────────
 const BADGES = [
@@ -453,6 +454,11 @@ export default function ProfileScreen({
               </div>
             </button>
           </div>
+
+          {/* Feature #17: Perfil Público Compartilhável */}
+          <section className="mt-2">
+            <PublicProfile currentUser={user} gamesData={gamesData} />
+          </section>
 
           <section>
             <div className="flex items-center justify-between mb-3 px-1">

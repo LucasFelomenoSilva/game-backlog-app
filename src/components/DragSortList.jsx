@@ -1,21 +1,15 @@
-// src/components/DragSortList.jsx — Drag & drop para reordenar backlog
 import React, { useState, useRef, useCallback } from 'react';
 import { GripVertical, Gamepad2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { toast } from 'react-hot-toast';
 
-export default function DragSortList({ games, userId, categoryId, onReorder }) {
+export default function DragSortList({ games, categoryId, onReorder }) {
   const { theme: V } = useTheme();
   const [items, setItems] = useState(games);
   const [dragging, setDragging] = useState(null);
   const [dragOver, setDragOver] = useState(null);
-  const [saving, setSaving] = useState(false);
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
-  // Sync com prop
   React.useEffect(() => { setItems(games); }, [games]);
 
   const handleDragStart = (e, index) => {
@@ -29,7 +23,7 @@ export default function DragSortList({ games, userId, categoryId, onReorder }) {
     setDragOver(index);
   };
 
-  const handleDragEnd = useCallback(async () => {
+  const handleDragEnd = useCallback(() => {
     if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
       setDragging(null); setDragOver(null);
       return;
@@ -41,26 +35,14 @@ export default function DragSortList({ games, userId, categoryId, onReorder }) {
     setDragging(null); setDragOver(null);
     dragItem.current = null; dragOverItem.current = null;
 
-    // Salvar ordem no Firestore
-    setSaving(true);
-    try {
-      const updates = newItems.map((game, i) =>
-        updateDoc(doc(db, 'users', userId, 'games', game.id), { sortOrder: i })
-      );
-      await Promise.all(updates);
-      onReorder?.(newItems);
-    } catch { toast.error('Erro ao salvar ordem.'); }
-    finally { setSaving(false); }
-  }, [items, userId, onReorder]);
+    // Apenas avisa o GameList da nova ordem (o App.jsx tratará de guardar no Firebase)
+    onReorder?.(newItems);
+  }, [items, onReorder]);
 
   if (items.length === 0) return null;
 
   return (
     <div className="relative">
-      {saving && (
-        <div className="absolute top-0 right-0 z-10 text-[10px] font-bold px-2 py-0.5 rounded-full"
-          style={{ background: V.faint, color: V.muted }}>Salvando...</div>
-      )}
       <div className="space-y-2">
         {items.map((game, index) => {
           const isDragging = dragging === index;

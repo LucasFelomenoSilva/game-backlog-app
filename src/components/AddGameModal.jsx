@@ -4,6 +4,7 @@ import { categoryNames, initialGameData, platformOptions, genreOptions } from '.
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
 import { searchGameIGDB } from '../services/igdbService';
+import CustomTags from './CustomTags';
 
 const convertUrlToFile = async (url, filename) => {
   const fullUrl = url.startsWith('http') ? url : `https:${url}`;
@@ -625,6 +626,17 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                 </label>
               </div>
             )}
+
+            {/* Tags - Feature #9 */}
+            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50 mb-4">
+              <label className="block text-xs font-bold text-cyan-300 uppercase tracking-wider mb-3">
+                Tags Personalizadas
+              </label>
+              <CustomTags
+                tags={formData.tags || []}
+                onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+              />
+            </div>
 
             {/* Anotações */}
             <div>
