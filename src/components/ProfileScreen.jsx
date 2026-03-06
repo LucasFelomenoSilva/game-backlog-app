@@ -1,13 +1,16 @@
-// src/components/ProfileScreen.jsx — Redesign roxo/violeta
-import React, { useMemo, useState, useRef } from 'react';
+// src/components/ProfileScreen.jsx — Favoritos persistentes + Editar Perfil + Configurações
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   LogOut, Camera, Trophy, Star, Clock, ChevronLeft,
   CheckCircle, Award, Database, Gamepad2, Monitor,
   Heart, TrendingUp, Edit3, Plus, X, Check, Zap,
-  Flame, BarChart3, Target, Sparkles,
+  Flame, BarChart3, Target, Sparkles, Settings,
+  User, Save, Loader2, Palette,
 } from 'lucide-react';
+import { db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { toast } from 'react-hot-toast';
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
 const V = {
   bg:      '#09060f',
   card:    '#130e22',
@@ -24,7 +27,17 @@ const V = {
   low:     'rgba(245,240,255,0.22)',
 };
 
-// ─── Badges ───────────────────────────────────────────────────────────────────
+// ── Temas disponíveis ─────────────────────────────────────────────────────────
+const THEMES_LIST = [
+  { id: 'violet',  name: 'Roxo',     emoji: '💜', grad: 'linear-gradient(135deg,#8b5cf6,#6366f1)', primary: '#8b5cf6', glow: 'rgba(139,92,246,0.4)' },
+  { id: 'cyan',    name: 'Azul',     emoji: '🔵', grad: 'linear-gradient(135deg,#06b6d4,#3b82f6)', primary: '#06b6d4', glow: 'rgba(6,182,212,0.4)'   },
+  { id: 'emerald', name: 'Verde',    emoji: '💚', grad: 'linear-gradient(135deg,#10b981,#059669)', primary: '#10b981', glow: 'rgba(16,185,129,0.4)'  },
+  { id: 'rose',    name: 'Vermelho', emoji: '❤️', grad: 'linear-gradient(135deg,#f43f5e,#e11d48)', primary: '#f43f5e', glow: 'rgba(244,63,94,0.4)'   },
+  { id: 'amber',   name: 'Laranja',  emoji: '🟠', grad: 'linear-gradient(135deg,#f59e0b,#d97706)', primary: '#f59e0b', glow: 'rgba(245,158,11,0.4)'  },
+  { id: 'pink',    name: 'Rosa',     emoji: '🌸', grad: 'linear-gradient(135deg,#ec4899,#db2777)', primary: '#ec4899', glow: 'rgba(236,72,153,0.4)'  },
+];
+
+// ── Badges ────────────────────────────────────────────────────────────────────
 const BADGES = [
   { emoji: '🎮', label: 'Fundador',  req: 0  },
   { emoji: '🏆', label: 'Platina',   req: 1  },
@@ -36,7 +49,213 @@ const BADGES = [
   { emoji: '🌟', label: 'Lendário',  req: 25 },
 ];
 
-// ─── FavoritePicker ───────────────────────────────────────────────────────────
+// ── Modal de Configurações de Tema ────────────────────────────────────────────
+function ThemeModal({ currentTheme, onApply, onClose }) {
+  const [selected, setSelected] = useState(currentTheme || 'violet');
+  const theme = THEMES_LIST.find(t => t.id === selected) || THEMES_LIST[0];
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        style={{ background: V.card, border: `1px solid ${V.border}`, boxShadow: `0 0 60px ${V.glow}` }}>
+
+        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: `1px solid ${V.border}` }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})`, boxShadow: `0 4px 16px ${V.glow}` }}>
+              <Palette className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-black" style={{ color: V.text }}>Tema de Cores</h2>
+              <p className="text-xs" style={{ color: V.muted }}>Personalize sua experiência</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl"
+            style={{ background: V.faint, border: `1px solid ${V.border}` }}>
+            <X className="w-4 h-4" style={{ color: V.muted }} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Grid de temas */}
+          <div className="grid grid-cols-3 gap-3">
+            {THEMES_LIST.map(t => {
+              const isSelected = selected === t.id;
+              return (
+                <button key={t.id} onClick={() => setSelected(t.id)}
+                  className="flex flex-col items-center gap-2.5 p-4 rounded-2xl transition-all duration-200"
+                  style={{
+                    background: isSelected ? `rgba(139,92,246,0.15)` : V.faint,
+                    border: `2px solid ${isSelected ? t.primary : V.border}`,
+                    boxShadow: isSelected ? `0 0 20px ${t.glow}` : 'none',
+                    transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                  }}>
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full" style={{ background: t.grad }} />
+                    {isSelected && (
+                      <div className="absolute inset-0 rounded-full flex items-center justify-center"
+                        style={{ background: 'rgba(0,0,0,0.35)' }}>
+                        <Check className="w-5 h-5 text-white" strokeWidth={3} />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wide"
+                    style={{ color: isSelected ? t.primary : V.muted }}>
+                    {t.emoji} {t.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Preview */}
+          <div className="rounded-2xl p-4 transition-all duration-300"
+            style={{ background: `${theme.primary}15`, border: `1px solid ${theme.primary}40` }}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: theme.grad }}>
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-black" style={{ color: V.text }}>Preview: {theme.name}</p>
+                <p className="text-xs" style={{ color: V.muted }}>Assim ficará o app</p>
+              </div>
+              <div className="ml-auto w-6 h-6 rounded-full" style={{ background: theme.grad }} />
+            </div>
+          </div>
+
+          <button onClick={() => onApply(selected)}
+            className="w-full py-4 rounded-2xl font-black text-white text-sm transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ background: theme.grad, boxShadow: `0 4px 20px ${theme.glow}` }}>
+            Aplicar Tema {theme.emoji}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Modal de Edição de Perfil ─────────────────────────────────────────────────
+function EditProfileModal({ user, onSave, onClose }) {
+  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [bio, setBio] = useState(user?.bio || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!displayName.trim()) { toast.error('Nome não pode ser vazio'); return; }
+    setSaving(true);
+    try {
+      await onSave({ displayName: displayName.trim(), bio: bio.trim() });
+      toast.success('Perfil atualizado!');
+      onClose();
+    } catch {
+      toast.error('Erro ao salvar perfil.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        style={{ background: V.card, border: `1px solid ${V.border}`, boxShadow: `0 0 60px ${V.glow}` }}>
+
+        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: `1px solid ${V.border}` }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})`, boxShadow: `0 4px 16px ${V.glow}` }}>
+              <User className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-black" style={{ color: V.text }}>Editar Perfil</h2>
+              <p className="text-xs" style={{ color: V.muted }}>Atualize suas informações</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl"
+            style={{ background: V.faint, border: `1px solid ${V.border}` }}>
+            <X className="w-4 h-4" style={{ color: V.muted }} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* Avatar preview */}
+          <div className="flex justify-center mb-2">
+            <div className="w-20 h-20 rounded-2xl overflow-hidden"
+              style={{ border: `2px solid ${V.border}` }}>
+              {user?.photoBase64 || user?.photoURL
+                ? <img src={user.photoBase64 || user.photoURL} className="w-full h-full object-cover" alt="avatar" />
+                : <div className="w-full h-full flex items-center justify-center text-3xl font-black text-white"
+                    style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+              }
+            </div>
+          </div>
+
+          {/* Nome */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: V.muted }}>
+              Nome de exibição *
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              maxLength={30}
+              placeholder="Seu nome no app"
+              className="w-full px-4 py-3 rounded-xl outline-none text-sm"
+              style={{ background: V.faint, border: `1px solid ${V.border}`, color: V.text, fontSize: 16 }}
+            />
+            <p className="text-[10px] mt-1 text-right" style={{ color: V.low }}>{displayName.length}/30</p>
+          </div>
+
+          {/* Bio */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: V.muted }}>
+              Bio (opcional)
+            </label>
+            <textarea
+              value={bio}
+              onChange={e => setBio(e.target.value)}
+              maxLength={120}
+              rows={3}
+              placeholder="Uma frase sobre você como gamer..."
+              className="w-full px-4 py-3 rounded-xl outline-none text-sm resize-none"
+              style={{ background: V.faint, border: `1px solid ${V.border}`, color: V.text, fontSize: 16 }}
+            />
+            <p className="text-[10px] mt-1 text-right" style={{ color: V.low }}>{bio.length}/120</p>
+          </div>
+
+          {/* Email (somente leitura) */}
+          {user?.email && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: V.muted }}>
+                E-mail (Google)
+              </label>
+              <div className="px-4 py-3 rounded-xl text-sm"
+                style={{ background: V.faint, border: `1px solid ${V.border}`, color: V.low }}>
+                {user.email}
+              </div>
+            </div>
+          )}
+
+          <button onClick={handleSave} disabled={saving}
+            className="w-full py-3.5 rounded-2xl font-black text-white text-sm transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2"
+            style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})`, boxShadow: `0 4px 20px ${V.glow}` }}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Salvar Alterações
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── FavoritePicker ────────────────────────────────────────────────────────────
 function FavoritePicker({ gamesData, favorites, onToggle, onClose }) {
   const [q, setQ] = useState('');
   const list = gamesData.filter(g =>
@@ -44,15 +263,12 @@ function FavoritePicker({ gamesData, favorites, onToggle, onClose }) {
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(16px)' }}
-    >
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.80)', backdropFilter: 'blur(16px)' }}>
       <div className="w-full max-w-sm overflow-hidden shadow-2xl"
         style={{ background: V.card, border: `1px solid ${V.border}`, borderRadius: 24, boxShadow: `0 0 80px ${V.glow}` }}>
 
         <div className="sm:hidden w-10 h-1 rounded-full mx-auto mt-3 mb-1" style={{ background: V.border }} />
-
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
             <p className="text-sm font-bold" style={{ color: V.text }}>Jogos Favoritos</p>
@@ -111,7 +327,7 @@ function FavoritePicker({ gamesData, favorites, onToggle, onClose }) {
   );
 }
 
-// ─── Componentes auxiliares ────────────────────────────────────────────────────
+// ── Componentes auxiliares ────────────────────────────────────────────────────
 function MiniStat({ label, value, icon: Icon, color }) {
   return (
     <div className="flex flex-col items-center gap-1.5 py-4 px-2 rounded-2xl"
@@ -125,8 +341,7 @@ function MiniStat({ label, value, icon: Icon, color }) {
 
 function HighlightRow({ label, value, icon: Icon }) {
   return (
-    <div className="flex items-center justify-between py-3 px-4"
-      style={{ borderBottom: `1px solid ${V.border}` }}>
+    <div className="flex items-center justify-between py-3 px-4" style={{ borderBottom: `1px solid ${V.border}` }}>
       <div className="flex items-center gap-2.5">
         <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: V.soft }} />
         <span className="text-sm" style={{ color: V.muted }}>{label}</span>
@@ -136,7 +351,7 @@ function HighlightRow({ label, value, icon: Icon }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProfileScreen({
   user,
   handleSignOut,
@@ -145,16 +360,71 @@ export default function ProfileScreen({
   gamesData = [],
   goBack,
   onOpenBackup,
+  onProfileUpdate,   // callback para atualizar user no App
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [favorites, setFavorites]   = useState([]);
+  // Favoritos — carregados do Firestore via user data (persistência real)
+  const [favorites, setFavorites]       = useState([]);
+  const [pickerOpen, setPickerOpen]     = useState(false);
+  const [showTheme, setShowTheme]       = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [savingFavs, setSavingFavs]     = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    try { return localStorage.getItem('gamebacklog_theme') || 'violet'; } catch { return 'violet'; }
+  });
+  const [localDisplayName, setLocalDisplayName] = useState(user?.displayName || '');
+  const [localBio, setLocalBio] = useState(user?.bio || '');
 
-  const toggle = (game) =>
-    setFavorites(prev =>
-      prev.some(f => f.id === game.id)
-        ? prev.filter(f => f.id !== game.id)
-        : prev.length < 5 ? [...prev, game] : prev
-    );
+  // Carrega favoritos salvos ao montar
+  useEffect(() => {
+    if (user?.favorites && Array.isArray(user.favorites)) {
+      setFavorites(user.favorites);
+    }
+  }, [user?.uid]);
+
+  // Sync nome/bio local quando user muda
+  useEffect(() => {
+    setLocalDisplayName(user?.displayName || '');
+    setLocalBio(user?.bio || '');
+  }, [user?.displayName, user?.bio]);
+
+  const toggle = async (game) => {
+    const newFavs = favorites.some(f => f.id === game.id)
+      ? favorites.filter(f => f.id !== game.id)
+      : favorites.length < 5 ? [...favorites, game] : favorites;
+    setFavorites(newFavs);
+    // Salva imediatamente no Firestore
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { favorites: newFavs });
+    } catch { toast.error('Erro ao salvar favoritos.'); }
+  };
+
+  const handleClosePicker = async () => {
+    setPickerOpen(false);
+    // Salva ao fechar o picker
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { favorites });
+    } catch {}
+  };
+
+  const handleApplyTheme = (themeId) => {
+    setCurrentTheme(themeId);
+    try { localStorage.setItem('gamebacklog_theme', themeId); } catch {}
+    // Aplica CSS vars
+    const themeObj = THEMES_LIST.find(t => t.id === themeId);
+    if (themeObj) {
+      document.documentElement.style.setProperty('--color-primary', themeObj.primary);
+    }
+    toast.success(`Tema ${THEMES_LIST.find(t => t.id === themeId)?.name} aplicado!`);
+    setShowTheme(false);
+  };
+
+  const handleSaveProfile = async ({ displayName, bio }) => {
+    if (!user?.uid) return;
+    await updateDoc(doc(db, 'users', user.uid), { displayName, bio });
+    setLocalDisplayName(displayName);
+    setLocalBio(bio);
+    if (onProfileUpdate) onProfileUpdate({ displayName, bio });
+  };
 
   const S = useMemo(() => {
     const finished  = gamesData.filter(g => g.status === 'zerados');
@@ -166,32 +436,23 @@ export default function ProfileScreen({
       ? (rated.reduce((s, g) => s + parseFloat(g.rating), 0) / rated.length).toFixed(1)
       : '—';
     const completePct = total > 0 ? Math.round((finished.length / total) * 100) : 0;
-
     const pm = {};
     gamesData.forEach(g =>
       g.platform?.split(' | ').forEach(p => { const k = p.trim(); pm[k] = (pm[k] || 0) + 1; })
     );
     const topPlatform = Object.entries(pm).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-
     const gm = {};
     finished.forEach(g => { if (g.genre) gm[g.genre] = (gm[g.genre] || 0) + 1; });
     const favGenre = Object.entries(gm).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-
-    // Recentes
     const recent = [...finished]
       .filter(g => g.finishedDate)
       .sort((a, b) => new Date(b.finishedDate) - new Date(a.finishedDate))
       .slice(0, 3);
-
-    // Top rated
-    const topRated = [...rated]
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 1)[0] || null;
-
+    const topRated = [...rated].sort((a, b) => b.rating - a.rating).slice(0, 1)[0] || null;
     return { total, finished: finished.length, hours, platinas, avgRating, completePct, topPlatform, favGenre, recent, topRated };
   }, [gamesData]);
 
-  const name    = user?.displayName || 'Gamer';
+  const name    = localDisplayName || user?.displayName || 'Gamer';
   const level   = Math.floor(totalFinishedGames / 5) + 1;
   const xpPct   = (totalFinishedGames % 5) * 20;
   const initial = name.charAt(0).toUpperCase();
@@ -200,15 +461,21 @@ export default function ProfileScreen({
   return (
     <>
       {pickerOpen && (
-        <FavoritePicker
-          gamesData={gamesData} favorites={favorites}
-          onToggle={toggle} onClose={() => setPickerOpen(false)}
+        <FavoritePicker gamesData={gamesData} favorites={favorites} onToggle={toggle} onClose={handleClosePicker} />
+      )}
+      {showTheme && (
+        <ThemeModal currentTheme={currentTheme} onApply={handleApplyTheme} onClose={() => setShowTheme(false)} />
+      )}
+      {showEditProfile && (
+        <EditProfileModal
+          user={{ ...user, displayName: localDisplayName, bio: localBio }}
+          onSave={handleSaveProfile}
+          onClose={() => setShowEditProfile(false)}
         />
       )}
 
-      <div className="min-h-screen pb-24" style={{ background: V.bg, fontFamily: "-apple-system, sans-serif" }}>
+      <div className="min-h-screen pb-24" style={{ background: V.bg, fontFamily: '-apple-system, sans-serif' }}>
 
-        {/* Ambient top glow */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] pointer-events-none"
           style={{ background: `radial-gradient(ellipse at 50% 0%, ${V.glow} 0%, transparent 70%)`, opacity: 0.5 }} />
 
@@ -222,6 +489,15 @@ export default function ProfileScreen({
             </button>
             <span className="text-sm font-bold tracking-wide" style={{ color: V.text }}>Perfil</span>
             <div className="flex items-center gap-2">
+              {/* Botão de Configurações / Tema */}
+              <button
+                onClick={() => setShowTheme(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-xl transition-all hover:opacity-70"
+                style={{ background: V.faint, border: `1px solid ${V.border}` }}
+                title="Configurações de tema"
+              >
+                <Settings className="w-3.5 h-3.5" style={{ color: V.muted }} />
+              </button>
               {onOpenBackup && (
                 <button onClick={onOpenBackup} className="w-8 h-8 flex items-center justify-center rounded-xl transition-all hover:opacity-70"
                   style={{ background: V.faint, border: `1px solid ${V.border}` }}>
@@ -241,14 +517,10 @@ export default function ProfileScreen({
           {/* ── HERO CARD ── */}
           <div className="relative overflow-hidden rounded-3xl p-6"
             style={{ background: `linear-gradient(135deg, ${V.card} 0%, ${V.card2} 100%)`, border: `1px solid ${V.border}` }}>
-
-            {/* Globs decorativos */}
             <div className="absolute -top-16 -left-16 w-56 h-56 rounded-full blur-3xl pointer-events-none"
               style={{ background: V.violet, opacity: 0.12 }} />
             <div className="absolute -bottom-16 -right-8 w-48 h-48 rounded-full blur-3xl pointer-events-none"
               style={{ background: V.indigo, opacity: 0.10 }} />
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none"
-              style={{ background: V.pink, opacity: 0.06 }} />
 
             <div className="relative flex items-start gap-4">
               {/* Avatar */}
@@ -269,26 +541,36 @@ export default function ProfileScreen({
                 </div>
                 <input type="file" accept="image/*" className="hidden"
                   onChange={e => handleProfileImageUpload(e.target.files[0])} />
-                {/* Level badge */}
                 <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-black text-white whitespace-nowrap"
                   style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})`, border: `2px solid ${V.bg}`, boxShadow: `0 2px 12px ${V.glow}` }}>
                   LVL {level}
                 </div>
               </label>
 
-              {/* Info */}
+              {/* Info + botão editar */}
               <div className="flex-1 min-w-0 pt-1">
-                <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <h1 className="text-xl font-black truncate" style={{ color: V.text }}>{name}</h1>
-                  <span className="text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full"
-                    style={{ color: V.yellow, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                    Fundador
-                  </span>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-xl font-black truncate" style={{ color: V.text }}>{name}</h1>
+                    {localBio ? (
+                      <p className="text-xs mt-0.5 line-clamp-2" style={{ color: V.muted }}>{localBio}</p>
+                    ) : (
+                      user?.email && <p className="text-xs truncate mt-0.5" style={{ color: V.muted }}>{user.email}</p>
+                    )}
+                  </div>
+                  {/* Botão Editar Perfil */}
+                  <button
+                    onClick={() => setShowEditProfile(true)}
+                    className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl transition-all hover:opacity-70"
+                    style={{ background: V.faint, border: `1px solid ${V.border}` }}
+                    title="Editar perfil"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" style={{ color: V.soft }} />
+                  </button>
                 </div>
-                {user?.email && <p className="text-xs truncate mb-3" style={{ color: V.muted }}>{user.email}</p>}
 
                 {/* XP Bar */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 mt-3">
                   <div className="flex justify-between text-[11px]">
                     <span style={{ color: V.muted }}>Nível {level} → {level + 1}</span>
                     <span style={{ color: V.soft }}>{xpPct}%</span>
@@ -304,7 +586,7 @@ export default function ProfileScreen({
               </div>
             </div>
 
-            {/* Quick Stats Row */}
+            {/* Quick Stats */}
             <div className="relative grid grid-cols-4 gap-2 mt-5 pt-4" style={{ borderTop: `1px solid ${V.border}` }}>
               {[
                 { label: 'Zerados',  value: S.finished,    icon: CheckCircle, color: '#10b981' },
@@ -320,7 +602,35 @@ export default function ProfileScreen({
             </div>
           </div>
 
-          {/* ── JOGOS FAVORITOS (DESTAQUE) ── */}
+          {/* ── AÇÕES RÁPIDAS ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setShowEditProfile(true)}
+              className="flex items-center gap-3 p-4 rounded-2xl transition-all hover:opacity-80"
+              style={{ background: V.card, border: `1px solid ${V.border}` }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold" style={{ color: V.text }}>Editar Perfil</p>
+                <p className="text-[10px]" style={{ color: V.muted }}>Nome e bio</p>
+              </div>
+            </button>
+            <button onClick={() => setShowTheme(true)}
+              className="flex items-center gap-3 p-4 rounded-2xl transition-all hover:opacity-80"
+              style={{ background: V.card, border: `1px solid ${V.border}` }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `linear-gradient(135deg, ${V.pink}, ${V.violet})` }}>
+                <Palette className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold" style={{ color: V.text }}>Tema</p>
+                <p className="text-[10px]" style={{ color: V.muted }}>Personalizar cores</p>
+              </div>
+            </button>
+          </div>
+
+          {/* ── JOGOS FAVORITOS ── */}
           <section>
             <div className="flex items-center justify-between mb-3 px-1">
               <div className="flex items-center gap-2">
@@ -338,7 +648,6 @@ export default function ProfileScreen({
             </div>
 
             {favorites.length === 0 ? (
-              // Estado vazio — convite visual
               <button onClick={() => setPickerOpen(true)}
                 className="w-full py-8 rounded-3xl border-2 border-dashed flex flex-col items-center gap-3 transition-all hover:opacity-80"
                 style={{ borderColor: V.border, background: V.faint }}>
@@ -353,7 +662,6 @@ export default function ProfileScreen({
               </button>
             ) : (
               <div className="space-y-3">
-                {/* Capa principal — destaque total para o #1 */}
                 {favorites[0] && (
                   <div className="relative rounded-3xl overflow-hidden h-44"
                     style={{ border: `1px solid ${V.border}` }}>
@@ -367,7 +675,6 @@ export default function ProfileScreen({
                     ) : (
                       <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${V.card2}, ${V.bg})` }} />
                     )}
-
                     <div className="absolute bottom-0 left-0 right-0 p-4 flex items-end justify-between">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -395,8 +702,6 @@ export default function ProfileScreen({
                     </div>
                   </div>
                 )}
-
-                {/* Grid dos outros 4 */}
                 {favorites.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
                     {[...Array(4)].map((_, i) => {
@@ -444,15 +749,12 @@ export default function ProfileScreen({
               </div>
               <span className="text-sm font-black" style={{ color: V.text }}>Estatísticas</span>
             </div>
-
             <div className="grid grid-cols-4 gap-2 mb-3">
               <MiniStat label="Zerados"   value={S.finished}    icon={CheckCircle} color="#10b981" />
               <MiniStat label="Horas"     value={`${S.hours}h`} icon={Clock}       color="#3b82f6" />
               <MiniStat label="Nota Méd." value={S.avgRating}   icon={Star}        color="#f59e0b" />
               <MiniStat label="Platinas"  value={S.platinas}    icon={Trophy}      color="#f59e0b" />
             </div>
-
-            {/* Taxa de conclusão */}
             <div className="rounded-2xl p-4" style={{ background: V.card, border: `1px solid ${V.border}` }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -465,7 +767,7 @@ export default function ProfileScreen({
                 <div className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${S.completePct}%`, background: `linear-gradient(90deg, ${V.violet}, ${V.pink})`, boxShadow: `0 0 8px ${V.glow}` }} />
               </div>
-              <p className="text-[10px] mt-1.5" style={{ color: V.low }}>{S.total} jogos no total · {S.finished} zerados</p>
+              <p className="text-[10px] mt-1.5" style={{ color: V.low }}>{S.total} jogos · {S.finished} zerados</p>
             </div>
           </section>
 
@@ -478,7 +780,6 @@ export default function ProfileScreen({
               </div>
               <span className="text-sm font-black" style={{ color: V.text }}>Destaques</span>
             </div>
-
             <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${V.border}` }}>
               <HighlightRow label="Plataforma favorita" value={S.topPlatform} icon={Monitor} />
               <HighlightRow label="Gênero favorito"     value={S.favGenre}    icon={Heart} />
@@ -498,12 +799,11 @@ export default function ProfileScreen({
             <section>
               <div className="flex items-center gap-2 mb-3 px-1">
                 <div className="w-6 h-6 rounded-lg flex items-center justify-center"
-                  style={{ background: `linear-gradient(135deg, #10b981, #059669)` }}>
+                  style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
                   <Flame className="w-3 h-3 text-white" />
                 </div>
                 <span className="text-sm font-black" style={{ color: V.text }}>Zerados Recentemente</span>
               </div>
-
               <div className="space-y-2">
                 {S.recent.map(game => (
                   <div key={game.id} className="flex items-center gap-3 p-3 rounded-2xl"
@@ -544,7 +844,7 @@ export default function ProfileScreen({
           <section>
             <div className="flex items-center gap-2 mb-3 px-1">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center"
-                style={{ background: `linear-gradient(135deg, #f59e0b, #d97706)` }}>
+                style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)' }}>
                 <Award className="w-3 h-3 text-white" />
               </div>
               <span className="text-sm font-black" style={{ color: V.text }}>Insígnias</span>
@@ -553,7 +853,6 @@ export default function ProfileScreen({
                 {unlocked}/{BADGES.length}
               </span>
             </div>
-
             <div className="rounded-2xl p-4" style={{ background: V.card, border: `1px solid ${V.border}` }}>
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {BADGES.map(({ emoji, label, req }) => {
@@ -564,7 +863,6 @@ export default function ProfileScreen({
                         background: on ? V.faint : 'transparent',
                         border: `1px solid ${on ? V.border : 'transparent'}`,
                         opacity: on ? 1 : 0.25,
-                        boxShadow: on ? `0 0 12px ${V.gradGlow}` : 'none',
                       }}>
                       <span className="text-xl leading-none">{emoji}</span>
                       <span className="text-[9px] font-medium text-center" style={{ color: V.muted }}>{label}</span>
@@ -572,7 +870,6 @@ export default function ProfileScreen({
                   );
                 })}
               </div>
-
               <div className="space-y-1.5 pt-3" style={{ borderTop: `1px solid ${V.border}` }}>
                 <div className="flex justify-between text-[11px]">
                   <span style={{ color: V.muted }}>{unlocked} de {BADGES.length} desbloqueadas</span>
