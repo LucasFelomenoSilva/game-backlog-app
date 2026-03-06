@@ -7,6 +7,10 @@
         {
             "source": "/igdb-proxy/v4/:match*",
             "destination": "https://api.igdb.com/v4/:match*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }
