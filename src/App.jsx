@@ -26,6 +26,11 @@ import {
   subscribeToSocialProfile,
 } from "./services/socialService";
 import { useTheme } from "./context/ThemeContext";
+import WrappedScreen from "./components/WrappedScreen";
+import LevelUpOverlay from "./components/LevelUpOverlay";
+import WeeklyMissions from "./components/WeeklyMissions";
+import SurpriseMe from "./components/SurpriseMe";
+import CollabList from "./components/CollabList";
 
 const LOADING_TIPS = [
   "Carregando texturas...",
@@ -99,6 +104,12 @@ function App() {
   const [socialProfile, setSocialProfile] = useState(null);
   const [chatOpen, setChatOpen] = useState(null);
   const [viewingFriend, setViewingFriend] = useState(null);
+
+  const [showWrapped, setShowWrapped] = useState(false);
+  const [showMissions, setShowMissions] = useState(false);
+  const [showSurprise, setShowSurprise] = useState(false);
+  const [showCollab, setShowCollab] = useState(false);
+  const [levelUpData, setLevelUpData] = useState(null); // { level: number }
 
   // Konami
   const [konamiIndex, setKonamiIndex] = useState(0);
@@ -315,24 +326,27 @@ function App() {
     return () => unsub();
   }, [user?.uid]);
 
-  const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
-    if (!user || loading) return;
-    try {
-      // TRUQUE: Converte para texto e de volta para objeto. 
-      // Isso arranca todos os campos "undefined" que fazem o Firebase travar!
-      const cleanGamesData = JSON.parse(JSON.stringify(currentGamesData));
-      const cleanHistory = JSON.parse(JSON.stringify(currentHistory));
+  const saveDataToFirestore = useCallback(
+    async (currentGamesData, currentAchievements, currentHistory) => {
+      if (!user || loading) return;
+      try {
+        // TRUQUE: Converte para texto e de volta para objeto.
+        // Isso arranca todos os campos "undefined" que fazem o Firebase travar!
+        const cleanGamesData = JSON.parse(JSON.stringify(currentGamesData));
+        const cleanHistory = JSON.parse(JSON.stringify(currentHistory));
 
-      await updateDoc(doc(db, "users", user.uid), {
-        gamesData: cleanGamesData,
-        achievements: currentAchievements,
-        gameHistory: cleanHistory,
-        photoBase64: user.photoBase64 || null,
-      });
-    } catch (error) { 
-      console.error("Erro ao salvar no Firestore:", error); 
-    }
-  }, [user, loading]);
+        await updateDoc(doc(db, "users", user.uid), {
+          gamesData: cleanGamesData,
+          achievements: currentAchievements,
+          gameHistory: cleanHistory,
+          photoBase64: user.photoBase64 || null,
+        });
+      } catch (error) {
+        console.error("Erro ao salvar no Firestore:", error);
+      }
+    },
+    [user, loading],
+  );
 
   useEffect(() => {
     if (loading || !user) return;
@@ -717,19 +731,60 @@ function App() {
       />
       {showConfetti && <Confetti />}
 
-      {/* Botão Adicionar Jogo */}
-      {/* Botão Adicionar Jogo */}
-      {user && !selectedGame && !selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
-        <button
-          onClick={() => setIsAddGameModalOpen(true)}
-          className="fixed top-6 right-6 z-40 px-5 py-3 rounded-2xl shadow-2xl text-white font-bold transition-all duration-300 hover:scale-110 flex items-center gap-2 border"
-          style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`, borderColor: V.border, boxShadow: `0 4px 20px ${V.primary}66` }}
-          title="Adicionar novo jogo"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">Adicionar Jogo</span>
-        </button>
+      {showWrapped && (
+        <WrappedScreen
+          gamesData={gamesData}
+          onClose={() => setShowWrapped(false)}
+        />
       )}
+
+      {showMissions && (
+        <WeeklyMissions
+          gamesData={gamesData}
+          onClose={() => setShowMissions(false)}
+        />
+      )}
+
+      {showSurprise && (
+        <SurpriseMe
+          gamesData={gamesData}
+          onClose={() => setShowSurprise(false)}
+        />
+      )}
+
+      {showCollab && (
+        <CollabList currentUser={user} onClose={() => setShowCollab(false)} />
+      )}
+
+      {levelUpData && (
+        <LevelUpOverlay
+          level={levelUpData.level}
+          onDone={() => setLevelUpData(null)}
+        />
+      )}
+
+      {/* Botão Adicionar Jogo */}
+      {/* Botão Adicionar Jogo */}
+      {user &&
+        !selectedGame &&
+        !selectedCategory &&
+        activeTab === "categories" &&
+        !isRecommenderOpen &&
+        !isAddGameModalOpen && (
+          <button
+            onClick={() => setIsAddGameModalOpen(true)}
+            className="fixed top-6 right-6 z-40 px-5 py-3 rounded-2xl shadow-2xl text-white font-bold transition-all duration-300 hover:scale-110 flex items-center gap-2 border"
+            style={{
+              background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`,
+              borderColor: V.border,
+              boxShadow: `0 4px 20px ${V.primary}66`,
+            }}
+            title="Adicionar novo jogo"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Adicionar Jogo</span>
+          </button>
+        )}
 
       <div className={`relative z-10 ${user ? "pt-6" : ""} pb-24`}>
         {renderContent()}
