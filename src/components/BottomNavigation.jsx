@@ -1,63 +1,77 @@
-// src/components/BottomNavigation.jsx
+// src/components/BottomNavigation.jsx — Tema roxo/violeta
 import React from 'react';
 import { Joystick, TrendingUp, Trophy, User, Users } from 'lucide-react';
 
-export default function BottomNavigation({ activeTab, setActiveTab, friendRequestCount = 0 }) {
-  const tabs = [
-    { id: 'categories', label: 'Backlog', icon: Joystick, color: 'from-purple-500 to-pink-500' },
-    { id: 'progress', label: 'Stats', icon: TrendingUp, color: 'from-blue-500 to-cyan-500' },
-    { id: 'friends', label: 'Amigos', icon: Users, color: 'from-cyan-500 to-teal-500', badge: friendRequestCount },
-    { id: 'achievements', label: 'Troféus', icon: Trophy, color: 'from-yellow-500 to-orange-500' },
-    { id: 'profile', label: 'Perfil', icon: User, color: 'from-green-500 to-emerald-500' },
-  ];
+const TABS = [
+  { id: 'categories',   label: 'Backlog',  icon: Joystick,   grad: 'from-violet-500 to-indigo-600'  },
+  { id: 'progress',     label: 'Stats',    icon: TrendingUp,  grad: 'from-purple-500 to-violet-600'  },
+  { id: 'friends',      label: 'Social',   icon: Users,       grad: 'from-indigo-500 to-violet-500'  },
+  { id: 'achievements', label: 'Troféus',  icon: Trophy,      grad: 'from-violet-600 to-purple-600'  },
+  { id: 'profile',      label: 'Perfil',   icon: User,        grad: 'from-purple-500 to-pink-600'    },
+];
 
+export default function BottomNavigation({ activeTab, setActiveTab, friendRequestCount = 0 }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/95 to-transparent backdrop-blur-2xl border-t border-white/10"></div>
-      
-      <div className="relative max-w-md mx-auto px-3 py-3">
+    <div className="fixed bottom-0 left-0 right-0 z-50">
+      {/* Blur backdrop */}
+      <div className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to top, rgba(9,6,15,0.98) 0%, rgba(9,6,15,0.90) 70%, transparent 100%)',
+          backdropFilter: 'blur(24px)',
+          borderTop: '1px solid rgba(139,92,246,0.15)',
+        }} />
+
+      <div className="relative max-w-md mx-auto px-2 py-3">
         <div className="flex items-center justify-between gap-1">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
+          {TABS.map((tab) => {
+            const Icon    = tab.icon;
             const isActive = activeTab === tab.id;
-            
+            const hasBadge = tab.id === 'friends' && friendRequestCount > 0;
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className="relative flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-2xl transition-all duration-300 group flex-1"
               >
+                {/* Glow behind active tab */}
                 {isActive && (
-                  <div className={`absolute inset-0 bg-gradient-to-br ${tab.color} opacity-20 rounded-2xl blur-xl transition-opacity duration-300`}></div>
+                  <div className={`absolute inset-0 bg-gradient-to-br ${tab.grad} opacity-15 rounded-2xl blur-xl`} />
                 )}
-                
+
+                {/* Icon container */}
                 <div className={`relative z-10 p-2 rounded-xl transition-all duration-300 ${
-                  isActive 
-                    ? `bg-gradient-to-br ${tab.color} shadow-lg scale-110` 
-                    : 'bg-gray-800/50 group-hover:bg-gray-700/50'
-                }`}>
-                  <Icon 
-                    className={`w-4 h-4 transition-all duration-300 ${
-                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
-                    }`} 
-                  />
-                  
-                  {/* Badge de notificação */}
-                  {tab.badge > 0 && (
-                    <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center border-2 border-gray-900 animate-pulse">
-                      <span className="text-[8px] font-black text-white">{tab.badge > 9 ? '9+' : tab.badge}</span>
+                  isActive
+                    ? `bg-gradient-to-br ${tab.grad} shadow-lg scale-110`
+                    : 'bg-[rgba(139,92,246,0.06)] group-hover:bg-[rgba(139,92,246,0.12)]'
+                }`}
+                  style={isActive ? { boxShadow: '0 4px 16px rgba(139,92,246,0.45)' } : {}}>
+                  <Icon className={`w-4 h-4 transition-all duration-300 ${
+                    isActive ? 'text-white' : 'text-purple-300/50 group-hover:text-purple-300/70'
+                  }`} />
+
+                  {/* Badge notificação */}
+                  {hasBadge && (
+                    <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center animate-pulse"
+                      style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', border: '2px solid #09060f' }}>
+                      <span className="text-[8px] font-black text-white">
+                        {friendRequestCount > 9 ? '9+' : friendRequestCount}
+                      </span>
                     </div>
                   )}
                 </div>
-                
-                <span className={`text-[9px] font-semibold transition-all duration-300 ${
-                  isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-400'
+
+                {/* Label */}
+                <span className={`text-[9px] font-bold transition-all duration-300 ${
+                  isActive ? 'text-purple-200' : 'text-purple-300/35 group-hover:text-purple-300/50'
                 }`}>
                   {tab.label}
                 </span>
-                
+
+                {/* Active dot */}
                 {isActive && (
-                  <div className={`absolute -bottom-1 w-1.5 h-1.5 bg-gradient-to-r ${tab.color} rounded-full animate-pulse`}></div>
+                  <div className={`absolute -bottom-1 w-1.5 h-1.5 bg-gradient-to-r ${tab.grad} rounded-full`}
+                    style={{ boxShadow: '0 0 6px rgba(139,92,246,0.8)' }} />
                 )}
               </button>
             );

@@ -1,12 +1,40 @@
-// src/components/CategorySelector.jsx  (ATUALIZADO)
+// src/components/CategorySelector.jsx — Tema roxo/violeta
 import React, { useState } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { categoryNames, categoryIcons } from '../data/categories';
-import { Plus, Trophy, Gamepad2, ChevronRight, Star, Flame } from 'lucide-react';
+import { categoryNames } from '../data/categories';
+import { Plus, Trophy, Gamepad2, ChevronRight, Star, Flame, Sparkles } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import GlobalSearch from './GlobalSearch';
 import NextGameSuggestion from './NextGameSuggestion';
 import FocusMode from './FocusMode';
+
+// ─── Design Tokens ─────────────────────────────────────────────────────────────
+const V = {
+  bg:     '#09060f',
+  card:   '#130e22',
+  card2:  '#1a1330',
+  border: 'rgba(139,92,246,0.18)',
+  faint:  'rgba(139,92,246,0.08)',
+  violet: '#8b5cf6',
+  indigo: '#6366f1',
+  pink:   '#ec4899',
+  soft:   '#a78bfa',
+  glow:   'rgba(139,92,246,0.35)',
+  text:   '#f5f0ff',
+  muted:  'rgba(245,240,255,0.50)',
+};
+
+// Colunas drag & drop — coloridas individualmente mas com acento roxo
+const MAIN_COLUMNS = [
+  { id: 'playing',   label: 'Jogando Agora', grad: 'from-violet-500 to-indigo-600',   emoji: '🎮' },
+  { id: 'backlog',   label: 'Na Fila',       grad: 'from-purple-500 to-violet-600',   emoji: '⏳' },
+  { id: 'installed', label: 'Instalados',    grad: 'from-indigo-500 to-purple-600',   emoji: '💾' },
+];
+
+const SPECIAL_CATEGORIES = [
+  { id: 'zerados',   label: 'Zerados',         grad: 'from-emerald-500 to-teal-600',  icon: Trophy },
+  { id: 'desejados', label: 'Lista de Desejos', grad: 'from-amber-500 to-orange-600', icon: Star   },
+];
 
 export default function CategorySelector({
   games,
@@ -19,200 +47,150 @@ export default function CategorySelector({
   openReviewModal,
   gamesData = [],
 }) {
-
   const [focusGame, setFocusGame] = useState(null);
-
-  // Backlog Buster
-  const handleRandomPick = () => {
-    const playableGames = [
-      ...(games['playing']  || []),
-      ...(games['installed'] || []),
-      ...(games['backlog']  || []),
-    ];
-    if (!playableGames.length) { toast.error("Adicione jogos ao backlog primeiro!"); return; }
-    const toastId = toast.loading('Rolando os dados do destino...');
-    setTimeout(() => {
-      const randomGame = playableGames[Math.floor(Math.random() * playableGames.length)];
-      toast.dismiss(toastId);
-      toast.success(`O destino escolheu: ${randomGame.nome}`, { duration: 4000 });
-      setSelectedGame(randomGame);
-    }, 1500);
-  };
-
-  // Colunas principais com drag & drop
-  const mainColumns = [
-    { id: 'playing',   label: categoryNames.playing   || 'Jogando Agora', gradient: 'from-orange-500 to-red-500',   icon: '🎮' },
-    { id: 'backlog',   label: categoryNames.backlog   || 'Na Fila',       gradient: 'from-purple-500 to-pink-500',  icon: '📚' },
-    { id: 'installed', label: categoryNames.installed || 'Instalados',    gradient: 'from-blue-500 to-cyan-500',    icon: '💾' },
-  ];
-
-  // Categorias especiais
-  const specialCategories = [
-    { id: 'zerados',   label: 'Zerados',         gradient: 'from-green-500 to-emerald-500', icon: Trophy },
-    { id: 'desejados', label: 'Lista de Desejos', gradient: 'from-yellow-500 to-amber-500',  icon: Star },
-  ];
 
   return (
     <>
-      {/* MODO FOCO */}
       {focusGame && (
         <FocusMode
           game={focusGame}
           onClose={() => setFocusGame(null)}
-          onMarkFinished={() => {
-            setFocusGame(null);
-            if (openReviewModal) openReviewModal(focusGame);
-          }}
+          onMarkFinished={() => { setFocusGame(null); if (openReviewModal) openReviewModal(focusGame); }}
         />
       )}
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white p-4 pb-24">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen pb-28 text-white" style={{ background: V.bg }}>
+        {/* Ambient top glow */}
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[280px] pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 50% 0%, ${V.glow} 0%, transparent 70%)`, opacity: 0.4 }} />
+
+        <div className="relative max-w-7xl mx-auto px-4 pt-4">
 
           {/* ── Header ── */}
-          <div className="flex items-center justify-between mb-5 pt-2 gap-3 flex-wrap">
+          <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
             {/* Avatar + Saudação */}
             <div className="flex items-center gap-3">
               <div className="relative group cursor-pointer">
-                <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-cyan-500/50 shadow-lg shadow-cyan-500/20 transition-all group-hover:scale-105 group-hover:border-cyan-400">
-                  {user?.photoBase64 || user?.photoURL ? (
-                    <img src={user.photoBase64 || user.photoURL} alt="Perfil" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xl font-bold">
-                      {user?.displayName?.charAt(0) || 'G'}
-                    </div>
-                  )}
+                <div className="absolute -inset-0.5 rounded-2xl blur opacity-60"
+                  style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }} />
+                <div className="relative w-14 h-14 rounded-2xl overflow-hidden"
+                  style={{ border: `2px solid rgba(139,92,246,0.4)` }}>
+                  {user?.photoBase64 || user?.photoURL
+                    ? <img src={user.photoBase64 || user.photoURL} alt="Perfil" className="w-full h-full object-cover" />
+                    : <div className="w-full h-full flex items-center justify-center text-xl font-black text-white"
+                        style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                        {user?.displayName?.charAt(0) || 'G'}
+                      </div>
+                  }
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-gray-900 rounded-full p-0.5 border border-gray-800">
-                  <div className="bg-gradient-to-r from-yellow-500 to-amber-500 text-xs font-black px-2 py-0.5 rounded-full text-white flex items-center gap-1 shadow-lg">
-                    <Trophy className="w-3 h-3" />
-                    {totalFinishedGames}
-                  </div>
+                {/* Trophy count badge */}
+                <div className="absolute -bottom-1.5 -right-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black text-white"
+                  style={{ background: 'linear-gradient(135deg,#f59e0b,#d97706)', border: `2px solid ${V.bg}`, boxShadow: '0 2px 10px rgba(245,158,11,0.4)' }}>
+                  <Trophy className="w-2.5 h-2.5 inline fill-yellow-900 text-yellow-900" /> {totalFinishedGames}
                 </div>
               </div>
               <div>
-                <h1 className="text-2xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-black" style={{ color: V.text }}>
                   Olá, {user?.displayName?.split(' ')[0] || 'Gamer'}!
                 </h1>
-                <p className="text-sm text-gray-400 font-medium">Pronto para a próxima aventura?</p>
+                <p className="text-sm" style={{ color: V.muted }}>Pronto para a próxima aventura?</p>
               </div>
             </div>
 
             {/* Busca Global */}
-            <GlobalSearch
-              gamesData={gamesData}
-              onSelectGame={(game) => setSelectedGame(game)}
-            />
+            <GlobalSearch gamesData={gamesData} onSelectGame={g => setSelectedGame(g)} />
           </div>
 
-          {/* ── Sugestão de Próximo Jogo ── */}
-          <NextGameSuggestion
-            gamesData={gamesData}
-            onSelectGame={(game) => setSelectedGame(game)}
-          />
+          {/* ── Sugestão ── */}
+          <NextGameSuggestion gamesData={gamesData} onSelectGame={g => setSelectedGame(g)} />
 
-          {/* ── Grid de 3 Colunas — Drag & Drop ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {mainColumns.map((column) => {
-              const columnGames = games[column.id] || [];
-              const count = columnGames.length;
-
+          {/* ── Grid 3 Colunas — Drag & Drop ── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            {MAIN_COLUMNS.map((col) => {
+              const colGames = games[col.id] || [];
               return (
-                <Droppable droppableId={column.id} key={column.id}>
+                <Droppable droppableId={col.id} key={col.id}>
                   {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`rounded-2xl border-2 transition-all duration-300 ${
-                        snapshot.isDraggingOver
-                          ? 'border-cyan-500 bg-cyan-500/10 scale-[1.02] shadow-2xl shadow-cyan-500/30'
-                          : 'border-gray-800 bg-gradient-to-br from-gray-800/60 to-gray-800/40'
-                      }`}
-                    >
-                      {/* Header da Coluna */}
-                      <div
-                        onClick={() => setSelectedCategory(column.id)}
-                        className="cursor-pointer p-4 border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors rounded-t-2xl"
-                      >
+                    <div ref={provided.innerRef} {...provided.droppableProps}
+                      className="rounded-2xl border-2 transition-all duration-300"
+                      style={{
+                        background: snapshot.isDraggingOver
+                          ? 'rgba(139,92,246,0.12)'
+                          : `linear-gradient(135deg, ${V.card} 0%, ${V.card2} 100%)`,
+                        borderColor: snapshot.isDraggingOver ? V.violet : V.border,
+                        boxShadow:   snapshot.isDraggingOver ? `0 0 30px ${V.glow}` : 'none',
+                        transform:   snapshot.isDraggingOver ? 'scale(1.02)' : 'scale(1)',
+                      }}>
+
+                      {/* Header coluna */}
+                      <div className="cursor-pointer p-4 rounded-t-2xl transition-all hover:bg-white/5"
+                        onClick={() => setSelectedCategory(col.id)}
+                        style={{ borderBottom: `1px solid ${V.border}` }}>
                         <div className="flex items-center justify-between mb-2">
-                          <div className={`px-3 py-1.5 bg-gradient-to-r ${column.gradient} rounded-full flex items-center gap-2 shadow-lg`}>
-                            <span className="text-lg">{column.icon}</span>
-                            <span className="font-black text-sm text-white">{count}</span>
+                          <div className={`px-3 py-1.5 bg-gradient-to-r ${col.grad} rounded-full flex items-center gap-2 shadow-lg`}>
+                            <span className="text-base">{col.emoji}</span>
+                            <span className="font-black text-sm text-white">{colGames.length}</span>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-500 hover:text-cyan-400 transition-colors" />
+                          <ChevronRight className="w-4 h-4 transition-colors" style={{ color: V.muted }} />
                         </div>
-                        <h3 className="font-bold text-white text-base">{column.label}</h3>
+                        <h3 className="font-bold text-sm" style={{ color: V.text }}>{col.label}</h3>
                       </div>
 
-                      {/* Lista de Jogos */}
-                      <div
-                        className="p-3 space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto"
-                        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(75,85,99,0.8) rgba(31,41,55,0.5)' }}
-                      >
-                        {!columnGames.length ? (
-                          <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <Gamepad2 className="w-12 h-12 text-gray-700 mb-3" />
-                            <p className="text-sm text-gray-500 font-medium">Nenhum jogo aqui</p>
-                            <p className="text-xs text-gray-600 mt-1">Arraste jogos ou adicione novos</p>
+                      {/* Lista de jogos */}
+                      <div className="p-3 space-y-2 min-h-[180px] max-h-[380px] overflow-y-auto"
+                        style={{ scrollbarWidth: 'thin', scrollbarColor: `${V.border} transparent` }}>
+                        {!colGames.length ? (
+                          <div className="flex flex-col items-center justify-center py-10 text-center">
+                            <Gamepad2 className="w-10 h-10 mb-2" style={{ color: V.faint }} />
+                            <p className="text-xs" style={{ color: V.muted }}>Nenhum jogo aqui</p>
+                            <p className="text-[10px] mt-0.5" style={{ color: V.muted }}>Arraste para cá</p>
                           </div>
                         ) : (
-                          <>
-                            {columnGames.map((game, index) => {
-                              if (!game || !game.id) return null;
-                              const isCurrentlyPlaying = column.id === 'playing';
-
-                              return (
-                                <Draggable key={game.id} draggableId={game.id} index={index}>
-                                  {(provided, snapshot) => (
-                                    <div
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      {...provided.dragHandleProps}
-                                      className={`group p-3 rounded-xl border cursor-pointer transition-all duration-200 ${
-                                        snapshot.isDragging
-                                          ? 'bg-gray-700 border-cyan-500 shadow-2xl scale-105 rotate-2'
-                                          : 'bg-gray-800/80 border-gray-700/50 hover:bg-gray-700/80 hover:border-gray-600'
-                                      }`}
-                                    >
-                                      <div className="flex items-center justify-between gap-2">
-                                        <div
-                                          className="flex-1 min-w-0"
-                                          onClick={() => setSelectedGame(game)}
-                                        >
-                                          <h4 className="font-semibold text-sm text-white truncate group-hover:text-cyan-300 transition-colors">
-                                            {game.nome || 'Sem nome'}
-                                          </h4>
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-xs text-gray-400 truncate">{game.platform || 'PC'}</span>
-                                            {game.timeToBeat > 0 && (
-                                              <span className="text-xs text-blue-400 font-semibold">{game.timeToBeat}h</span>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-1">
-                                          {/* Botão Modo Foco (só na coluna "playing") */}
-                                          {isCurrentlyPlaying && (
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); setFocusGame(game); }}
-                                              className="p-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg border border-cyan-500/20 hover:border-cyan-500/40 transition-all hover:scale-110"
-                                              title="Modo Foco"
-                                            >
-                                              <Flame className="w-3.5 h-3.5 text-cyan-400" />
-                                            </button>
+                          colGames.map((game, index) => {
+                            if (!game?.id) return null;
+                            const isPlaying = col.id === 'playing';
+                            return (
+                              <Draggable key={game.id} draggableId={game.id} index={index}>
+                                {(prov, snap) => (
+                                  <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}
+                                    className="group p-3 rounded-xl border cursor-pointer transition-all duration-200"
+                                    style={{
+                                      background: snap.isDragging ? V.card2 : V.faint,
+                                      borderColor: snap.isDragging ? V.violet : V.border,
+                                      transform: snap.isDragging ? 'scale(1.04) rotate(1.5deg)' : 'scale(1)',
+                                      boxShadow: snap.isDragging ? `0 8px 30px ${V.glow}` : 'none',
+                                    }}>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 min-w-0" onClick={() => setSelectedGame(game)}>
+                                        <h4 className="font-semibold text-sm truncate transition-colors"
+                                          style={{ color: V.text }}>
+                                          {game.nome || 'Sem nome'}
+                                        </h4>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                          <span className="text-[10px]" style={{ color: V.muted }}>{game.platform || 'PC'}</span>
+                                          {game.timeToBeat > 0 && (
+                                            <span className="text-[10px] font-semibold" style={{ color: V.soft }}>{game.timeToBeat}h</span>
                                           )}
-                                          <ChevronRight
-                                            className="w-4 h-4 text-gray-600 group-hover:text-cyan-400 transition-colors flex-shrink-0"
-                                            onClick={() => setSelectedGame(game)}
-                                          />
                                         </div>
                                       </div>
+                                      <div className="flex items-center gap-1.5">
+                                        {isPlaying && (
+                                          <button onClick={e => { e.stopPropagation(); setFocusGame(game); }}
+                                            className="p-1.5 rounded-lg transition-all hover:scale-110"
+                                            style={{ background: `${V.violet}25`, border: `1px solid ${V.violet}40` }}
+                                            title="Modo Foco">
+                                            <Flame className="w-3.5 h-3.5" style={{ color: V.soft }} />
+                                          </button>
+                                        )}
+                                        <ChevronRight className="w-4 h-4 transition-colors" style={{ color: V.muted }}
+                                          onClick={() => setSelectedGame(game)} />
+                                      </div>
                                     </div>
-                                  )}
-                                </Draggable>
-                              );
-                            })}
-                          </>
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })
                         )}
                         {provided.placeholder}
                       </div>
@@ -225,53 +203,59 @@ export default function CategorySelector({
 
           {/* ── Categorias Especiais ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {specialCategories.map((category) => {
-              const Icon = category.icon;
-              const count = getCategoryProgress(category.id);
-              const categoryGames = games[category.id] || [];
+            {SPECIAL_CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const count = getCategoryProgress(cat.id);
+              const catGames = games[cat.id] || [];
 
               return (
-                <button
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="group relative p-6 rounded-2xl border-2 border-gray-800 bg-gradient-to-br from-gray-800/60 to-gray-800/40 hover:border-gray-700 transition-all duration-300 hover:scale-[1.02] overflow-hidden"
-                >
-                  <div className="absolute top-2 right-2 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <Icon className="w-24 h-24" />
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
+                  className="group relative p-6 rounded-2xl text-left transition-all duration-300 hover:scale-[1.02] overflow-hidden"
+                  style={{ background: `linear-gradient(135deg, ${V.card}, ${V.card2})`, border: `1px solid ${V.border}` }}>
+
+                  {/* Glow on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ background: `radial-gradient(ellipse at 30% 50%, rgba(139,92,246,0.08), transparent 70%)` }} />
+
+                  {/* Watermark icon */}
+                  <div className="absolute top-2 right-2 opacity-[0.06] group-hover:opacity-[0.10] transition-opacity">
+                    <Icon className="w-20 h-20" />
                   </div>
 
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex-1 text-left">
+                  <div className="relative flex items-center justify-between">
+                    <div>
                       <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-14 h-14 bg-gradient-to-br ${category.gradient} rounded-2xl flex items-center justify-center shadow-lg`}>
+                        <div className={`w-14 h-14 bg-gradient-to-br ${cat.grad} rounded-2xl flex items-center justify-center shadow-lg`}>
                           <Icon className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                          <div className="text-3xl font-black text-white mb-1">{count}</div>
-                          <div className="text-sm text-gray-400 font-semibold">{category.label}</div>
+                          <div className="text-3xl font-black" style={{ color: V.text }}>{count}</div>
+                          <div className="text-sm font-semibold" style={{ color: V.muted }}>{cat.label}</div>
                         </div>
                       </div>
-                      {categoryGames.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-3">
-                          {categoryGames.slice(0, 3).map((game) => (
-                            <div key={game.id} className="px-2 py-1 bg-gray-900/60 rounded-lg border border-gray-700/50">
-                              <span className="text-xs text-gray-300 truncate max-w-[100px] inline-block">{game.nome}</span>
+                      {catGames.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {catGames.slice(0, 3).map(g => (
+                            <div key={g.id} className="px-2 py-0.5 rounded-lg"
+                              style={{ background: V.faint, border: `1px solid ${V.border}` }}>
+                              <span className="text-[10px] truncate max-w-[90px] inline-block" style={{ color: V.muted }}>{g.nome}</span>
                             </div>
                           ))}
-                          {categoryGames.length > 3 && (
-                            <div className="px-2 py-1 bg-gray-900/60 rounded-lg border border-gray-700/50">
-                              <span className="text-xs text-gray-400">+{categoryGames.length - 3}</span>
+                          {catGames.length > 3 && (
+                            <div className="px-2 py-0.5 rounded-lg" style={{ background: V.faint, border: `1px solid ${V.border}` }}>
+                              <span className="text-[10px]" style={{ color: V.muted }}>+{catGames.length - 3}</span>
                             </div>
                           )}
                         </div>
                       )}
                     </div>
-                    <ChevronRight className="w-6 h-6 text-gray-600 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-all flex-shrink-0" style={{ color: V.muted }} />
                   </div>
                 </button>
               );
             })}
           </div>
+
         </div>
       </div>
     </>
