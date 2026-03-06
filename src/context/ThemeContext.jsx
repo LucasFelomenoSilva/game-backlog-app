@@ -125,12 +125,15 @@ export function ThemeProvider({ children }) {
 
   // Aplica variáveis CSS no root
   useEffect(() => {
-    const r = document.documentElement;
-    r.style.setProperty('--color-primary', theme.primary);
-    r.style.setProperty('--color-secondary', theme.secondary);
-    r.style.setProperty('--color-bg', theme.bg);
-    r.style.setProperty('--color-glow', theme.glow);
-  }, [theme]);
+  const r = document.documentElement;
+  r.style.setProperty('--color-primary', theme.primary);
+  r.style.setProperty('--color-secondary', theme.secondary);
+  r.style.setProperty('--color-bg', theme.bg);
+  r.style.setProperty('--color-glow', theme.glow);
+
+  // Adicione esta linha:
+  document.body.style.backgroundColor = theme.bg;
+}, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, themeId, setTheme, themes: THEMES }}>

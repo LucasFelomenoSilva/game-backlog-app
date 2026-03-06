@@ -661,7 +661,7 @@ function App() {
         </button>
       )}
 
-      <div className={`relative z-10 ${user ? "pt-6" : ""} pb-24`}>
+      <div className="relative z-10">
         {renderContent()}
       </div>
 
