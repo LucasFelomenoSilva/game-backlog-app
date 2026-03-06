@@ -315,22 +315,24 @@ function App() {
     return () => unsub();
   }, [user?.uid]);
 
-  const saveDataToFirestore = useCallback(
-    async (currentGamesData, currentAchievements, currentHistory) => {
-      if (!user || loading) return;
-      try {
-        await updateDoc(doc(db, "users", user.uid), {
-          gamesData: currentGamesData,
-          achievements: currentAchievements,
-          gameHistory: currentHistory,
-          photoBase64: user.photoBase64 || null,
-        });
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    [user, loading],
-  );
+  const saveDataToFirestore = useCallback(async (currentGamesData, currentAchievements, currentHistory) => {
+    if (!user || loading) return;
+    try {
+      // TRUQUE: Converte para texto e de volta para objeto. 
+      // Isso arranca todos os campos "undefined" que fazem o Firebase travar!
+      const cleanGamesData = JSON.parse(JSON.stringify(currentGamesData));
+      const cleanHistory = JSON.parse(JSON.stringify(currentHistory));
+
+      await updateDoc(doc(db, "users", user.uid), {
+        gamesData: cleanGamesData,
+        achievements: currentAchievements,
+        gameHistory: cleanHistory,
+        photoBase64: user.photoBase64 || null,
+      });
+    } catch (error) { 
+      console.error("Erro ao salvar no Firestore:", error); 
+    }
+  }, [user, loading]);
 
   useEffect(() => {
     if (loading || !user) return;
