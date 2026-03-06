@@ -1,24 +1,26 @@
-// src/components/BottomNavigation.jsx — Tema roxo/violeta
+// src/components/BottomNavigation.jsx
 import React from 'react';
 import { Joystick, TrendingUp, Trophy, User, Users } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext'; // <-- Importado
 
 const TABS = [
-  { id: 'categories',   label: 'Backlog',  icon: Joystick,   grad: 'from-violet-500 to-indigo-600'  },
-  { id: 'progress',     label: 'Stats',    icon: TrendingUp,  grad: 'from-purple-500 to-violet-600'  },
-  { id: 'friends',      label: 'Social',   icon: Users,       grad: 'from-indigo-500 to-violet-500'  },
-  { id: 'achievements', label: 'Troféus',  icon: Trophy,      grad: 'from-violet-600 to-purple-600'  },
-  { id: 'profile',      label: 'Perfil',   icon: User,        grad: 'from-purple-500 to-pink-600'    },
+  { id: 'categories',   label: 'Backlog',  icon: Joystick },
+  { id: 'progress',     label: 'Stats',    icon: TrendingUp },
+  { id: 'friends',      label: 'Social',   icon: Users },
+  { id: 'achievements', label: 'Troféus',  icon: Trophy },
+  { id: 'profile',      label: 'Perfil',   icon: User },
 ];
 
 export default function BottomNavigation({ activeTab, setActiveTab, friendRequestCount = 0 }) {
+  const { theme: V } = useTheme(); // <-- Usando as cores do tema
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      {/* Blur backdrop */}
       <div className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to top, rgba(9,6,15,0.98) 0%, rgba(9,6,15,0.90) 70%, transparent 100%)',
+          background: `linear-gradient(to top, ${V.bg}fa 0%, ${V.bg}e6 70%, transparent 100%)`,
           backdropFilter: 'blur(24px)',
-          borderTop: '1px solid rgba(139,92,246,0.15)',
+          borderTop: `1px solid ${V.border}`,
         }} />
 
       <div className="relative max-w-md mx-auto px-2 py-3">
@@ -34,26 +36,22 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
                 onClick={() => setActiveTab(tab.id)}
                 className="relative flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-2xl transition-all duration-300 group flex-1"
               >
-                {/* Glow behind active tab */}
                 {isActive && (
-                  <div className={`absolute inset-0 bg-gradient-to-br ${tab.grad} opacity-15 rounded-2xl blur-xl`} />
+                  <div className={`absolute inset-0 opacity-15 rounded-2xl blur-xl`} style={{ background: `linear-gradient(to bottom right, ${V.primary}, ${V.secondary})` }} />
                 )}
 
-                {/* Icon container */}
                 <div className={`relative z-10 p-2 rounded-xl transition-all duration-300 ${
-                  isActive
-                    ? `bg-gradient-to-br ${tab.grad} shadow-lg scale-110`
-                    : 'bg-[rgba(139,92,246,0.06)] group-hover:bg-[rgba(139,92,246,0.12)]'
+                  isActive ? 'shadow-lg scale-110' : ''
                 }`}
-                  style={isActive ? { boxShadow: '0 4px 16px rgba(139,92,246,0.45)' } : {}}>
-                  <Icon className={`w-4 h-4 transition-all duration-300 ${
-                    isActive ? 'text-white' : 'text-purple-300/50 group-hover:text-purple-300/70'
-                  }`} />
+                  style={{
+                    background: isActive ? `linear-gradient(to bottom right, ${V.primary}, ${V.secondary})` : V.faint,
+                    boxShadow: isActive ? `0 4px 16px ${V.glow}` : 'none'
+                  }}>
+                  <Icon className={`w-4 h-4 transition-all duration-300`} style={{ color: isActive ? '#fff' : V.muted }} />
 
-                  {/* Badge notificação */}
                   {hasBadge && (
                     <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center animate-pulse"
-                      style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', border: '2px solid #09060f' }}>
+                      style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', border: `2px solid ${V.bg}` }}>
                       <span className="text-[8px] font-black text-white">
                         {friendRequestCount > 9 ? '9+' : friendRequestCount}
                       </span>
@@ -61,17 +59,13 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
                   )}
                 </div>
 
-                {/* Label */}
-                <span className={`text-[9px] font-bold transition-all duration-300 ${
-                  isActive ? 'text-purple-200' : 'text-purple-300/35 group-hover:text-purple-300/50'
-                }`}>
+                <span className={`text-[9px] font-bold transition-all duration-300`} style={{ color: isActive ? V.text : V.low }}>
                   {tab.label}
                 </span>
 
-                {/* Active dot */}
                 {isActive && (
-                  <div className={`absolute -bottom-1 w-1.5 h-1.5 bg-gradient-to-r ${tab.grad} rounded-full`}
-                    style={{ boxShadow: '0 0 6px rgba(139,92,246,0.8)' }} />
+                  <div className={`absolute -bottom-1 w-1.5 h-1.5 rounded-full`}
+                    style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`, boxShadow: `0 0 6px ${V.primary}cc` }} />
                 )}
               </button>
             );

@@ -7,23 +7,9 @@ import { toast } from 'react-hot-toast';
 import GlobalSearch from './GlobalSearch';
 import NextGameSuggestion from './NextGameSuggestion';
 import FocusMode from './FocusMode';
+import { useTheme } from '../context/ThemeContext';
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
-const V = {
-  bg:     '#09060f',
-  card:   '#130e22',
-  card2:  '#1a1330',
-  border: 'rgba(139,92,246,0.18)',
-  faint:  'rgba(139,92,246,0.08)',
-  violet: '#8b5cf6',
-  indigo: '#6366f1',
-  pink:   '#ec4899',
-  soft:   '#a78bfa',
-  glow:   'rgba(139,92,246,0.35)',
-  text:   '#f5f0ff',
-  muted:  'rgba(245,240,255,0.50)',
-};
-
 // Colunas drag & drop — coloridas individualmente mas com acento roxo
 const MAIN_COLUMNS = [
   { id: 'playing',   label: 'Jogando Agora', grad: 'from-violet-500 to-indigo-600',   emoji: '🎮' },
@@ -47,6 +33,7 @@ export default function CategorySelector({
   openReviewModal,
   gamesData = [],
 }) {
+  const { theme: V } = useTheme(); // Recebe as cores dinâmicas
   const [focusGame, setFocusGame] = useState(null);
 
   return (

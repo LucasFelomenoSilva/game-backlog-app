@@ -1,9 +1,9 @@
-// src/components/FriendsScreen.jsx — tabs corrigidas (grid 3+2)
+// src/components/FriendsScreen.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users, Search, UserPlus, MessageCircle, Eye, Copy,
   Check, X, UserMinus, Trophy, Bell, Hash, Loader2,
-  UserCheck, Gamepad2, Star, Crown, ChevronRight,
+  UserCheck, Gamepad2, Crown, ChevronRight,
   BarChart3, Activity,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -12,22 +12,7 @@ import {
   rejectFriendRequest, removeFriend, getSocialProfile, getFriendGamesData,
 } from '../services/socialService';
 import FriendProfileModal from './FriendProfileModal';
-
-const V = {
-  bg:     '#09060f',
-  card:   '#130e22',
-  card2:  '#1a1330',
-  border: 'rgba(139,92,246,0.18)',
-  faint:  'rgba(139,92,246,0.08)',
-  violet: '#8b5cf6',
-  indigo: '#6366f1',
-  pink:   '#ec4899',
-  soft:   '#a78bfa',
-  glow:   'rgba(139,92,246,0.35)',
-  text:   '#f5f0ff',
-  muted:  'rgba(245,240,255,0.50)',
-  low:    'rgba(245,240,255,0.22)',
-};
+import { useTheme } from '../context/ThemeContext'; // <-- Importado
 
 const TAB_ROW1 = [
   { id: 'friends',  label: 'Amigos',  icon: Users    },
@@ -39,7 +24,7 @@ const TAB_ROW2 = [
   { id: 'add',      label: 'Buscar',  icon: Search },
 ];
 
-function Avatar({ profile, size = 12 }) {
+function Avatar({ profile, size = 12, V }) {
   const initial = profile?.displayName?.charAt(0) || '?';
   return (
     <div className={`w-${size} h-${size} rounded-xl overflow-hidden flex-shrink-0`}
@@ -47,20 +32,20 @@ function Avatar({ profile, size = 12 }) {
       {profile?.photoURL
         ? <img src={profile.photoURL} alt="" className="w-full h-full object-cover" />
         : <div className="w-full h-full flex items-center justify-center text-sm font-black text-white"
-            style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>{initial}</div>
+            style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>{initial}</div>
       }
     </div>
   );
 }
 
-function TabBtn({ tab, active, onClick, badge = 0 }) {
+function TabBtn({ tab, active, onClick, badge = 0, V }) {
   const Icon = tab.icon;
   return (
     <button
       onClick={() => onClick(tab.id)}
       className="relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200"
       style={{
-        background: active ? `linear-gradient(135deg, ${V.violet}, ${V.indigo})` : 'transparent',
+        background: active ? `linear-gradient(135deg, ${V.primary}, ${V.secondary})` : 'transparent',
         color: active ? '#fff' : V.muted,
         boxShadow: active ? `0 4px 14px ${V.glow}` : 'none',
       }}
@@ -75,11 +60,11 @@ function TabBtn({ tab, active, onClick, badge = 0 }) {
   );
 }
 
-function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile, onOpenChat, onRemove }) {
+function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile, onOpenChat, onRemove, V }) {
   return (
     <div className="rounded-2xl p-4 transition-all" style={{ background: V.card, border: `1px solid ${V.border}` }}>
       <div className="flex items-center gap-3">
-        <Avatar profile={profile} size={12} />
+        <Avatar profile={profile} size={12} V={V} />
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm truncate" style={{ color: V.text }}>{profile?.displayName}</p>
           <p className="text-[10px] font-mono" style={{ color: V.muted }}>{profile?.userCode}</p>
@@ -98,7 +83,7 @@ function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile,
         </div>
         <div className="flex gap-1.5">
           <button onClick={() => onViewProfile(uid, profile)} className="p-2 rounded-xl"
-            style={{ background: `${V.violet}25`, border: `1px solid ${V.violet}40` }}>
+            style={{ background: V.faint, border: `1px solid ${V.border}` }}>
             <Eye className="w-3.5 h-3.5" style={{ color: V.soft }} />
           </button>
           <button onClick={() => onOpenChat(uid, profile)} className="p-2 rounded-xl"
@@ -116,6 +101,7 @@ function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile,
 }
 
 export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, onViewFriendProfile }) {
+  const { theme: V } = useTheme(); // <-- Usando as cores do tema
   const [activeTab, setActiveTab] = useState('friends');
   const [searchCode, setSearchCode] = useState('');
   const [searchResult, setSearchResult] = useState(null);
@@ -232,11 +218,10 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
 
         <div className="relative max-w-md mx-auto px-4">
 
-          {/* Header */}
           <div className="mb-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})`, boxShadow: `0 4px 20px ${V.glow}` }}>
+                style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})`, boxShadow: `0 4px 20px ${V.glow}` }}>
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -245,7 +230,6 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
               </div>
             </div>
 
-            {/* Meu Código */}
             <div className="relative rounded-2xl p-4 overflow-hidden"
               style={{ background: `linear-gradient(135deg, ${V.card}, ${V.card2})`, border: `1px solid ${V.border}` }}>
               <div className="relative flex items-center justify-between">
@@ -264,29 +248,20 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
             </div>
           </div>
 
-          {/* ── TABS — 2 linhas bem alinhadas ── */}
           <div className="mb-5 p-1.5 rounded-2xl space-y-1"
             style={{ background: V.card, border: `1px solid ${V.border}` }}>
-            {/* Row 1 — 3 colunas iguais */}
             <div className="grid grid-cols-3 gap-1">
-              {TAB_ROW1.map(tab => (
-                <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} />
-              ))}
+              {TAB_ROW1.map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} V={V} />)}
             </div>
-            {/* Row 2 — 2 colunas iguais */}
             <div className="grid grid-cols-2 gap-1">
-              {TAB_ROW2.map(tab => (
-                <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab}
-                  badge={tab.id === 'requests' ? requests.length : 0} />
-              ))}
+              {TAB_ROW2.map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} badge={tab.id === 'requests' ? requests.length : 0} V={V} />)}
             </div>
           </div>
 
-          {/* ── AMIGOS ── */}
           {activeTab === 'friends' && (
             <div className="space-y-3">
               {loadingFriends ? (
-                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.violet }} /></div>
+                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.primary }} /></div>
               ) : friendsData.length === 0 ? (
                 <div className="text-center py-16 rounded-3xl" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                   <Gamepad2 className="w-14 h-14 mx-auto mb-4" style={{ color: V.low }} />
@@ -295,12 +270,11 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                 </div>
               ) : friendsData.map(({ uid, profile, zerados, playing, totalGames }) => (
                 <FriendCard key={uid} uid={uid} profile={profile} zerados={zerados} playing={playing}
-                  totalGames={totalGames} onViewProfile={openModal} onOpenChat={onOpenChat} onRemove={handleRemove} />
+                  totalGames={totalGames} onViewProfile={openModal} onOpenChat={onOpenChat} onRemove={handleRemove} V={V} />
               ))}
             </div>
           )}
 
-          {/* ── RANKING ── */}
           {activeTab === 'ranking' && (
             <div className="space-y-3">
               <div className="rounded-2xl p-4 mb-2" style={{ background: `linear-gradient(135deg, ${V.card}, ${V.card2})`, border: `1px solid ${V.border}` }}>
@@ -311,7 +285,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                 </div>
               </div>
               {loadingFriends ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.violet }} /></div>
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.primary }} /></div>
               ) : ranking.length === 0 ? (
                 <div className="text-center py-12 rounded-2xl" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                   <Crown className="w-12 h-12 mx-auto mb-3" style={{ color: V.low }} />
@@ -364,7 +338,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                           style={{ background: i < 3 ? ['linear-gradient(135deg,#f59e0b,#d97706)','linear-gradient(135deg,#94a3b8,#64748b)','linear-gradient(135deg,#b45309,#92400e)'][i] : V.faint, border: `1px solid ${V.border}` }}>
                           <span className="text-[10px] font-black text-white">#{i + 1}</span>
                         </div>
-                        <Avatar profile={fd.profile} size={9} />
+                        <Avatar profile={fd.profile} size={9} V={V} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold truncate" style={{ color: V.text }}>{fd.profile?.displayName}</p>
                           <p className="text-[10px]" style={{ color: V.muted }}>{fd.totalGames} jogos</p>
@@ -381,7 +355,6 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
             </div>
           )}
 
-          {/* ── FEED ── */}
           {activeTab === 'feed' && (
             <div className="space-y-3">
               <div className="rounded-2xl p-4" style={{ background: `linear-gradient(135deg, ${V.card}, ${V.card2})`, border: `1px solid ${V.border}` }}>
@@ -391,7 +364,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                 </div>
               </div>
               {loadingFriends ? (
-                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.violet }} /></div>
+                <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.primary }} /></div>
               ) : feed.length === 0 ? (
                 <div className="text-center py-12 rounded-2xl" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                   <Activity className="w-12 h-12 mx-auto mb-3" style={{ color: V.low }} />
@@ -406,7 +379,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                       {ev.profile?.photoURL
                         ? <img src={ev.profile.photoURL} className="w-full h-full object-cover" alt="" />
                         : <div className="w-full h-full flex items-center justify-center text-sm font-black text-white"
-                            style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>{ev.profile?.displayName?.charAt(0)}</div>
+                            style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>{ev.profile?.displayName?.charAt(0)}</div>
                       }
                     </div>
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
@@ -436,7 +409,6 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
             </div>
           )}
 
-          {/* ── PEDIDOS ── */}
           {activeTab === 'requests' && (
             <div className="space-y-3">
               {requests.length === 0 ? (
@@ -447,7 +419,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
               ) : requests.map(req => (
                 <div key={req.fromUid} className="p-4 rounded-2xl" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                   <div className="flex items-center gap-3">
-                    <Avatar profile={{ displayName: req.fromName, photoURL: req.fromPhoto }} size={12} />
+                    <Avatar profile={{ displayName: req.fromName, photoURL: req.fromPhoto }} size={12} V={V} />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm" style={{ color: V.text }}>{req.fromName}</p>
                       <p className="text-[10px] font-mono" style={{ color: V.muted }}>{req.fromCode}</p>
@@ -468,7 +440,6 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
             </div>
           )}
 
-          {/* ── BUSCAR ── */}
           {activeTab === 'add' && (
             <div className="space-y-4">
               <div className="rounded-2xl p-5" style={{ background: V.card, border: `1px solid ${V.border}` }}>
@@ -486,14 +457,14 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                   </div>
                   <button onClick={handleSearch} disabled={searching || !searchCode.trim()}
                     className="px-4 py-3 rounded-xl font-bold text-white disabled:opacity-40"
-                    style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                    style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
                     {searching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
                   </button>
                 </div>
                 {searchResult && (
                   <div className="mt-4 p-4 rounded-xl" style={{ background: V.faint, border: `1px solid ${V.border}` }}>
                     <div className="flex items-center gap-3 mb-3">
-                      <Avatar profile={searchResult} size={12} />
+                      <Avatar profile={searchResult} size={12} V={V} />
                       <div>
                         <p className="font-black" style={{ color: V.text }}>{searchResult.displayName}</p>
                         <p className="text-xs font-mono" style={{ color: V.muted }}>{searchResult.userCode}</p>
@@ -512,7 +483,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                     ) : (
                       <button onClick={handleSendRequest} disabled={sendingRequest}
                         className="w-full py-3 rounded-xl font-bold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-40"
-                        style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                        style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
                         {sendingRequest ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                         Enviar Pedido de Amizade
                       </button>
@@ -543,7 +514,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                   </div>
                   <button onClick={handlePublicSearch} disabled={publicSearching || !publicSearchCode.trim()}
                     className="px-4 py-3 rounded-xl font-bold text-white disabled:opacity-40"
-                    style={{ background: `linear-gradient(135deg, ${V.pink}, ${V.violet})` }}>
+                    style={{ background: `linear-gradient(135deg, ${V.accent}, ${V.primary})` }}>
                     {publicSearching ? <Loader2 className="w-5 h-5 animate-spin" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
@@ -552,13 +523,13 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, 
                     style={{ background: V.faint, border: `1px solid ${V.border}` }}
                     onClick={() => openModal(publicResult.uid || publicResult.id, publicResult)}>
                     <div className="flex items-center gap-3">
-                      <Avatar profile={publicResult} size={12} />
+                      <Avatar profile={publicResult} size={12} V={V} />
                       <div className="flex-1">
                         <p className="font-black" style={{ color: V.text }}>{publicResult.displayName}</p>
                         <p className="text-xs font-mono" style={{ color: V.muted }}>{publicResult.userCode}</p>
                       </div>
                       <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl"
-                        style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                        style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
                         <Eye className="w-3.5 h-3.5 text-white" />
                         <span className="text-xs font-bold text-white">Ver Perfil</span>
                       </div>
