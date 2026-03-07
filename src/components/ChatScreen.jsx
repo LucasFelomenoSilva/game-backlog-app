@@ -3,8 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Send, MessageCircle, Loader2 } from 'lucide-react';
 import { sendMessage, subscribeToChat, getChatId } from '../services/socialService';
 import { toast } from 'react-hot-toast';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ChatScreen({ currentUser, friendUid, friendProfile, onBack }) {
+  const { theme } = useTheme(); // <-- Adicione isso
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -76,9 +78,12 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
   }, {});
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex flex-col">
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: theme.bg }}>
       {/* Header */}
-      <div className="flex-shrink-0 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800/50 px-4 py-3 safe-area-top">
+      <div 
+  className="flex-shrink-0 backdrop-blur-xl border-b px-4 py-3 safe-area-top"
+  style={{ backgroundColor: `${theme.card}F2`, borderColor: theme.border }} // F2 adiciona transparência
+>
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <button
             onClick={onBack}
@@ -166,7 +171,7 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
                       <div className={`max-w-[75%] group ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                         <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                           isMe
-                            ? 'bg-gradient-to-br from-cyan-500 to-blue-500 text-white rounded-br-md shadow-lg shadow-cyan-500/20'
+                            ? 'bg-gradient-to-br ${theme.tw.grad} text-white'
                             : 'bg-gray-800/80 text-gray-100 rounded-bl-md border border-gray-700/50'
                         } ${sameAsPrev && isMe ? 'rounded-tr-2xl' : ''} ${sameAsPrev && !isMe ? 'rounded-tl-2xl' : ''}`}>
                           {msg.text}
@@ -188,7 +193,10 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800/50 px-4 py-3 safe-area-bottom">
+      <div 
+  className="flex-shrink-0 backdrop-blur-xl border-b px-4 py-3 safe-area-top"
+  style={{ backgroundColor: `${theme.card}F2`, borderColor: theme.border }} // F2 adiciona transparência
+>
         <div className="max-w-lg mx-auto flex items-end gap-2">
           <div className="flex-1 relative">
             <textarea
@@ -205,7 +213,7 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
           <button
             onClick={handleSend}
             disabled={!text.trim() || sending}
-            className="p-3 bg-gradient-to-br from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 rounded-2xl shadow-lg shadow-cyan-500/20 transition-all hover:scale-110 disabled:opacity-40 disabled:hover:scale-100 flex-shrink-0"
+            className={`p-3 bg-gradient-to-br ${theme.tw.grad} rounded-2xl shadow-lg transition-all hover:scale-110 disabled:opacity-40 flex-shrink-0`}
           >
             {sending
               ? <Loader2 className="w-5 h-5 animate-spin text-white" />
