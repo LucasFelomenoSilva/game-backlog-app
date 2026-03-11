@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { categoryNames } from "../data/categories";
 import { useTheme } from "../context/ThemeContext";
+import { getRatingHex } from "../utils/gameUtils";
 
 const CAT_GRAD = {
   playing: "from-violet-500 to-indigo-600",
@@ -27,12 +28,7 @@ const CAT_EMOJI = {
   desejados: "🌟",
 };
 
-const getRatingColor = (r) => {
-  if (r >= 9) return "#10b981";
-  if (r >= 7) return V.soft;
-  if (r >= 5) return "#f59e0b";
-  return "#f43f5e";
-};
+// getRatingColor removido — use getRatingHex importado de utils/gameUtils.js
 
 export default function GlobalSearch({ gamesData = [], onSelectGame }) {
   const { theme: V } = useTheme();
@@ -288,11 +284,11 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
                         <div className="flex items-center gap-0.5">
                           <Star
                             className="w-3 h-3 fill-current"
-                            style={{ color: getRatingColor(game.rating) }}
+                            style={{ color: getRatingHex(game.rating) }}
                           />
                           <span
                             className="text-xs font-black"
-                            style={{ color: getRatingColor(game.rating) }}
+                            style={{ color: getRatingHex(game.rating) }}
                           >
                             {game.rating}
                           </span>

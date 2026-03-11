@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Trophy, Star, Clock, Gamepad2, Heart, Zap, Award, ChevronRight, Share2, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import html2canvas from 'html2canvas';
+// html2canvas: import dinâmico na função de export
 import { toast } from 'react-hot-toast';
 
 const SLIDES = ['intro', 'topGame', 'stats', 'genre', 'timeline', 'platinum', 'finale'];
@@ -299,6 +299,7 @@ export default function WrappedScreen({ gamesData, onClose }) {
     if (!exportRef.current) return;
     setExporting(true);
     try {
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(exportRef.current, { backgroundColor: V.bg, scale: 2, useCORS: true });
       const link = document.createElement('a');
       link.href = canvas.toDataURL('image/png');

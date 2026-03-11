@@ -6,13 +6,9 @@ import {
 } from 'lucide-react';
 import { getFriendGamesData } from '../services/socialService';
 import { categoryNames } from '../data/categories';
+import { getRatingGradient } from '../utils/gameUtils';
 
-const getRatingColor = (rating) => {
-  if (rating >= 9) return 'from-emerald-500 to-teal-500';
-  if (rating >= 7) return 'from-cyan-500 to-blue-500';
-  if (rating >= 5) return 'from-yellow-500 to-orange-500';
-  return 'from-red-500 to-pink-500';
-};
+const getRatingColor = getRatingGradient; // alias — usa gameUtils
 
 export default function FriendProfileScreen({ friendUid, friendProfile, onBack, onOpenChat }) {
   const [games, setGames] = useState([]);
