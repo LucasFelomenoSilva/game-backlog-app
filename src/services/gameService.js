@@ -78,10 +78,15 @@ export async function updateUserAvatar(uid, photoBase64) {
  * Java: GET /api/profiles?username={username}
  */
 export async function getPublicProfile(username) {
-  const q = query(collection(db, 'publicProfiles'), where('username', '==', username));
+  const q    = query(collection(db, 'publicProfiles'), where('username', '==', username));
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  return snap.docs[0].data();
+
+  const profile  = snap.docs[0].data();
+  const userDoc  = await getDoc(doc(db, 'users', profile.uid));
+  const gamesData = userDoc.exists() ? (userDoc.data().gamesData || []) : [];
+
+  return { profile, gamesData };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

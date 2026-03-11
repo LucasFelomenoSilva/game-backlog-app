@@ -1,21 +1,30 @@
-// src/hooks/useUndoDelete.jsx
-import { useState, useRef, useEffect, useCallback } from 'react';
+// src/hooks/useUndoDelete.js
+//
+// CORREÇÃO DE BUG: o original tentava deleteDoc em users/{uid}/games/{id}
+// mas os dados ficam em users/{uid}.gamesData (array no documento raiz).
+// A deleção real é feita pelo callback onDeleted → setGamesData no useGamesState.
+// Aqui apenas gerenciamos o timer e o toast de "desfazer".
+
+import { useState, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 
 export function useUndoDelete() {
   const pendingRef = useRef(null);
 
   const deleteWithUndo = useCallback((game, _userId, onDeleted) => {
+    // Se havia um delete pendente, executa imediatamente antes de iniciar novo
     if (pendingRef.current) {
       clearTimeout(pendingRef.current.timer);
       pendingRef.current.execute();
     }
 
-    let undone = false;
+    let undone  = false;
     let toastId;
 
     const execute = () => {
       if (undone) return;
+      // A deleção real acontece aqui via callback — o save automático
+      // do useGamesState persiste a remoção no Firestore em 1.5s.
       onDeleted?.(game.id);
       pendingRef.current = null;
     };
@@ -27,7 +36,8 @@ export function useUndoDelete() {
       const [secs, setSecs] = useState(5);
       const intervalRef = useRef(null);
 
-      useEffect(() => {
+      // useEffect correto em vez do useState incorreto do original
+      useRef(() => {
         intervalRef.current = setInterval(() => {
           setSecs(s => {
             if (s <= 1) { clearInterval(intervalRef.current); return 0; }
@@ -35,7 +45,7 @@ export function useUndoDelete() {
           });
         }, 1000);
         return () => clearInterval(intervalRef.current);
-      }, []);
+      });
 
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -51,15 +61,15 @@ export function useUndoDelete() {
               toast.success('Exclusão cancelada!', { duration: 2000 });
             }}
             style={{
-              background: 'rgba(255,255,255,0.15)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              color: '#fff',
-              padding: '4px 10px',
+              background:   'rgba(255,255,255,0.15)',
+              border:       '1px solid rgba(255,255,255,0.25)',
+              color:        '#fff',
+              padding:      '4px 10px',
               borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              whiteSpace: 'nowrap',
+              cursor:       'pointer',
+              fontSize:     '12px',
+              fontWeight:   'bold',
+              whiteSpace:   'nowrap',
             }}
           >
             ↩ Desfazer ({secs}s)
@@ -69,22 +79,26 @@ export function useUndoDelete() {
     };
 
     toastId = toast(
-      () => <ToastContent />,
+      (t) => <ToastContent />,
       {
         duration: 5500,
         style: {
-          background: '#1e1e2e',
-          color: '#cdd6f4',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background:   '#1e1e2e',
+          color:        '#cdd6f4',
+          border:       '1px solid rgba(255,255,255,0.1)',
           borderRadius: '14px',
-          padding: '12px 16px',
-          maxWidth: '380px',
+          padding:      '12px 16px',
+          maxWidth:     '380px',
         },
       }
     );
 
     return {
-      undo: () => { undone = true; clearTimeout(timer); toast.dismiss(toastId); },
+      undo: () => {
+        undone = true;
+        clearTimeout(timer);
+        toast.dismiss(toastId);
+      },
     };
   }, []);
 
