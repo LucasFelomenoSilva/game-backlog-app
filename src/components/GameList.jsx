@@ -13,20 +13,17 @@ import {
   Download,
 } from "lucide-react";
 import { categoryNames } from "../data/categories";
-import html2canvas from "html2canvas";
+// html2canvas: import dinâmico na função de export (não carrega no bundle inicial)
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
+import { getRatingHex } from "../utils/gameUtils";
 import TiltCard from "./TiltCard";
 import GameTooltip from "./GameTooltip";
 import { TagBadge } from "./CustomTags";
 import DragSortList from "./DragSortList";
 
-const getRatingHex = (rating) => {
-  if (rating >= 9) return "#10b981";
-  if (rating >= 7) return "#06b6d4";
-  if (rating >= 5) return "#f59e0b";
-  return "#ef4444";
-};
+
+
 
 const ListHeader = ({
   categoryName,
@@ -324,6 +321,7 @@ export default function GameList({
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 400));
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(exportRef.current, {
         backgroundColor: V.bg,
         scale: 2,

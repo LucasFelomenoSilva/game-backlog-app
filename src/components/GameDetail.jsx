@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getRatingGradient, getRatingLabel, getGameLengthInfo, cleanCategoryName as getCleanCategoryName } from "../utils/gameUtils";
 import {
   ChevronLeft,
   CheckCircle,
@@ -20,35 +21,11 @@ import {
 import { categoryNames, categoryIcons } from "../data/categories";
 import { toast } from "react-hot-toast";
 
-const getCleanCategoryName = (name) => {
-  if (!name) return "";
-  return name
-    .replace(/[^a-zA-Z\u00C0-\u00FF\s]/g, "")
-    .replace(/\(.*\)/, "")
-    .trim();
-};
 
-const getRatingColor = (rating) => {
-  if (rating >= 9) return "from-emerald-500 to-teal-500";
-  if (rating >= 7) return "from-cyan-500 to-blue-500";
-  if (rating >= 5) return "from-yellow-500 to-orange-500";
-  return "from-red-500 to-pink-500";
-};
 
-const getRatingLabel = (rating) => {
-  if (rating >= 9) return "Obra-prima";
-  if (rating >= 7) return "Muito bom";
-  if (rating >= 5) return "Razoável";
-  return "Decepcionante";
-};
 
-const getGameLengthLabel = (hours) => {
-  if (!hours) return null;
-  if (hours <= 5) return { label: "Curto", color: "text-green-400", bar: "bg-green-500" };
-  if (hours <= 15) return { label: "Médio", color: "text-blue-400", bar: "bg-blue-500" };
-  if (hours <= 40) return { label: "Longo", color: "text-purple-400", bar: "bg-purple-500" };
-  return { label: "Épico", color: "text-orange-400", bar: "bg-orange-500" };
-};
+// cleanCategoryName, getRatingGradient, getRatingLabel, getGameLengthInfo
+// foram removidos — importados de ../utils/gameUtils
 
 export default function GameDetail({
   selectedGame,
@@ -61,7 +38,7 @@ export default function GameDetail({
   const [activeSection, setActiveSection] = useState("overview");
   const currentStatus = selectedGame.status;
   const isFinished = currentStatus === "zerados";
-  const lengthInfo = getGameLengthLabel(selectedGame.timeToBeat);
+  const lengthInfo = getGameLengthInfo(selectedGame.timeToBeat);
 
   const statusOptions = [
     { id: "playing", label: categoryNames.playing, color: "from-orange-500 to-red-500", icon: "🎮" },
@@ -227,7 +204,7 @@ export default function GameDetail({
                 {/* Rating grande se zerado */}
                 {isFinished && selectedGame.rating != null && (
                   <div className="flex items-center gap-3">
-                    <div className={`flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r ${getRatingColor(selectedGame.rating)} rounded-xl shadow-lg`}>
+                    <div className={`flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r ${getRatingGradient(selectedGame.rating)} rounded-xl shadow-lg`}>
                       <Star className="w-5 h-5 text-white fill-white" />
                       <span className="text-2xl font-black text-white">{selectedGame.rating}</span>
                       <span className="text-sm text-white/70">/10</span>
@@ -335,7 +312,7 @@ export default function GameDetail({
                     </div>
                     <div className="text-xs font-bold text-white">{selectedGame.timeToBeat || 0}h</div>
                     {lengthInfo && (
-                      <div className={`text-[9px] uppercase tracking-wider mt-0.5 font-bold ${lengthInfo.color}`}>
+                      <div className={`text-[9px] uppercase tracking-wider mt-0.5 font-bold ${lengthInfo.tailwindColor}`}>
                         {lengthInfo.label}
                       </div>
                     )}
@@ -364,11 +341,11 @@ export default function GameDetail({
                 <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Duração estimada</span>
-                    <span className={`text-xs font-black ${lengthInfo.color}`}>{selectedGame.timeToBeat}h — {lengthInfo.label}</span>
+                    <span className={`text-xs font-black ${lengthInfo.tailwindColor}`}>{selectedGame.timeToBeat}h — {lengthInfo.label}</span>
                   </div>
                   <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${lengthInfo.bar} rounded-full transition-all duration-700 relative overflow-hidden`}
+                      className={`h-full ${lengthInfo.tailwindBar} rounded-full transition-all duration-700 relative overflow-hidden`}
                       style={{ width: `${Math.min((selectedGame.timeToBeat / 100) * 100, 100)}%` }}
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
