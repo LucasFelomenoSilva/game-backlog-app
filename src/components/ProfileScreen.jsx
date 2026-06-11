@@ -1,5 +1,6 @@
 // src/components/ProfileScreen.jsx
 import React, { useMemo, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   LogOut, Camera, Trophy, Star, Clock, ChevronLeft,
   CheckCircle, Award, Database, Gamepad2, Monitor,
@@ -370,7 +371,14 @@ export default function ProfileScreen({
         </nav>
 
         <div className="relative max-w-xl mx-auto px-4 pt-6 space-y-5">
-          <div className="relative overflow-hidden rounded-3xl p-6" style={{ background: `linear-gradient(135deg, ${V.card} 0%, ${V.card2} 100%)`, border: `1px solid ${V.border}` }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            whileHover={{ scale: 1.008, y: -2 }}
+            transition={{ type: 'spring', stiffness: 120, damping: 15 }}
+            className="relative overflow-hidden rounded-3xl p-6"
+            style={{ background: `linear-gradient(135deg, ${V.card}b0 0%, ${V.card2}40 100%)`, border: `1px solid ${V.border}` }}
+          >
             <div className="absolute -top-16 -left-16 w-56 h-56 rounded-full blur-3xl pointer-events-none" style={{ background: V.primary, opacity: 0.12 }} />
             <div className="absolute -bottom-16 -right-8 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: V.secondary, opacity: 0.10 }} />
 
@@ -432,10 +440,16 @@ export default function ProfileScreen({
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setShowEditProfile(true)} className="flex items-center gap-3 p-4 rounded-2xl transition-all hover:opacity-80" style={{ background: V.card, border: `1px solid ${V.border}` }}>
+            <motion.button
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowEditProfile(true)}
+              className="flex items-center gap-3 p-4 rounded-2xl text-left"
+              style={{ background: V.card, border: `1px solid ${V.border}` }}
+            >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
                 <User className="w-5 h-5 text-white" />
               </div>
@@ -443,8 +457,14 @@ export default function ProfileScreen({
                 <p className="text-sm font-bold" style={{ color: V.text }}>Editar Perfil</p>
                 <p className="text-[10px]" style={{ color: V.muted }}>Nome e bio</p>
               </div>
-            </button>
-            <button onClick={() => setShowTheme(true)} className="flex items-center gap-3 p-4 rounded-2xl transition-all hover:opacity-80" style={{ background: V.card, border: `1px solid ${V.border}` }}>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowTheme(true)}
+              className="flex items-center gap-3 p-4 rounded-2xl text-left"
+              style={{ background: V.card, border: `1px solid ${V.border}` }}
+            >
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${V.accent}, ${V.primary})` }}>
                 <Palette className="w-5 h-5 text-white" />
               </div>
@@ -452,7 +472,7 @@ export default function ProfileScreen({
                 <p className="text-sm font-bold" style={{ color: V.text }}>Tema</p>
                 <p className="text-[10px]" style={{ color: V.muted }}>Personalizar cores</p>
               </div>
-            </button>
+            </motion.button>
           </div>
 
           {/* Feature #17: Perfil Público Compartilhável */}
@@ -652,11 +672,14 @@ export default function ProfileScreen({
                 {BADGES.map(({ emoji, label, req }) => {
                   const on = totalFinishedGames >= req;
                   return (
-                    <div key={label} className="flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all"
+                    <motion.div
+                      key={label}
+                      whileHover={on ? { scale: 1.08, y: -3, boxShadow: `0 4px 12px ${V.glow}` } : {}}
+                      className="flex flex-col items-center gap-1.5 py-3 rounded-xl transition-all"
                       style={{ background: on ? V.faint : 'transparent', border: `1px solid ${on ? V.border : 'transparent'}`, opacity: on ? 1 : 0.25 }}>
                       <span className="text-xl leading-none">{emoji}</span>
                       <span className="text-[9px] font-medium text-center" style={{ color: V.muted }}>{label}</span>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>

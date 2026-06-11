@@ -3,6 +3,26 @@ import React, { useMemo } from 'react';
 import { TrendingUp, CheckCircle, Clock, History, Star, Heart, Sparkles, Target, Flame, Trophy, Award } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'; 
 import { useTheme } from '../context/ThemeContext'; // <-- Importado
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30, rotateX: 10, scale: 0.97 },
+  show: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 120, damping: 15 }
+  }
+};
 
 export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGames }) {
   const { theme: V } = useTheme(); // <-- Usando as cores do tema
@@ -60,14 +80,14 @@ export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGa
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 gap-3 mb-6">
           {[
             { label: 'Zerados', value: totalFinishedGames, text: 'jogos concluídos', icon: CheckCircle, color1: '#10b981', color2: '#34d399' },
             { label: 'Horas', value: `${totalHours}h`, text: 'de jogatina estimada', icon: Clock, color1: V.primary, color2: V.secondary },
             { label: 'Nota Média', value: advancedStats.avgRating, text: 'nos jogos zerados', icon: Star, color1: '#f59e0b', color2: '#fbbf24' },
             { label: 'Vício', value: advancedStats.favoriteGenre, text: 'gênero mais zerado', icon: Heart, color1: V.accent, color2: '#fb7185' },
           ].map((stat, i) => (
-            <div key={i} className="relative group">
+            <motion.div key={i} variants={cardVariants} whileHover={{ scale: 1.025, y: -3 }} className="relative group">
               <div className="absolute -inset-0.5 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300" style={{ background: `linear-gradient(to right, ${stat.color1}, ${stat.color2})` }}></div>
               <div className="relative backdrop-blur-xl rounded-2xl p-5 border" style={{ background: `${V.card}e6`, borderColor: V.border }}>
                 <div className="flex items-center gap-2 mb-3">
@@ -79,12 +99,18 @@ export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGa
                 <div className="text-3xl font-bold mb-1 truncate leading-9" style={{ color: stat.color1 }}>{stat.value}</div>
                 <div className="text-xs" style={{ color: V.low }}>{stat.text}</div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {advancedStats.platinumCount > 0 && (
-          <div className="relative group mb-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            whileHover={{ scale: 1.015, y: -2 }}
+            transition={{ type: 'spring', stiffness: 120, damping: 15 }}
+            className="relative group mb-6"
+          >
             <div className="absolute -inset-0.5 rounded-3xl blur opacity-40 group-hover:opacity-60 transition duration-300 animate-pulse" style={{ background: `linear-gradient(to right, #f59e0b, #facc15, #f59e0b)` }}></div>
             <div className="relative backdrop-blur-xl rounded-3xl p-6 border-2" style={{ background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.5)' }}>
               <div className="flex items-center gap-4">
@@ -111,11 +137,17 @@ export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGa
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {gamesData.length > 0 && (
-          <div className="relative group mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            whileHover={{ scale: 1.01 }}
+            className="relative group mb-6"
+          >
             <div className="absolute -inset-0.5 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-300" style={{ background: `linear-gradient(to right, ${V.primary}, ${V.accent})` }}></div>
             <div className="relative backdrop-blur-xl rounded-3xl p-6 border" style={{ background: `${V.card}e6`, borderColor: V.border }}>
               <div className="flex items-center gap-2 mb-6">
@@ -142,11 +174,16 @@ export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGa
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {recentHistory.length > 0 && (
-          <div className="relative group">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="relative group"
+          >
             <div className="absolute -inset-0.5 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-300" style={{ background: `linear-gradient(to right, ${V.accent}, ${V.primary})` }}></div>
             <div className="relative backdrop-blur-xl rounded-3xl p-6 border" style={{ background: `${V.card}e6`, borderColor: V.border }}>
               <div className="flex items-center gap-2 mb-5">
@@ -157,7 +194,11 @@ export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGa
               </div>
               <div className="space-y-3">
                 {recentHistory.map((item, index) => (
-                  <div key={index} className="group/item relative">
+                  <motion.div
+                    key={index}
+                    whileHover={{ scale: 1.02, x: 4 }}
+                    className="group/item relative"
+                  >
                     <div className="absolute -inset-0.5 rounded-2xl blur opacity-0 group-hover/item:opacity-20 transition duration-300" style={{ background: `linear-gradient(to right, #10b981, #34d399)` }}></div>
                     <div className="relative flex items-center gap-4 p-4 rounded-2xl backdrop-blur-sm border transition-all duration-300" style={{ background: V.faint, borderColor: V.border }}>
                       <div className="relative">
@@ -177,11 +218,11 @@ export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGa
                       </div>
                       <div className="text-2xl">🎮</div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
       </div>

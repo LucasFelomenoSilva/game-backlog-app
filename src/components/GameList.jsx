@@ -17,10 +17,30 @@ import { categoryNames } from "../data/categories";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 import { getRatingHex } from "../utils/gameUtils";
-import TiltCard from "./TiltCard";
 import GameTooltip from "./GameTooltip";
 import { TagBadge } from "./CustomTags";
 import DragSortList from "./DragSortList";
+import { motion } from "framer-motion";
+
+const listContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const gameCardVariants = {
+  hidden: { opacity: 0, y: 15, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 150, damping: 18 }
+  }
+};
 
 
 
@@ -397,7 +417,7 @@ export default function GameList({
       <ListHeader {...commonProps} />
 
       <div className="max-w-md mx-auto px-4 pb-20">
-        <div className="space-y-3">
+        <motion.div variants={listContainerVariants} initial="hidden" animate="show" className="space-y-3">
           {filteredGames.length === 0 ? (
             <div className="text-center py-10" style={{ color: V.muted }}>
               Nenhum jogo encontrado{" "}
@@ -432,25 +452,25 @@ export default function GameList({
               const hasTags = game.tags?.length > 0;
               return (
                 <GameTooltip key={game.id} game={game}>
-                  <TiltCard
-                    intensity={8}
-                    scale={1.01}
+                  <motion.div
+                    variants={gameCardVariants}
+                    whileHover={{ scale: 1.012, y: -2 }}
+                    whileTap={{ scale: 0.995 }}
                     className="w-full"
-                    style={{ borderRadius: "1rem" }}
                   >
                     <button
                       onClick={() => setSelectedGame(game)}
-                      className="group w-full rounded-2xl p-4 border transition-all duration-200 active:scale-[0.99] text-left shadow-lg overflow-hidden relative"
+                      className="group w-full rounded-2xl p-4 border transition-all duration-200 text-left shadow-md overflow-hidden relative backdrop-blur-xl"
                       style={{
                         background: isFinished
                           ? isPlatinum
-                            ? "rgba(245,158,11,0.1)"
-                            : "rgba(16,185,129,0.1)"
-                          : V.card,
+                            ? "rgba(245, 158, 11, 0.05)"
+                            : "rgba(16, 185, 129, 0.05)"
+                          : `linear-gradient(135deg, ${V.card}a0, ${V.card2}30)`,
                         borderColor: isFinished
                           ? isPlatinum
-                            ? "rgba(245,158,11,0.3)"
-                            : "rgba(16,185,129,0.3)"
+                            ? "rgba(245, 158, 11, 0.22)"
+                            : "rgba(16, 185, 129, 0.22)"
                           : V.border,
                       }}
                     >
@@ -565,12 +585,12 @@ export default function GameList({
                         </div>
                       </div>
                     </button>
-                  </TiltCard>
+                  </motion.div>
                 </GameTooltip>
               );
             })
           )}
-        </div>
+        </motion.div>
       </div>
 
       <div

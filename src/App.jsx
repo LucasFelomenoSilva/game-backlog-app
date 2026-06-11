@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'reac
 import { Toaster } from 'react-hot-toast';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -56,6 +57,12 @@ const Confetti = React.memo(() => {
     </div>
   );
 });
+
+const pageTransitionVariants = {
+  initial: { opacity: 0, x: -12, scale: 0.99 },
+  animate: { opacity: 1, x: 0, scale: 1 },
+  exit: { opacity: 0, x: 12, scale: 0.99 }
+};
 
 function AppInner() {
   const { theme: V } = useTheme();
@@ -156,9 +163,21 @@ function AppInner() {
 
   const tabContent = renderTab();
   if (tabContent) return (
-    <div style={{ background: V.bg }} className="min-h-screen">
+    <div style={{ background: V.bg }} className="min-h-screen overflow-x-hidden">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
-      {tabContent}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          variants={pageTransitionVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ type: 'tween', ease: 'easeOut', duration: 0.18 }}
+          style={{ width: '100%' }}
+        >
+          {tabContent}
+        </motion.div>
+      </AnimatePresence>
       <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} />
     </div>
   );
@@ -171,7 +190,7 @@ function AppInner() {
     if (games.selectedGame)
       return <GameDetail selectedGame={games.selectedGame} setSelectedGame={games.setSelectedGame} handleUpdateGameStatus={games.handleUpdateGameStatus} handleDeleteGame={games.handleDeleteGame} openEditModal={openEditModal} openReviewModal={openReviewModal} triggerConfetti={triggerConfetti} />;
     if (games.selectedCategory)
-      return <GameList selectedCategory={games.selectedCategory} setSelectedCategory={games.setSelectedCategory} games={games.groupedGames} setSelectedGame={games.setSelectedGame} gamesData={games.gamesData} setGamesData={() => {}} />;
+      return <GameList selectedCategory={games.selectedCategory} setSelectedCategory={games.setSelectedCategory} games={games.groupedGames} setSelectedGame={games.setSelectedGame} gamesData={games.gamesData} setGamesData={games.setGamesData} />;
     return (
       <DragDropContext onDragEnd={games.handleDragEnd}>
         <CategorySelector games={games.groupedGames} setSelectedCategory={games.setSelectedCategory} setSelectedGame={games.setSelectedGame} getCategoryProgress={games.getCategoryProgress} user={user} totalFinishedGames={games.totalFinishedGames} setIsAddGameModalOpen={setIsAddGameModalOpen} openReviewModal={openReviewModal} gamesData={games.gamesData} />
@@ -179,8 +198,18 @@ function AppInner() {
     );
   };
 
+  const mainKey = isReviewModalOpen && gameToReview
+    ? 'review'
+    : isRecommenderOpen
+    ? 'recommender'
+    : games.selectedGame
+    ? 'detail-' + games.selectedGame.id
+    : games.selectedCategory
+    ? 'list-' + games.selectedCategory
+    : 'selector';
+
   return (
-    <div className="relative min-h-screen bg-gray-900">
+    <div className="relative min-h-screen bg-gray-900 overflow-x-hidden">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
       {showConfetti && <Confetti />}
       {showWrapped  && <Suspense fallback={<ModalLoader />}><LazyWrappedScreen  gamesData={games.gamesData} onClose={() => setShowWrapped(false)} /></Suspense>}
@@ -188,7 +217,21 @@ function AppInner() {
       {showSurprise && <Suspense fallback={<ModalLoader />}><LazySurpriseMe     gamesData={games.gamesData} onClose={() => setShowSurprise(false)} /></Suspense>}
       {showCollab   && <Suspense fallback={<ModalLoader />}><LazyCollabList     currentUser={user}          onClose={() => setShowCollab(false)} /></Suspense>}
       {levelUpData  && <Suspense fallback={null}><LazyLevelUpOverlay level={levelUpData.level} onDone={() => setLevelUpData(null)} /></Suspense>}
-      <div className="relative z-10">{renderMain()}</div>
+      <div className="relative z-10 overflow-x-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={mainKey}
+            variants={pageTransitionVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ type: 'tween', ease: 'easeOut', duration: 0.18 }}
+            style={{ width: '100%' }}
+          >
+            {renderMain()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* Botão flutuante — Adicionar Jogo */}
       {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (

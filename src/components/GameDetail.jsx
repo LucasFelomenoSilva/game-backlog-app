@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getRatingGradient, getRatingLabel, getGameLengthInfo, cleanCategoryName as getCleanCategoryName } from "../utils/gameUtils";
 import {
   ChevronLeft,
@@ -156,7 +157,13 @@ export default function GameDetail({
             <div className="flex gap-5 items-end">
               {/* Capa em destaque */}
               <div className="flex-shrink-0">
-                <div className="relative w-32 sm:w-40">
+                <motion.div
+                  initial={{ opacity: 0, y: 15, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  whileHover={{ scale: 1.025, y: -4 }}
+                  transition={{ type: 'spring', stiffness: 160, damping: 16 }}
+                  className="relative w-32 sm:w-40"
+                >
                   {/* Glow atrás da capa */}
                   {selectedGame.imageBase64 && (
                     <div className="absolute -inset-2 rounded-2xl blur-xl opacity-40"
@@ -178,7 +185,7 @@ export default function GameDetail({
                       <Trophy className="w-5 h-5 text-yellow-900 fill-yellow-900" />
                     </div>
                   )}
-                </div>
+                </motion.div>
               </div>
 
               {/* Título e meta-info */}
@@ -252,61 +259,76 @@ export default function GameDetail({
 
           {/* ── TABS NAVEGAÇÃO ── */}
           {(selectedGame.notes || selectedGame.reviewText || isFinished) && (
-            <div className="flex gap-1 p-1 bg-white/5 border border-white/8 rounded-2xl mb-6">
+            <div className="flex gap-1 p-1 bg-white/5 border border-white/8 rounded-2xl mb-6 relative z-10">
               {[
                 { id: "overview", label: "Visão Geral" },
                 ...(selectedGame.reviewText ? [{ id: "review", label: "Review" }] : []),
                 ...(selectedGame.notes ? [{ id: "notes", label: "Anotações" }] : []),
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveSection(tab.id)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    activeSection === tab.id
-                      ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg"
-                      : "text-gray-500 hover:text-gray-300"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+              ].map((tab) => {
+                const isActive = activeSection === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSection(tab.id)}
+                    className="relative flex-1 py-2.5 text-sm font-bold transition-colors select-none"
+                    style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.45)' }}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeDetailTab"
+                        className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl shadow-md -z-10"
+                        transition={{ type: 'spring', stiffness: 320, damping: 25 }}
+                      />
+                    )}
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {/* ── SEÇÃO: VISÃO GERAL ── */}
-          {activeSection === "overview" && (
-            <div className="space-y-4">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.18 }}
+            >
+              {/* ── SEÇÃO: VISÃO GERAL ── */}
+              {activeSection === "overview" && (
+                <div className="space-y-4">
 
               {/* Stats visuais */}
               <div className="grid grid-cols-3 gap-3">
                 {/* Plataforma */}
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300" />
-                  <div className="relative bg-white/5 border border-white/8 rounded-2xl p-4 text-center hover:border-white/15 transition-all">
+                <motion.div whileHover={{ y: -3, scale: 1.015 }} className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+                  <div className="relative bg-white/5 border border-white/8 rounded-2xl p-4 text-center hover:border-white/12 transition-all">
                     <div className="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Gamepad className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-xs font-bold text-white truncate">{selectedGame.platform}</div>
                     <div className="text-[9px] uppercase tracking-wider text-gray-500 mt-0.5">Plataforma</div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Gênero */}
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300" />
-                  <div className="relative bg-white/5 border border-white/8 rounded-2xl p-4 text-center hover:border-white/15 transition-all">
+                <motion.div whileHover={{ y: -3, scale: 1.015 }} className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+                  <div className="relative bg-white/5 border border-white/8 rounded-2xl p-4 text-center hover:border-white/12 transition-all">
                     <div className="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Zap className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-xs font-bold text-white truncate">{selectedGame.genre}</div>
                     <div className="text-[9px] uppercase tracking-wider text-gray-500 mt-0.5">Gênero</div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Duração */}
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-300" />
-                  <div className="relative bg-white/5 border border-white/8 rounded-2xl p-4 text-center hover:border-white/15 transition-all">
+                <motion.div whileHover={{ y: -3, scale: 1.015 }} className="relative group">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-300" />
+                  <div className="relative bg-white/5 border border-white/8 rounded-2xl p-4 text-center hover:border-white/12 transition-all">
                     <div className="w-10 h-10 mx-auto mb-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Clock className="w-5 h-5 text-white" />
                     </div>
@@ -317,7 +339,7 @@ export default function GameDetail({
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               </div>
 
               {/* Platina destaque */}
@@ -426,7 +448,9 @@ export default function GameDetail({
                 <p className="text-gray-300 leading-relaxed whitespace-pre-line">{selectedGame.notes}</p>
               </div>
             </div>
-          )}
+              )}
+            </motion.div>
+          </AnimatePresence>
 
         </div>
       </div>

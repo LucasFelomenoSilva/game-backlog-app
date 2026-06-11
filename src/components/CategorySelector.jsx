@@ -1,6 +1,7 @@
 // src/components/CategorySelector.jsx — Tema roxo/violeta
 import React, { useState } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { motion } from 'framer-motion';
 import { categoryNames } from '../data/categories';
 import { Plus, Trophy, Gamepad2, ChevronRight, Star, Flame, Sparkles } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -21,6 +22,35 @@ const SPECIAL_CATEGORIES = [
   { id: 'zerados',   label: 'Zerados',         grad: 'from-emerald-500 to-teal-600',  icon: Trophy },
   { id: 'desejados', label: 'Lista de Desejos', grad: 'from-amber-500 to-orange-600', icon: Star   },
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const columnVariants = {
+  hidden: { opacity: 0, y: 30, rotateX: 10, scale: 0.97 },
+  show: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 120, damping: 15 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 130, damping: 16 }
+  }
+};
 
 export default function CategorySelector({
   games,
@@ -92,21 +122,22 @@ export default function CategorySelector({
           <NextGameSuggestion gamesData={gamesData} onSelectGame={g => setSelectedGame(g)} />
 
           {/* ── Grid 3 Colunas — Drag & Drop ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
             {MAIN_COLUMNS.map((col) => {
               const colGames = games[col.id] || [];
               return (
                 <Droppable droppableId={col.id} key={col.id}>
                   {(provided, snapshot) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps}
-                      className="rounded-2xl border-2 transition-all duration-300"
+                    <motion.div ref={provided.innerRef} {...provided.droppableProps}
+                      variants={columnVariants}
+                      className="rounded-2xl border transition-all duration-300 backdrop-blur-xl"
                       style={{
                         background: snapshot.isDraggingOver
-                          ? 'rgba(139,92,246,0.12)'
-                          : `linear-gradient(135deg, ${V.card} 0%, ${V.card2} 100%)`,
-                        borderColor: snapshot.isDraggingOver ? V.violet : V.border,
-                        boxShadow:   snapshot.isDraggingOver ? `0 0 30px ${V.glow}` : 'none',
-                        transform:   snapshot.isDraggingOver ? 'scale(1.02)' : 'scale(1)',
+                          ? 'rgba(255, 255, 255, 0.03)'
+                          : `linear-gradient(135deg, ${V.card}b0 0%, ${V.card2}40 100%)`,
+                        borderColor: snapshot.isDraggingOver ? `${V.primary}40` : V.border,
+                        boxShadow:   snapshot.isDraggingOver ? `0 12px 40px ${V.glow}, inset 0 0 12px ${V.primary}10` : '0 4px 30px rgba(0,0,0,0.15)',
+                        transform:   snapshot.isDraggingOver ? 'scale(1.01)' : 'scale(1)',
                       }}>
 
                       {/* Header coluna */}
@@ -139,40 +170,55 @@ export default function CategorySelector({
                             return (
                               <Draggable key={game.id} draggableId={game.id} index={index}>
                                 {(prov, snap) => (
-                                  <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}
-                                    className="group p-3 rounded-xl border cursor-pointer transition-all duration-200"
-                                    style={{
-                                      background: snap.isDragging ? V.card2 : V.faint,
-                                      borderColor: snap.isDragging ? V.violet : V.border,
-                                      transform: snap.isDragging ? 'scale(1.04) rotate(1.5deg)' : 'scale(1)',
-                                      boxShadow: snap.isDragging ? `0 8px 30px ${V.glow}` : 'none',
-                                    }}>
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex-1 min-w-0" onClick={() => setSelectedGame(game)}>
-                                        <h4 className="font-semibold text-sm truncate transition-colors"
-                                          style={{ color: V.text }}>
-                                          {game.nome || 'Sem nome'}
-                                        </h4>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                          <span className="text-[10px]" style={{ color: V.muted }}>{game.platform || 'PC'}</span>
-                                          {game.timeToBeat > 0 && (
-                                            <span className="text-[10px] font-semibold" style={{ color: V.soft }}>{game.timeToBeat}h</span>
+                                  <div
+                                    ref={prov.innerRef}
+                                    {...prov.draggableProps}
+                                    {...prov.dragHandleProps}
+                                    style={prov.draggableProps.style}
+                                  >
+                                    <motion.div
+                                      layout={snap.isDragging ? false : "position"}
+                                      className="group p-3 rounded-xl border cursor-pointer select-none backdrop-blur-md"
+                                      style={{
+                                        background: snap.isDragging
+                                          ? `rgba(255, 255, 255, 0.08)`
+                                          : `linear-gradient(135deg, ${V.card2}60 0%, ${V.card}30 100%)`,
+                                        borderColor: snap.isDragging ? V.primary : V.border,
+                                        boxShadow: snap.isDragging ? `0 12px 36px ${V.glow}` : '0 2px 8px rgba(0,0,0,0.1)',
+                                      }}
+                                      animate={{
+                                        scale: snap.isDragging ? 1.035 : 1,
+                                        rotate: snap.isDragging ? 0.5 : 0,
+                                      }}
+                                      whileHover={{ scale: snap.isDragging ? 1.035 : 1.015, x: 2 }}
+                                      transition={{ type: 'spring', stiffness: 350, damping: 22 }}>
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex-1 min-w-0" onClick={() => setSelectedGame(game)}>
+                                          <h4 className="font-semibold text-sm truncate transition-colors"
+                                            style={{ color: V.text }}>
+                                            {game.nome || 'Sem nome'}
+                                          </h4>
+                                          <div className="flex items-center gap-2 mt-0.5">
+                                            <span className="text-[10px]" style={{ color: V.muted }}>{game.platform || 'PC'}</span>
+                                            {game.timeToBeat > 0 && (
+                                              <span className="text-[10px] font-semibold" style={{ color: V.soft }}>{game.timeToBeat}h</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                          {isPlaying && (
+                                            <button onClick={e => { e.stopPropagation(); setFocusGame(game); }}
+                                              className="p-1.5 rounded-lg transition-all hover:scale-110"
+                                              style={{ background: `${V.violet}25`, border: `1px solid ${V.violet}40` }}
+                                              title="Modo Foco">
+                                              <Flame className="w-3.5 h-3.5" style={{ color: V.soft }} />
+                                            </button>
                                           )}
+                                          <ChevronRight className="w-4 h-4 transition-colors" style={{ color: V.muted }}
+                                            onClick={() => setSelectedGame(game)} />
                                         </div>
                                       </div>
-                                      <div className="flex items-center gap-1.5">
-                                        {isPlaying && (
-                                          <button onClick={e => { e.stopPropagation(); setFocusGame(game); }}
-                                            className="p-1.5 rounded-lg transition-all hover:scale-110"
-                                            style={{ background: `${V.violet}25`, border: `1px solid ${V.violet}40` }}
-                                            title="Modo Foco">
-                                            <Flame className="w-3.5 h-3.5" style={{ color: V.soft }} />
-                                          </button>
-                                        )}
-                                        <ChevronRight className="w-4 h-4 transition-colors" style={{ color: V.muted }}
-                                          onClick={() => setSelectedGame(game)} />
-                                      </div>
-                                    </div>
+                                    </motion.div>
                                   </div>
                                 )}
                               </Draggable>
@@ -181,24 +227,30 @@ export default function CategorySelector({
                         )}
                         {provided.placeholder}
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </Droppable>
               );
             })}
-          </div>
+          </motion.div>
 
           {/* ── Categorias Especiais ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {SPECIAL_CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const count = getCategoryProgress(cat.id);
               const catGames = games[cat.id] || [];
 
               return (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
-                  className="group relative p-6 rounded-2xl text-left transition-all duration-300 hover:scale-[1.02] overflow-hidden"
-                  style={{ background: `linear-gradient(135deg, ${V.card}, ${V.card2})`, border: `1px solid ${V.border}` }}>
+                <motion.button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.015, y: -2 }}
+                  whileTap={{ scale: 0.995 }}
+                  className="group relative p-6 rounded-2xl text-left transition-all duration-300 overflow-hidden backdrop-blur-xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${V.card}90, ${V.card2}30)`,
+                    border: `1px solid ${V.border}`,
+                  }}>
 
                   {/* Glow on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -238,10 +290,10 @@ export default function CategorySelector({
                     </div>
                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-all flex-shrink-0" style={{ color: V.muted }} />
                   </div>
-                </button>
+                </motion.button>
               );
             })}
-          </div>
+          </motion.div>
 
         </div>
       </div>

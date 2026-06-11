@@ -160,5 +160,6 @@ export function useGamesState(user) {
     handleAddNewGame, handleEditGame, handleDeleteGame,
     handleUpdateGameStatus, handleCompleteGameFinish,
     handleRestoreData, handleDragEnd, getCategoryProgress,
+    setGamesData,
   };
 }
