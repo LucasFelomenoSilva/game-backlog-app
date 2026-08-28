@@ -7,18 +7,6 @@ import { searchGameIGDB } from '../services/igdbService';
 import CustomTags from './CustomTags';
 import { useTheme } from '../context/ThemeContext';
 
-const convertUrlToFile = async (url, filename) => {
-  const fullUrl = url.startsWith('http') ? url : `https:${url}`;
-  try {
-    const response = await fetch(fullUrl);
-    const blob = await response.blob();
-    return new File([blob], filename, { type: blob.type });
-  } catch (err) {
-    console.error("Erro ao converter URL:", err);
-    throw err;
-  }
-};
-
 const RatingStar = ({ rating, setRating, index }) => {
   const isSelected = index <= rating;
   return (
@@ -149,17 +137,14 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     if (!formData.platform) { toast.error("Selecione a plataforma!"); return; }
     setLoading(true);
     let imageBase64Data = formData.imageBase64;
-    let imageToProcess = null;
     try {
       if (imageFile) {
-        imageToProcess = imageFile;
+        imageBase64Data = await convertFileToBase64(imageFile);
       } else if (imageBase64Data && imageBase64Data.startsWith('LOADING_URL:')) {
-        const imageUrl = imageBase64Data.replace('LOADING_URL:', '');
-        try { imageToProcess = await convertUrlToFile(imageUrl, `${formData.nome}-cover.jpg`); }
-        catch { imageBase64Data = ""; }
+        // Capas do IGDB já são públicas. Guardar apenas a URL evita adicionar
+        // centenas de KB em Base64 ao Firestore para cada jogo cadastrado.
+        imageBase64Data = imageBase64Data.replace('LOADING_URL:', '');
       }
-      if (imageToProcess) imageBase64Data = await convertFileToBase64(imageToProcess);
-      else if (imageBase64Data && imageBase64Data.startsWith('LOADING_URL:')) { imageBase64Data = ""; }
 
       let finishedDate = formData.finishedDate;
       if (isZerado) {

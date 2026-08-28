@@ -5,6 +5,7 @@ import {
   query, where, getDocs, addDoc, onSnapshot,
   orderBy, serverTimestamp, arrayUnion, arrayRemove
 } from 'firebase/firestore';
+import { getUserGames } from './gameService';
 
 // Gera um código único tipo Discord (ex: GAMER#4821)
 export function generateUserCode() {
@@ -111,7 +112,7 @@ export async function getFriendGamesData(uid) {
   const ref = doc(db, 'users', uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) return [];
-  return snap.data().gamesData || [];
+  return getUserGames(uid, snap.data().gamesData);
 }
 
 // ---- CHAT ----

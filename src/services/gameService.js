@@ -19,9 +19,45 @@
 
 import { db } from '../firebase';
 import {
-  doc, getDoc, setDoc, updateDoc,
+  doc, getDoc, setDoc, updateDoc, deleteField, writeBatch,
   collection, query, where, getDocs, serverTimestamp,
 } from 'firebase/firestore';
+
+const MAX_BATCH_OPERATIONS = 450;
+const saveQueues = new Map();
+
+function gameDocumentId(game, index) {
+  const rawId = String(game?.id ?? index);
+  return `game_${encodeURIComponent(rawId).slice(0, 1000)}`;
+}
+
+async function commitOperations(operations) {
+  for (let index = 0; index < operations.length; index += MAX_BATCH_OPERATIONS) {
+    const batch = writeBatch(db);
+    operations.slice(index, index + MAX_BATCH_OPERATIONS).forEach(operation => operation(batch));
+    await batch.commit();
+  }
+}
+
+export async function getUserGames(uid, legacyGamesData = []) {
+  let gamesSnapshot;
+  try {
+    gamesSnapshot = await getDocs(collection(db, 'users', uid, 'games'));
+  } catch (error) {
+    // Durante a atualização das regras, usuários ainda no formato antigo devem
+    // continuar conseguindo entrar e acessar os dados do documento principal.
+    if (error?.code === 'permission-denied' && Array.isArray(legacyGamesData)) {
+      return legacyGamesData;
+    }
+    throw error;
+  }
+  if (gamesSnapshot.empty) return Array.isArray(legacyGamesData) ? legacyGamesData : [];
+
+  return gamesSnapshot.docs
+    .map(gameDoc => gameDoc.data())
+    .sort((a, b) => (a._storageOrder ?? 0) - (b._storageOrder ?? 0))
+    .map(({ _storageOrder, ...game }) => game);
+}
 
 // ── Quando migrar para Java, defina a URL base aqui ───────────────────────
 // const BASE_URL = 'https://api.seubackend.com';
@@ -37,7 +73,9 @@ import {
 export async function getUserData(uid) {
   const snap = await getDoc(doc(db, 'users', uid));
   if (!snap.exists()) return null;
-  return snap.data();
+  const data = snap.data();
+  const gamesData = await getUserGames(uid, data.gamesData);
+  return { ...data, gamesData };
 }
 
 /**
@@ -53,13 +91,47 @@ export async function createUserData(uid, initialData) {
  * Java: PUT /api/users/{uid}
  */
 export async function saveUserData(uid, { gamesData, achievements, gameHistory, photoBase64 }) {
-  await setDoc(doc(db, 'users', uid), {
-    gamesData: JSON.parse(JSON.stringify(gamesData)),
-    achievements,
-    gameHistory: JSON.parse(JSON.stringify(gameHistory)),
-    photoBase64: photoBase64 || null,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  const persist = async () => {
+    const cleanGames = JSON.parse(JSON.stringify(gamesData));
+    const gamesCollection = collection(db, 'users', uid, 'games');
+    const existingGames = await getDocs(gamesCollection);
+    const nextDocumentIds = new Set();
+    const operations = [];
+
+    cleanGames.forEach((game, index) => {
+      const documentId = gameDocumentId(game, index);
+      nextDocumentIds.add(documentId);
+      const gameRef = doc(gamesCollection, documentId);
+      operations.push(batch => batch.set(gameRef, { ...game, _storageOrder: index }));
+    });
+
+    existingGames.docs.forEach(gameDoc => {
+      if (!nextDocumentIds.has(gameDoc.id)) {
+        operations.push(batch => batch.delete(gameDoc.ref));
+      }
+    });
+
+    const userRef = doc(db, 'users', uid);
+    operations.push(batch => batch.set(userRef, {
+      gamesData: deleteField(),
+      achievements,
+      gameHistory: JSON.parse(JSON.stringify(gameHistory)),
+      photoBase64: photoBase64 || null,
+      updatedAt: serverTimestamp(),
+    }, { merge: true }));
+
+    await commitOperations(operations);
+  };
+
+  const previousSave = saveQueues.get(uid) || Promise.resolve();
+  const nextSave = previousSave.catch(() => undefined).then(persist);
+  saveQueues.set(uid, nextSave);
+
+  try {
+    await nextSave;
+  } finally {
+    if (saveQueues.get(uid) === nextSave) saveQueues.delete(uid);
+  }
 }
 
 /**
@@ -84,8 +156,9 @@ export async function getPublicProfile(username) {
   if (snap.empty) return null;
 
   const profile  = snap.docs[0].data();
-  const userDoc  = await getDoc(doc(db, 'users', profile.uid));
-  const gamesData = userDoc.exists() ? (userDoc.data().gamesData || []) : [];
+  const userDoc = await getDoc(doc(db, 'users', profile.uid));
+  const legacyGamesData = userDoc.exists() ? userDoc.data().gamesData : [];
+  const gamesData = await getUserGames(profile.uid, legacyGamesData);
 
   return { profile, gamesData };
 }

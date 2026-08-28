@@ -4,12 +4,12 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
 import { auth, db, googleProvider } from '../firebase';
 import { initUserSocialProfile } from '../services/socialService';
-import { updateUserAvatar } from '../services/gameService';
+import { getUserData, updateUserAvatar } from '../services/gameService';
 
 const AuthContext = createContext(null);
 
@@ -51,33 +51,37 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        const userDocRef  = doc(db, 'users', currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      try {
+        if (currentUser) {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          let data = await getUserData(currentUser.uid);
+          if (!data) {
+            const initialData = { gamesData: [], achievements: [], gameHistory: [] };
+            await setDoc(userDocRef, initialData);
+            data = initialData;
+          }
 
-        let data = {};
-        if (userDocSnap.exists()) {
-          data = userDocSnap.data();
+          setFirestoreData(data);
+          setUser({
+            ...currentUser,
+            photoBase64: data.photoBase64 || null,
+            favorites:   data.favorites   || [],
+          });
+
+          initUserSocialProfile(currentUser.uid, currentUser.displayName, currentUser.photoURL);
+          requestNotificationPermission(currentUser.uid);
         } else {
-          const initialData = { gamesData: [], achievements: [], gameHistory: [] };
-          await setDoc(userDocRef, initialData);
-          data = initialData;
+          setUser(null);
+          setFirestoreData(null);
         }
-
-        setFirestoreData(data);
-        setUser({
-          ...currentUser,
-          photoBase64: data.photoBase64 || null,
-          favorites:   data.favorites   || [],
-        });
-
-        initUserSocialProfile(currentUser.uid, currentUser.displayName, currentUser.photoURL);
-        requestNotificationPermission(currentUser.uid);
-      } else {
+      } catch (error) {
+        console.error('Erro ao carregar dados do usuário:', error);
         setUser(null);
         setFirestoreData(null);
+        toast.error('Não foi possível carregar seus dados do Firestore.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
