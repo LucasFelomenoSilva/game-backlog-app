@@ -5,7 +5,7 @@
 // A deleção real é feita pelo callback onDeleted → setGamesData no useGamesState.
 // Aqui apenas gerenciamos o timer e o toast de "desfazer".
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
 export function useUndoDelete() {
@@ -36,8 +36,7 @@ export function useUndoDelete() {
       const [secs, setSecs] = useState(5);
       const intervalRef = useRef(null);
 
-      // useEffect correto em vez do useState incorreto do original
-      useRef(() => {
+      useEffect(() => {
         intervalRef.current = setInterval(() => {
           setSecs(s => {
             if (s <= 1) { clearInterval(intervalRef.current); return 0; }
@@ -79,7 +78,7 @@ export function useUndoDelete() {
     };
 
     toastId = toast(
-      (t) => <ToastContent />,
+      () => <ToastContent />,
       {
         duration: 5500,
         style: {

@@ -19,7 +19,7 @@ import {
   Bookmark,
   Heart,
 } from "lucide-react";
-import { categoryNames, categoryIcons } from "../data/categories";
+import { categoryNames } from "../data/categories";
 import { toast } from "react-hot-toast";
 
 
@@ -76,7 +76,7 @@ export default function GameDetail({
 
     if (navigator.share) {
       try { await navigator.share({ title: "Game Backlog", text }); }
-      catch (e) {}
+      catch { return; }
     } else {
       navigator.clipboard.writeText(text);
       toast.success("Copiado!");

@@ -120,7 +120,8 @@ export function ThemeProvider({ children }) {
 
   const setTheme = (id) => {
     setThemeId(id);
-    try { localStorage.setItem('gamebacklog_theme', id); } catch {}
+    try { localStorage.setItem('gamebacklog_theme', id); }
+    catch (error) { console.warn('Não foi possível salvar o tema localmente.', error); }
   };
 
   // Aplica variáveis CSS no root
@@ -130,6 +131,14 @@ export function ThemeProvider({ children }) {
   r.style.setProperty('--color-secondary', theme.secondary);
   r.style.setProperty('--color-bg', theme.bg);
   r.style.setProperty('--color-glow', theme.glow);
+  r.style.setProperty('--color-card', theme.card);
+  r.style.setProperty('--color-card-2', theme.card2);
+  r.style.setProperty('--color-border', theme.border);
+  r.style.setProperty('--color-faint', theme.faint);
+  r.style.setProperty('--color-text', theme.text);
+  r.style.setProperty('--color-muted', theme.muted);
+  r.style.setProperty('--color-low', theme.low);
+  r.style.setProperty('--color-soft', theme.soft);
 
   // Adicione esta linha:
   document.body.style.backgroundColor = theme.bg;

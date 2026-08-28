@@ -9,30 +9,7 @@ export default function SurpriseMe({ gamesData, onClose }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const backlogGames = gamesData.filter(g => ['jogando', 'quero_jogar', 'pausado'].includes(g.status));
-
-  const buildPrompt = () => {
-    const finished = gamesData.filter(g => g.status === 'zerados' && g.rating > 0)
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, 8)
-      .map(g => `${g.nome} (${g.genre}, nota ${g.rating}/10)`);
-
-    const backlog = backlogGames.map(g => `${g.nome} (${g.platform}${g.timeToBeat ? `, ~${g.timeToBeat}h` : ''})`);
-
-    const topGenres = Object.entries(
-      gamesData.filter(g => g.status === 'zerados').reduce((acc, g) => {
-        if (g.genre) acc[g.genre] = (acc[g.genre] || 0) + 1; return acc;
-      }, {})
-    ).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => g);
-
-    return `Você é um conselheiro de jogos. Analise o perfil gamer abaixo e recomende UM jogo do backlog para jogar agora, explicando por quê em 2-3 frases em português. Seja entusiasmado e específico.
-
-Jogos favoritos zerados: ${finished.join('; ') || 'nenhum ainda'}
-Gêneros preferidos: ${topGenres.join(', ') || 'variados'}
-Backlog atual: ${backlog.join('; ') || 'nenhum'}
-
-Responda em JSON com os campos: { "game": "nome do jogo", "reason": "por que jogar agora", "mood": "emoji que representa o vibe do jogo", "hype": "frase curta e épica de 6 palavras" }`;
-  };
+  const backlogGames = gamesData.filter(g => ['playing', 'backlog', 'installed'].includes(g.status));
 
   const getSurprise = async () => {
     if (backlogGames.length === 0) {
@@ -44,38 +21,35 @@ Responda em JSON com os campos: { "game": "nome do jogo", "reason": "por que jog
     setResult(null);
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 400,
-          messages: [{ role: 'user', content: buildPrompt() }],
-        }),
-      });
-
-      const data = await response.json();
-      const text = data.content?.map(c => c.text || '').join('') || '';
-      const clean = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-
-      // Tentar encontrar o jogo no backlog
-      const found = backlogGames.find(g =>
-        g.nome?.toLowerCase().includes(parsed.game?.toLowerCase()) ||
-        parsed.game?.toLowerCase().includes(g.nome?.toLowerCase())
-      );
-
-      setResult({ ...parsed, gameObj: found || null });
-    } catch (e) {
-      // Fallback: escolha aleatória com mensagem motivacional
-      const random = backlogGames[Math.floor(Math.random() * backlogGames.length)];
+      const genreCounts = gamesData
+        .filter(game => game.status === 'zerados' && game.rating >= 7 && game.genre)
+        .reduce((counts, game) => ({ ...counts, [game.genre]: (counts[game.genre] || 0) + 1 }), {});
+      const scored = backlogGames.map(game => ({
+        game,
+        score: (genreCounts[game.genre] || 0) * 3
+          + (game.status === 'installed' ? 2 : 0)
+          + (game.status === 'playing' ? 1.5 : 0)
+          + (Number(game.timeToBeat) > 0 && Number(game.timeToBeat) <= 15 ? 1 : 0)
+          + Math.random() * 2,
+      })).sort((a, b) => b.score - a.score);
+      const choice = scored[0].game;
+      const reasonParts = [];
+      if (genreCounts[choice.genre]) reasonParts.push(`combina com seu histórico em ${choice.genre}`);
+      if (choice.status === 'installed') reasonParts.push('já está instalado e pronto para começar');
+      if (choice.status === 'playing') reasonParts.push('é uma ótima chance de retomar seu progresso');
+      if (choice.timeToBeat > 0) reasonParts.push(`cabe em uma jornada de aproximadamente ${choice.timeToBeat} horas`);
+      await new Promise(resolve => setTimeout(resolve, 450));
       setResult({
-        game: random.nome,
-        reason: 'Este jogo está esperando por você há tempo! Às vezes a melhor escolha é simplesmente começar.',
-        mood: '🎮',
-        hype: 'Sua aventura começa agora!',
-        gameObj: random,
+        game: choice.nome,
+        reason: reasonParts.length
+          ? `Boa escolha porque ${reasonParts.join(', ')}.`
+          : 'Este jogo estava esperando uma chance no seu backlog. Às vezes, começar é a melhor estratégia.',
+        mood: choice.status === 'playing' ? '🔥' : choice.status === 'installed' ? '⚡' : '🎮',
+        hype: 'A próxima grande aventura começa agora!',
+        gameObj: choice,
       });
+    } catch {
+      setError('Não foi possível escolher um jogo agora. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -97,7 +71,7 @@ Responda em JSON com os campos: { "game": "nome do jogo", "reason": "por que jog
               </div>
               <div>
                 <h2 className="text-base font-black" style={{ color: V.text }}>Surpreenda-me! ✨</h2>
-                <p className="text-xs" style={{ color: V.muted }}>IA escolhe seu próximo jogo</p>
+                <p className="text-xs" style={{ color: V.muted }}>Uma escolha baseada no seu histórico</p>
               </div>
             </div>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl"
@@ -144,7 +118,7 @@ Responda em JSON com os campos: { "game": "nome do jogo", "reason": "por que jog
             <div className="text-center py-8">
               <div className="text-5xl mb-3">🎲</div>
               <p className="text-sm" style={{ color: V.muted }}>
-                A IA vai analisar seu histórico e recomendar o jogo perfeito para jogar agora!
+                Vamos analisar seu histórico, gêneros favoritos e tempo disponível para sugerir uma boa próxima aventura.
               </p>
               <p className="text-xs mt-2" style={{ color: V.low }}>
                 {backlogGames.length} jogos no backlog disponíveis

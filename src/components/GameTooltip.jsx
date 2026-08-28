@@ -18,7 +18,7 @@ export default function GameTooltip({ game, children }) {
   const ref = useRef(null);
   const timerRef = useRef(null);
 
-  const show = (e) => {
+  const show = () => {
     timerRef.current = setTimeout(() => {
       const rect = ref.current?.getBoundingClientRect();
       if (rect) {

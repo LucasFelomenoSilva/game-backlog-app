@@ -13,7 +13,7 @@ function getIntensity(count) {
 export default function ActivityHeatmap({ gamesData }) {
   const { theme: V } = useTheme();
 
-  const { cells, months, maxCount, totalThisYear } = useMemo(() => {
+  const { cells, months, totalThisYear } = useMemo(() => {
     const now = new Date();
     const yearStart = new Date(now.getFullYear() - 1, now.getMonth() + 1, 1);
 
@@ -29,7 +29,6 @@ export default function ActivityHeatmap({ gamesData }) {
     const cells = [];
     const months = [];
     let currentMonth = -1;
-    let col = 0;
 
     const startDate = new Date(yearStart);
     const dayOfWeek = startDate.getDay() || 7;
@@ -54,11 +53,10 @@ export default function ActivityHeatmap({ gamesData }) {
       }
     }
 
-    const maxCount = Math.max(...Object.values(dateMap), 1);
     const yearStartStr = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
     const totalThisYear = Object.entries(dateMap).filter(([k]) => k >= yearStartStr).reduce((s, [, v]) => s + v, 0);
 
-    return { cells, months, maxCount, totalThisYear };
+    return { cells, months, totalThisYear };
   }, [gamesData]);
 
   const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];

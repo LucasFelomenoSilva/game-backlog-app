@@ -2,7 +2,7 @@
 // Estado e lógica dos jogos. Observa user e firestoreData do AuthContext
 // para carregar dados automaticamente quando o utilizador logar.
 
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { createElement, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { saveUserData } from '../services/gameService';
@@ -83,13 +83,21 @@ export function useGamesState(user) {
   }, []);
 
   // ── groupedGames ───────────────────────────────────────────────────────────
-  const groupedGames = useMemo(() =>
-    gamesData.reduce((acc, game) => {
+  const groupedGames = useMemo(() => {
+    const grouped = gamesData.reduce((acc, game, originalIndex) => {
       if (!acc[game.status]) acc[game.status] = [];
-      acc[game.status].push(game);
+      acc[game.status].push({ ...game, __originalIndex: originalIndex });
       return acc;
-    }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] }),
-  [gamesData]);
+    }, { playing: [], installed: [], backlog: [], zerados: [], desejados: [] });
+
+    Object.keys(grouped).forEach((status) => {
+      grouped[status] = grouped[status]
+        .sort((a, b) => (a.sortOrder ?? a.__originalIndex) - (b.sortOrder ?? b.__originalIndex))
+        .map(({ __originalIndex, ...game }) => game);
+    });
+
+    return grouped;
+  }, [gamesData]);
 
   const getCategoryProgress = useCallback(
     (cat) => gamesData.filter(g => g.status === cat).length,
@@ -135,10 +143,11 @@ export function useGamesState(user) {
   const handleCompleteGameFinish = useCallback((gameToReview, reviewData, onConfetti) => {
     if (!gameToReview) return;
     const today = new Date().toISOString();
-    const updated = { ...gameToReview, status: 'zerados', originalStatus: gameToReview.status, ...reviewData, finishedDate: today };
+    const finishedDate = reviewData.finishedDate || today;
+    const updated = { ...gameToReview, status: 'zerados', originalStatus: gameToReview.status, ...reviewData, finishedDate };
     setGamesData(prev => { const next = prev.map(g => g.id === gameToReview.id ? updated : g); calculateStats(next); return next; });
     setSelectedGame(updated);
-    setGameHistory(prev => [...prev, { game: updated.nome, status: 'zerado', date: today.split('T')[0] }]);
+    setGameHistory(prev => [...prev, { game: updated.nome, status: 'zerado', date: finishedDate.split('T')[0] }]);
     onConfetti?.();
   }, [calculateStats]);
 
@@ -150,8 +159,73 @@ export function useGamesState(user) {
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-    handleUpdateGameStatus(draggableId, destination.droppableId);
-  }, [handleUpdateGameStatus]);
+
+    const sourceStatus = source.droppableId;
+    const destinationStatus = destination.droppableId;
+
+    const previousData = gamesData;
+    const sortCategory = status => previousData
+      .map((game, originalIndex) => ({ game, originalIndex }))
+      .filter(({ game }) => game.status === status)
+      .sort((a, b) => (a.game.sortOrder ?? a.originalIndex) - (b.game.sortOrder ?? b.originalIndex))
+      .map(({ game }) => game);
+
+    const sourceItems = sortCategory(sourceStatus);
+    const destinationItems = sourceStatus === destinationStatus
+      ? sourceItems
+      : sortCategory(destinationStatus);
+    const sourceIndex = sourceItems.findIndex(game => String(game.id) === String(draggableId));
+
+    if (sourceIndex < 0) return;
+
+    const [draggedGame] = sourceItems.splice(sourceIndex, 1);
+    const movedGame = {
+      ...draggedGame,
+      status: destinationStatus,
+      ...(destinationStatus === 'zerados' && !draggedGame.finishedDate
+        ? { finishedDate: new Date().toISOString() }
+        : {}),
+    };
+
+    destinationItems.splice(destination.index, 0, movedGame);
+
+    const reordered = new Map();
+    sourceItems.forEach((game, index) => reordered.set(String(game.id), { ...game, sortOrder: index }));
+    destinationItems.forEach((game, index) => reordered.set(String(game.id), {
+      ...game,
+      status: destinationStatus,
+      sortOrder: index,
+    }));
+
+    const next = previousData.map(game => reordered.get(String(game.id)) || game);
+    setGamesData(next);
+    calculateStats(next);
+
+    const message = sourceStatus === destinationStatus
+      ? `Ordem de ${draggedGame.nome} atualizada.`
+      : `${draggedGame.nome} foi movido.`;
+    toast(t => createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: '12px' },
+    },
+    createElement('span', null, message),
+    createElement('button', {
+      type: 'button',
+      onClick: () => {
+        setGamesData(previousData);
+        calculateStats(previousData);
+        toast.dismiss(t.id);
+      },
+      style: {
+        border: '0',
+        borderRadius: '10px',
+        padding: '7px 10px',
+        background: 'rgba(139,92,246,.18)',
+        color: '#c4b5fd',
+        fontWeight: 800,
+        cursor: 'pointer',
+      },
+    }, 'Desfazer')), { duration: 6000 });
+  }, [calculateStats, gamesData]);
 
   return {
     gamesData, groupedGames, achievements, gameHistory, totalFinishedGames,

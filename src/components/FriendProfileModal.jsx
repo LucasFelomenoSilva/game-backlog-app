@@ -21,7 +21,6 @@ import {
   Play,
 } from "lucide-react";
 import { getFriendGamesData } from "../services/socialService";
-import { categoryNames } from "../data/categories";
 import { useTheme } from "../context/ThemeContext";
 
 const getRatingColor = getRatingGradient; // alias — usa gameUtils
@@ -354,7 +353,7 @@ export default function FriendProfileModal({
 }
 
 // ── Aba Visão Geral ──
-function OverviewTab({ stats, games, friendProfile }) {
+function OverviewTab({ stats, games }) {
   const recentZerados = games
     .filter((g) => g.status === "zerados" && g.finishedDate)
     .sort((a, b) => new Date(b.finishedDate) - new Date(a.finishedDate))
@@ -571,7 +570,6 @@ function GamesTab({
         <div className="space-y-2">
           {games.map((game) => {
             const isPlatinum = game.isPlatinum;
-            const cfg = STATUS_CONFIG[game.status];
             return (
               <div
                 key={game.id}

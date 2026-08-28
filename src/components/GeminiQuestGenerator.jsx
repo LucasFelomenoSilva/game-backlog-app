@@ -1,7 +1,7 @@
 // src/components/GeminiQuestGenerator.jsx
 import React from 'react';
 
-export default function GeminiQuestGenerator({ game, onClose }) {
+export default function GeminiQuestGenerator({ onClose }) {
   // A funcionalidade Gemini Quest foi removida conforme solicitação do usuário.
   // Você pode fechar o modal imediatamente ou exibir uma mensagem.
   

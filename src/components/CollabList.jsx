@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Users, Gamepad2, Trash2, ThumbsUp, Link, Copy, Check } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { db } from '../firebase';
-import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, serverTimestamp, query, where } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, updateDoc, doc, arrayUnion, serverTimestamp, query, where } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 
 export default function CollabList({ currentUser, onClose }) {
@@ -28,7 +28,7 @@ export default function CollabList({ currentUser, onClose }) {
     if (!newListName.trim()) return;
     setCreating(true);
     try {
-      const docRef = await addDoc(collection(db, 'collabLists'), {
+      await addDoc(collection(db, 'collabLists'), {
         name: newListName.trim(),
         createdBy: currentUser.uid,
         creatorName: currentUser.displayName,
@@ -70,7 +70,7 @@ export default function CollabList({ currentUser, onClose }) {
     if (!list) return;
     const updatedGames = list.games.filter(g => g.id !== game.id);
     try { await updateDoc(doc(db, 'collabLists', list.id), { games: updatedGames }); }
-    catch {}
+    catch { toast.error('Erro ao remover jogo.'); }
   };
 
   const copyInviteLink = (listId) => {

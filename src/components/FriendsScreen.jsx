@@ -100,7 +100,7 @@ function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile,
   );
 }
 
-export default function FriendsScreen({ currentUser, socialProfile, onOpenChat, onViewFriendProfile }) {
+export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }) {
   const { theme: V } = useTheme(); // <-- Usando as cores do tema
   const [activeTab, setActiveTab] = useState('friends');
   const [searchCode, setSearchCode] = useState('');

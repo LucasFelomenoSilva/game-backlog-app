@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import React, { useState, useEffect, useCallback, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Loader2 } from 'lucide-react';
@@ -12,8 +12,8 @@ import { useGamesState } from './hooks/useGamesState';
 import { subscribeToSocialProfile } from './services/socialService';
 
 import CategorySelector    from './components/CategorySelector';
-import GameList            from './components/GameList';
-import GameDetail          from './components/GameDetail';
+import GameList            from './components/GameListModern';
+import GameDetail          from './components/GameDetailModern';
 import BottomNavigation    from './components/BottomNavigation';
 import AddGameModal        from './components/AddGameModal';
 import ReviewGameModal     from './components/ReviewGameModal';
@@ -31,6 +31,14 @@ import {
 } from './lazyComponents';
 
 const isPublicRoute = window.location.pathname.startsWith('/u/');
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+const CONFETTI_COLORS = ['#f43f5e', '#22c55e', '#3b82f6', '#facc15', '#ec4899', '#06b6d4'];
+const CONFETTI_PIECES = Array.from({ length: 50 }, (_, id) => ({
+  id,
+  left: `${(id * 47) % 100}%`,
+  delay: `${(id % 10) * 0.05}s`,
+  color: CONFETTI_COLORS[id % CONFETTI_COLORS.length],
+}));
 
 const ModalLoader = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -39,18 +47,9 @@ const ModalLoader = () => (
 );
 
 const Confetti = React.memo(() => {
-  const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-  const pieces = useMemo(() =>
-    Array.from({ length: 50 }).map((_, i) => ({
-      id:    i,
-      left:  `${Math.random() * 100}%`,
-      delay: `${Math.random() * 0.5}s`,
-      color: colors[Math.floor(Math.random() * colors.length)],
-    })), []
-  );
   return (
     <div className="fixed inset-0 pointer-events-none z-50">
-      {pieces.map(p => (
+      {CONFETTI_PIECES.map(p => (
         <div key={p.id} className="absolute w-3 h-3 animate-[fall_3s_ease-in_forwards]"
           style={{ left: p.left, top: '-10px', backgroundColor: p.color, animationDelay: p.delay }} />
       ))}
@@ -88,18 +87,16 @@ function AppInner() {
   const [levelUpData,        setLevelUpData]        = useState(null);
   const [konamiIndex,        setKonamiIndex]        = useState(0);
 
-  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
-
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
   }, []);
 
   useEffect(() => {
-    if (!user) { setSocialProfile(null); return; }
+    if (!user) return undefined;
     const unsub = subscribeToSocialProfile(user.uid, setSocialProfile);
     return () => unsub();
-  }, [user?.uid]);
+  }, [user]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -132,6 +129,21 @@ function AppInner() {
     setIsReviewModalOpen(false); setGameToReview(null);
   }, [gameToReview, games, triggerConfetti]);
 
+  const handleBoardDragEnd = useCallback((result) => {
+    const isNewCompletion = result.destination?.droppableId === 'zerados'
+      && result.source?.droppableId !== 'zerados';
+
+    if (isNewCompletion) {
+      const game = games.gamesData.find(item => String(item.id) === String(result.draggableId));
+      if (game) {
+        openReviewModal(game);
+        return;
+      }
+    }
+
+    games.handleDragEnd(result);
+  }, [games, openReviewModal]);
+
   if (isPublicRoute) return <PublicProfilePage />;
 
   if (chatOpen) return (
@@ -155,7 +167,7 @@ function AppInner() {
     switch (activeTab) {
       case 'progress':     return <Suspense fallback={<ModalLoader />}><LazyProgressScreen gameHistory={games.gameHistory} gamesData={games.gamesData} totalFinishedGames={games.totalFinishedGames} /></Suspense>;
       case 'achievements': return <Suspense fallback={<ModalLoader />}><LazyEnhancedAchievements achievements={games.achievements} gamesData={games.gamesData} /></Suspense>;
-      case 'friends':      return <Suspense fallback={<ModalLoader />}><LazyFriendsScreen currentUser={{ ...user, photoURL: user.photoBase64 || user.photoURL }} socialProfile={socialProfile} onOpenChat={(uid, p) => setChatOpen({ uid, profile: p })} onViewFriendProfile={(uid, p) => setViewingFriend({ uid, profile: p })} /></Suspense>;
+      case 'friends':      return <Suspense fallback={<ModalLoader />}><LazyFriendsScreen currentUser={{ ...user, photoURL: user.photoBase64 || user.photoURL }} socialProfile={socialProfile} onOpenChat={(uid, p) => setChatOpen({ uid, profile: p })} /></Suspense>;
       case 'profile':      return <Suspense fallback={<ModalLoader />}><LazyProfileScreen user={user} totalFinishedGames={games.totalFinishedGames} gamesData={games.gamesData} achievements={games.achievements} goBack={() => setActiveTab('categories')} onOpenBackup={() => setIsBackupOpen(true)} handleSignOut={signOut} handleProfileImageUpload={updateAvatar} /></Suspense>;
       default:             return null;
     }
@@ -190,9 +202,9 @@ function AppInner() {
     if (games.selectedGame)
       return <GameDetail selectedGame={games.selectedGame} setSelectedGame={games.setSelectedGame} handleUpdateGameStatus={games.handleUpdateGameStatus} handleDeleteGame={games.handleDeleteGame} openEditModal={openEditModal} openReviewModal={openReviewModal} triggerConfetti={triggerConfetti} />;
     if (games.selectedCategory)
-      return <GameList selectedCategory={games.selectedCategory} setSelectedCategory={games.setSelectedCategory} games={games.groupedGames} setSelectedGame={games.setSelectedGame} gamesData={games.gamesData} setGamesData={games.setGamesData} />;
+      return <GameList selectedCategory={games.selectedCategory} setSelectedCategory={games.setSelectedCategory} games={games.groupedGames} setSelectedGame={games.setSelectedGame} setGamesData={games.setGamesData} />;
     return (
-      <DragDropContext onDragEnd={games.handleDragEnd}>
+      <DragDropContext onDragEnd={handleBoardDragEnd}>
         <CategorySelector games={games.groupedGames} setSelectedCategory={games.setSelectedCategory} setSelectedGame={games.setSelectedGame} getCategoryProgress={games.getCategoryProgress} user={user} totalFinishedGames={games.totalFinishedGames} setIsAddGameModalOpen={setIsAddGameModalOpen} openReviewModal={openReviewModal} gamesData={games.gamesData} />
       </DragDropContext>
     );
@@ -233,19 +245,6 @@ function AppInner() {
         </AnimatePresence>
       </div>
 
-      {/* Botão flutuante — Adicionar Jogo */}
-      {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
-        <button
-          onClick={() => setIsAddGameModalOpen(true)}
-          className="fixed top-6 right-6 z-40 px-5 py-3 rounded-2xl shadow-2xl text-white font-bold transition-all duration-300 hover:scale-110 flex items-center gap-2 border"
-          style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`, borderColor: V.border, boxShadow: `0 4px 20px ${V.primary}66` }}
-          title="Adicionar novo jogo"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-          <span className="hidden sm:inline">Adicionar Jogo</span>
-        </button>
-      )}
-
       {/* Botão flutuante — Recomendador IA */}
       {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
         <button
@@ -258,7 +257,7 @@ function AppInner() {
       )}
 
       {isAddGameModalOpen && (
-        <AddGameModal onClose={() => { setIsAddGameModalOpen(false); setGameToEdit(null); setDraftGame(null); }} onSaveGame={handleSaveGame} gameToEdit={gameToEdit} initialData={draftGame} />
+        <AddGameModal onClose={() => { setIsAddGameModalOpen(false); setGameToEdit(null); setDraftGame(null); }} onSaveGame={handleSaveGame} gameToEdit={gameToEdit} initialData={draftGame} gamesData={games.gamesData} />
       )}
       {isBackupOpen && (
         <Suspense fallback={<ModalLoader />}>

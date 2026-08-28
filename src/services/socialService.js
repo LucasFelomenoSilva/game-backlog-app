@@ -3,8 +3,7 @@ import { db } from '../firebase';
 import {
   doc, getDoc, setDoc, updateDoc, collection,
   query, where, getDocs, addDoc, onSnapshot,
-  orderBy, serverTimestamp, arrayUnion, arrayRemove,
-  deleteDoc
+  orderBy, serverTimestamp, arrayUnion, arrayRemove
 } from 'firebase/firestore';
 
 // Gera um código único tipo Discord (ex: GAMER#4821)

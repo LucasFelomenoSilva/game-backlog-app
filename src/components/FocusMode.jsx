@@ -43,7 +43,6 @@ export default function FocusMode({ game, onClose, onMarkFinished }) {
     } catch { return 0; }
   });
   const [motivationalIdx, setMotivationalIdx] = useState(0);
-  const [pulseRing, setPulseRing] = useState(false);
   const intervalRef = useRef(null);
   const startTimeRef = useRef(null);
 
@@ -57,12 +56,10 @@ export default function FocusMode({ game, onClose, onMarkFinished }) {
 
   const startTimer = useCallback(() => {
     setRunning(true);
-    setPulseRing(true);
     startTimeRef.current = Date.now() - elapsed * 1000;
     intervalRef.current = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
     }, 1000);
-    setTimeout(() => setPulseRing(false), 600);
   }, [elapsed]);
 
   const pauseTimer = useCallback(() => {
@@ -81,7 +78,9 @@ export default function FocusMode({ game, onClose, onMarkFinished }) {
       try {
         localStorage.setItem(`focus_sessions_${game.id}`, JSON.stringify(updated));
         localStorage.setItem(`focus_total_${game.id}`, String(newTotal));
-      } catch {}
+      } catch (error) {
+        console.warn('Não foi possível salvar a sessão localmente.', error);
+      }
     }
     setRunning(false);
     clearInterval(intervalRef.current);

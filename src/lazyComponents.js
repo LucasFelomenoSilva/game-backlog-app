@@ -22,7 +22,6 @@ export const LazyBackupRestore      = lazy(() => import('./components/BackupRest
 export const LazyWeeklyMissions     = lazy(() => import('./components/WeeklyMissions'));
 export const LazySurpriseMe         = lazy(() => import('./components/SurpriseMe'));
 export const LazyCollabList         = lazy(() => import('./components/CollabList'));
-export const LazyFocusMode          = lazy(() => import('./components/FocusMode'));
 export const LazyFriendCompare      = lazy(() => import('./components/FriendCompare'));
 export const LazySettingsModal      = lazy(() => import('./components/SettingsModal'));
 export const LazyLevelUpOverlay     = lazy(() => import('./components/LevelUpOverlay'));

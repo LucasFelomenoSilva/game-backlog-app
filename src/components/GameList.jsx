@@ -220,7 +220,6 @@ export default function GameList({
   setSelectedCategory,
   games,
   setSelectedGame,
-  gamesData,
   setGamesData
 }) {
   const { theme: V } = useTheme();
@@ -361,7 +360,7 @@ export default function GameList({
       link.download = `meus-zerados${selectedYear !== "all" ? `-${selectedYear}` : ""}.png`;
       link.click();
       toast.success("Imagem salva!", { id: toastId });
-    } catch (error) {
+    } catch {
       toast.error("Erro ao gerar imagem.", { id: toastId });
     } finally {
       setIsExporting(false);

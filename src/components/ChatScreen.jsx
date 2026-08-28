@@ -41,7 +41,7 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
         currentUser.photoURL || null,
         trimmed
       );
-    } catch (e) {
+    } catch {
       toast.error('Erro ao enviar mensagem.');
       setText(trimmed);
     } finally {
@@ -171,7 +171,7 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
                       <div className={`max-w-[75%] group ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                         <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                           isMe
-                            ? 'bg-gradient-to-br ${theme.tw.grad} text-white'
+                            ? `bg-gradient-to-br ${theme.tw.grad} text-white`
                             : 'bg-gray-800/80 text-gray-100 rounded-bl-md border border-gray-700/50'
                         } ${sameAsPrev && isMe ? 'rounded-tr-2xl' : ''} ${sameAsPrev && !isMe ? 'rounded-tl-2xl' : ''}`}>
                           {msg.text}

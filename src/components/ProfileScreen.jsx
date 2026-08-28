@@ -285,19 +285,19 @@ export default function ProfileScreen({
     const cleanFavs = JSON.parse(JSON.stringify(newFavs));
     setFavorites(cleanFavs);
     
-    const favsToSave = cleanFavs.map(({ imageBase64, ...rest }) => rest);
+    const favsToSave = cleanFavs.map(({ imageBase64: _imageBase64, ...rest }) => rest);
     try {
       await updateDoc(doc(db, 'users', user.uid), { favorites: favsToSave });
-    } catch (error) { toast.error('Erro ao salvar favoritos.'); }
+    } catch { toast.error('Erro ao salvar favoritos.'); }
   };
 
   const handleClosePicker = async () => {
     setPickerOpen(false);
     try {
       const cleanFavs = JSON.parse(JSON.stringify(favorites));
-      const favsToSave = cleanFavs.map(({ imageBase64, ...rest }) => rest);
+      const favsToSave = cleanFavs.map(({ imageBase64: _imageBase64, ...rest }) => rest);
       await updateDoc(doc(db, 'users', user.uid), { favorites: favsToSave });
-    } catch {}
+    } catch { toast.error('Erro ao sincronizar favoritos.'); }
   };
 
   const handleSaveProfile = async ({ displayName, bio }) => {

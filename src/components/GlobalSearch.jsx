@@ -35,6 +35,7 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef(null);
   const overlayRef = useRef(null);
 
@@ -55,12 +56,14 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
       setTimeout(() => inputRef.current?.focus(), 50);
       setQuery("");
       setResults([]);
+      setActiveIndex(-1);
     }
   }, [open]);
 
   const handleSearch = useCallback(
     (q) => {
       setQuery(q);
+      setActiveIndex(-1);
       if (!q.trim()) {
         setResults([]);
         return;
@@ -83,6 +86,20 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
   const handleSelect = (game) => {
     setOpen(false);
     onSelectGame(game);
+  };
+
+  const handleKeyDown = (event) => {
+    if (!results.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setActiveIndex(index => (index + 1) % results.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setActiveIndex(index => (index <= 0 ? results.length - 1 : index - 1));
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSelect(results[activeIndex >= 0 ? activeIndex : 0]);
+    }
   };
 
   if (!open) {
@@ -139,6 +156,7 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
             type="text"
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Buscar por nome, gênero, plataforma..."
             className="flex-1 bg-transparent outline-none text-base"
             style={{ color: V.text, fontSize: 16 }}
@@ -214,7 +232,7 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
               >
                 {results.length} resultado{results.length !== 1 ? "s" : ""}
               </p>
-              {results.map((game) => {
+              {results.map((game, index) => {
                 const grad =
                   CAT_GRAD[game.status] || "from-violet-500 to-indigo-500";
                 const emoji = CAT_EMOJI[game.status] || "🎮";
@@ -223,14 +241,9 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
                   <button
                     key={game.id}
                     onClick={() => handleSelect(game)}
+                    onMouseEnter={() => setActiveIndex(index)}
                     className="w-full flex items-center gap-3 px-4 py-3 text-left group transition-all"
-                    style={{ borderBottom: `1px solid ${V.border}` }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = V.faint)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
+                    style={{ borderBottom: `1px solid ${V.border}`, background: activeIndex === index ? V.faint : 'transparent' }}
                   >
                     {/* Capa */}
                     <div

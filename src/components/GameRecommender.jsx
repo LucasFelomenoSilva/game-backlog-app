@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { searchGameIGDB } from "../services/igdbService";
 import { toast } from "react-hot-toast";
 import {
@@ -13,8 +12,6 @@ import {
   Tag,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
-
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 export default function GameRecommender({ onSelectGame, onClose }) {
   const { theme } = useTheme(); // <-- Adicione isso
@@ -32,44 +29,18 @@ export default function GameRecommender({ onSelectGame, onClose }) {
     setViewingGame(null);
 
     try {
-      if (!API_KEY) {
-        throw new Error(
-          "Chave de API não configurada. Verifique o arquivo .env",
-        );
-      }
+      const response = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Não foi possível consultar o Oráculo.');
 
-      const genAI = new GoogleGenerativeAI(API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-      const systemPrompt = `
-        Você é um especialista em videogames. 
-        O usuário vai descrever o que quer jogar.
-        Sua missão: Recomendar 3 jogos que se encaixem perfeitamente na descrição.
-        
-        Descrição do usuário: "${prompt}"
-        
-        Regras:
-        1. Retorne APENAS os nomes dos jogos separados por vírgula.
-        2. Não coloque numeração, nem introdução.
-        3. Priorize jogos famosos que existam no IGDB.
-        
-        Exemplo: Stardew Valley, Journey, Abzu
-      `;
-
-      const result = await model.generateContent(systemPrompt);
-      const response = await result.response;
-      const text = response.text();
-
-      const gameNames = text.split(",").map((name) => name.trim());
-      const gamesFound = [];
-
-      for (const name of gameNames) {
-        if (!name) continue;
-        const searchResults = await searchGameIGDB(name);
-        if (searchResults && searchResults.length > 0) {
-          gamesFound.push({ ...searchResults[0], isRecommendation: true });
-        }
-      }
+      const details = await Promise.all(data.names.map(name => searchGameIGDB(name)));
+      const gamesFound = details
+        .filter(results => results?.length)
+        .map(results => ({ ...results[0], isRecommendation: true }));
 
       if (gamesFound.length === 0) {
         setErrorMsg(

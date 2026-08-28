@@ -15,15 +15,13 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
   const { theme: V } = useTheme(); // <-- Usando as cores do tema
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="absolute inset-0"
+    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(.75rem,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 h-28"
         style={{
-          background: `linear-gradient(to top, ${V.bg}fa 0%, ${V.bg}e6 70%, transparent 100%)`,
-          backdropFilter: 'blur(24px)',
-          borderTop: `1px solid ${V.border}`,
+          background: `linear-gradient(to top, ${V.bg} 0%, ${V.bg}d8 50%, transparent 100%)`,
         }} />
 
-      <div className="relative max-w-md mx-auto px-2 py-3">
+      <div className="glass-panel pointer-events-auto relative mx-auto max-w-xl rounded-[1.65rem] p-1.5 shadow-2xl">
         <div className="flex items-center justify-between gap-1">
           {TABS.map((tab) => {
             const Icon    = tab.icon;
@@ -34,14 +32,16 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="relative flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-2xl transition-all duration-300 group flex-1"
+                className="group relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 transition-all duration-300 sm:flex-row sm:gap-2"
+                aria-label={`Abrir ${tab.label}`}
+                aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
-                  <div className={`absolute inset-0 opacity-15 rounded-2xl blur-xl`} style={{ background: `linear-gradient(to bottom right, ${V.primary}, ${V.secondary})` }} />
+                  <div className="absolute inset-0 rounded-2xl" style={{ background: V.faint, border: `1px solid ${V.border}` }} />
                 )}
 
-                <div className={`relative z-10 p-2 rounded-xl transition-all duration-300 ${
-                  isActive ? 'shadow-lg scale-110' : ''
+                <div className={`relative z-10 rounded-xl p-2 transition-all duration-300 ${
+                  isActive ? 'shadow-lg' : ''
                 }`}
                   style={{
                     background: isActive ? `linear-gradient(to bottom right, ${V.primary}, ${V.secondary})` : V.faint,
@@ -59,14 +59,10 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
                   )}
                 </div>
 
-                <span className={`text-[9px] font-bold transition-all duration-300`} style={{ color: isActive ? V.text : V.low }}>
+                <span className="relative z-10 text-[9px] font-bold transition-all duration-300 sm:text-[11px]" style={{ color: isActive ? V.text : V.low }}>
                   {tab.label}
                 </span>
 
-                {isActive && (
-                  <div className={`absolute -bottom-1 w-1.5 h-1.5 rounded-full`}
-                    style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`, boxShadow: `0 0 6px ${V.primary}cc` }} />
-                )}
               </button>
             );
           })}

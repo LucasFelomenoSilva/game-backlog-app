@@ -1,10 +1,9 @@
 // src/components/CategorySelector.jsx — Tema roxo/violeta
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion } from 'framer-motion';
-import { categoryNames } from '../data/categories';
-import { Plus, Trophy, Gamepad2, ChevronRight, Star, Flame, Sparkles } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { Plus, Trophy, Gamepad2, ChevronRight, Star, Flame, Clock3, Gauge, LibraryBig, GripVertical, Activity } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 import NextGameSuggestion from './NextGameSuggestion';
 import FocusMode from './FocusMode';
@@ -32,13 +31,10 @@ const containerVariants = {
 };
 
 const columnVariants = {
-  hidden: { opacity: 0, y: 30, rotateX: 10, scale: 0.97 },
+  hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    y: 0,
-    rotateX: 0,
-    scale: 1,
-    transition: { type: 'spring', stiffness: 120, damping: 15 }
+    transition: { duration: 0.22 }
   }
 };
 
@@ -65,6 +61,25 @@ export default function CategorySelector({
 }) {
   const { theme: V } = useTheme(); // Recebe as cores dinâmicas
   const [focusGame, setFocusGame] = useState(null);
+  const overview = useMemo(() => {
+    const total = gamesData.length;
+    const finished = gamesData.filter(game => game.status === 'zerados').length;
+    const plannedHours = gamesData
+      .filter(game => game.status !== 'zerados')
+      .reduce((sum, game) => sum + (Number(game.timeToBeat) || 0), 0);
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const recentFinished = gamesData.filter(game =>
+      game.status === 'zerados'
+      && game.finishedDate
+      && new Date(game.finishedDate).getTime() >= thirtyDaysAgo
+    ).length;
+    return {
+      total,
+      plannedHours,
+      recentFinished,
+      completion: total ? Math.round((finished / total) * 100) : 0,
+    };
+  }, [gamesData]);
 
   return (
     <>
@@ -76,12 +91,12 @@ export default function CategorySelector({
         />
       )}
 
-      <div className="min-h-screen pb-28 text-white" style={{ background: V.bg }}>
+      <div className="app-page pb-28">
         {/* Ambient top glow */}
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[280px] pointer-events-none"
           style={{ background: `radial-gradient(ellipse at 50% 0%, ${V.glow} 0%, transparent 70%)`, opacity: 0.4 }} />
 
-        <div className="relative max-w-7xl mx-auto px-4 pt-4">
+        <div className="app-shell relative pt-5 sm:pt-7">
 
           {/* ── Header ── */}
           <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
@@ -89,13 +104,13 @@ export default function CategorySelector({
             <div className="flex items-center gap-3">
               <div className="relative group cursor-pointer">
                 <div className="absolute -inset-0.5 rounded-2xl blur opacity-60"
-                  style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }} />
+                  style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }} />
                 <div className="relative w-14 h-14 rounded-2xl overflow-hidden"
                   style={{ border: `2px solid rgba(139,92,246,0.4)` }}>
                   {user?.photoBase64 || user?.photoURL
                     ? <img src={user.photoBase64 || user.photoURL} alt="Perfil" className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-xl font-black text-white"
-                        style={{ background: `linear-gradient(135deg, ${V.violet}, ${V.indigo})` }}>
+                        style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
                         {user?.displayName?.charAt(0) || 'G'}
                       </div>
                   }
@@ -107,16 +122,50 @@ export default function CategorySelector({
                 </div>
               </div>
               <div>
-                <h1 className="text-2xl font-black" style={{ color: V.text }}>
-                  Olá, {user?.displayName?.split(' ')[0] || 'Gamer'}!
+                <p className="eyebrow mb-1">Sua biblioteca</p>
+                <h1 className="text-2xl font-black tracking-tight sm:text-3xl" style={{ color: V.text }}>
+                  Olá, {user?.displayName?.split(' ')[0] || 'Gamer'}
                 </h1>
-                <p className="text-sm" style={{ color: V.muted }}>Pronto para a próxima aventura?</p>
+                <p className="text-sm" style={{ color: V.muted }}>Escolha a próxima aventura ou reorganize sua fila.</p>
               </div>
             </div>
 
-            {/* Busca Global */}
-            <GlobalSearch gamesData={gamesData} onSelectGame={g => setSelectedGame(g)} />
+            <div className="flex items-center gap-2">
+              <GlobalSearch gamesData={gamesData} onSelectGame={g => setSelectedGame(g)} />
+              <button
+                type="button"
+                onClick={() => setIsAddGameModalOpen(true)}
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5"
+                style={{ background: V.grad, boxShadow: `0 8px 22px ${V.glow}` }}
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Adicionar jogo</span>
+              </button>
+            </div>
           </div>
+
+          <section className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3" aria-label="Resumo da coleção">
+            {[
+              { label: 'Na coleção', value: overview.total, suffix: ' jogos', icon: LibraryBig },
+              { label: 'Conclusão', value: overview.completion, suffix: '%', icon: Gauge },
+              { label: 'Tempo na fila', value: overview.plannedHours, suffix: 'h', icon: Clock3 },
+              { label: 'Ritmo · 30 dias', value: overview.recentFinished, suffix: ' zerados', icon: Activity },
+            ].map(({ label, value, suffix, icon: Icon }) => (
+              <div
+                key={label}
+                className="rounded-2xl border p-3 backdrop-blur-xl sm:flex sm:items-center sm:gap-3 sm:p-4"
+                style={{ background: `linear-gradient(135deg, ${V.card}c0, ${V.card2}50)`, borderColor: V.border }}
+              >
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl sm:mb-0" style={{ background: V.faint }}>
+                  <Icon className="h-4 w-4" style={{ color: V.soft }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[10px] font-bold uppercase tracking-wider" style={{ color: V.muted }}>{label}</p>
+                  <p className="text-lg font-black sm:text-xl" style={{ color: V.text }}>{value}<span className="text-xs font-semibold" style={{ color: V.muted }}>{suffix}</span></p>
+                </div>
+              </div>
+            ))}
+          </section>
 
           {/* ── Sugestão ── */}
           <NextGameSuggestion gamesData={gamesData} onSelectGame={g => setSelectedGame(g)} />
@@ -130,14 +179,13 @@ export default function CategorySelector({
                   {(provided, snapshot) => (
                     <motion.div ref={provided.innerRef} {...provided.droppableProps}
                       variants={columnVariants}
-                      className="rounded-2xl border transition-all duration-300 backdrop-blur-xl"
+                      className="glass-panel overflow-hidden rounded-[1.5rem] transition-[border-color,box-shadow] duration-200"
                       style={{
                         background: snapshot.isDraggingOver
                           ? 'rgba(255, 255, 255, 0.03)'
                           : `linear-gradient(135deg, ${V.card}b0 0%, ${V.card2}40 100%)`,
                         borderColor: snapshot.isDraggingOver ? `${V.primary}40` : V.border,
                         boxShadow:   snapshot.isDraggingOver ? `0 12px 40px ${V.glow}, inset 0 0 12px ${V.primary}10` : '0 4px 30px rgba(0,0,0,0.15)',
-                        transform:   snapshot.isDraggingOver ? 'scale(1.01)' : 'scale(1)',
                       }}>
 
                       {/* Header coluna */}
@@ -168,17 +216,15 @@ export default function CategorySelector({
                             if (!game?.id) return null;
                             const isPlaying = col.id === 'playing';
                             return (
-                              <Draggable key={game.id} draggableId={game.id} index={index}>
-                                {(prov, snap) => (
-                                  <div
+                              <Draggable key={game.id} draggableId={String(game.id)} index={index}>
+                                {(prov, snap) => {
+                                  const draggableCard = <div
                                     ref={prov.innerRef}
                                     {...prov.draggableProps}
-                                    {...prov.dragHandleProps}
                                     style={prov.draggableProps.style}
                                   >
-                                    <motion.div
-                                      layout={snap.isDragging ? false : "position"}
-                                      className="group p-3 rounded-xl border cursor-pointer select-none backdrop-blur-md"
+                                    <div
+                                      className="group flex items-center gap-2 rounded-2xl border p-2.5 select-none"
                                       style={{
                                         background: snap.isDragging
                                           ? `rgba(255, 255, 255, 0.08)`
@@ -186,14 +232,29 @@ export default function CategorySelector({
                                         borderColor: snap.isDragging ? V.primary : V.border,
                                         boxShadow: snap.isDragging ? `0 12px 36px ${V.glow}` : '0 2px 8px rgba(0,0,0,0.1)',
                                       }}
-                                      animate={{
-                                        scale: snap.isDragging ? 1.035 : 1,
-                                        rotate: snap.isDragging ? 0.5 : 0,
-                                      }}
-                                      whileHover={{ scale: snap.isDragging ? 1.035 : 1.015, x: 2 }}
-                                      transition={{ type: 'spring', stiffness: 350, damping: 22 }}>
-                                      <div className="flex items-center justify-between gap-2">
-                                        <div className="flex-1 min-w-0" onClick={() => setSelectedGame(game)}>
+                                    >
+                                      <button
+                                        type="button"
+                                        className="cursor-grab rounded-xl p-1.5 active:cursor-grabbing"
+                                        style={{ color: V.low }}
+                                        aria-label={`Arrastar ${game.nome}`}
+                                        title="Arraste para mover ou reordenar"
+                                        {...prov.dragHandleProps}
+                                      >
+                                        <GripVertical className="h-4 w-4" />
+                                      </button>
+                                      {(game.imageBase64 || game.imageUrl) ? (
+                                        <img
+                                          src={game.imageBase64 || game.imageUrl}
+                                          alt=""
+                                          className="h-12 w-9 flex-shrink-0 rounded-lg object-cover shadow-md"
+                                        />
+                                      ) : (
+                                        <div className="flex h-12 w-9 flex-shrink-0 items-center justify-center rounded-lg" style={{ background: V.faint }}>
+                                          <Gamepad2 className="h-4 w-4" style={{ color: V.muted }} />
+                                        </div>
+                                      )}
+                                      <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setSelectedGame(game)}>
                                           <h4 className="font-semibold text-sm truncate transition-colors"
                                             style={{ color: V.text }}>
                                             {game.nome || 'Sem nome'}
@@ -204,23 +265,27 @@ export default function CategorySelector({
                                               <span className="text-[10px] font-semibold" style={{ color: V.soft }}>{game.timeToBeat}h</span>
                                             )}
                                           </div>
-                                        </div>
+                                      </button>
                                         <div className="flex items-center gap-1.5">
                                           {isPlaying && (
-                                            <button onClick={e => { e.stopPropagation(); setFocusGame(game); }}
+                                            <button type="button" onClick={e => { e.stopPropagation(); setFocusGame(game); }}
                                               className="p-1.5 rounded-lg transition-all hover:scale-110"
-                                              style={{ background: `${V.violet}25`, border: `1px solid ${V.violet}40` }}
+                                              style={{ background: V.faint, border: `1px solid ${V.border}` }}
                                               title="Modo Foco">
                                               <Flame className="w-3.5 h-3.5" style={{ color: V.soft }} />
                                             </button>
                                           )}
-                                          <ChevronRight className="w-4 h-4 transition-colors" style={{ color: V.muted }}
-                                            onClick={() => setSelectedGame(game)} />
+                                          <button type="button" onClick={() => setSelectedGame(game)} aria-label={`Abrir ${game.nome}`}>
+                                            <ChevronRight className="w-4 h-4 transition-colors" style={{ color: V.muted }} />
+                                          </button>
                                         </div>
-                                      </div>
-                                    </motion.div>
-                                  </div>
-                                )}
+                                    </div>
+                                  </div>;
+
+                                  return snap.isDragging
+                                    ? createPortal(draggableCard, document.body)
+                                    : draggableCard;
+                                }}
                               </Draggable>
                             );
                           })
@@ -242,15 +307,36 @@ export default function CategorySelector({
               const catGames = games[cat.id] || [];
 
               return (
-                <motion.button key={cat.id} onClick={() => setSelectedCategory(cat.id)}
-                  variants={itemVariants}
-                  whileHover={{ scale: 1.015, y: -2 }}
-                  whileTap={{ scale: 0.995 }}
-                  className="group relative p-6 rounded-2xl text-left transition-all duration-300 overflow-hidden backdrop-blur-xl"
-                  style={{
-                    background: `linear-gradient(135deg, ${V.card}90, ${V.card2}30)`,
-                    border: `1px solid ${V.border}`,
-                  }}>
+                <Droppable droppableId={cat.id} key={cat.id}>
+                  {(provided, snapshot) => (
+                    <motion.div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      variants={itemVariants}
+                      className="relative rounded-2xl"
+                    >
+                      <motion.button
+                        type="button"
+                        onClick={() => setSelectedCategory(cat.id)}
+                        whileHover={{ scale: 1.015, y: -2 }}
+                        whileTap={{ scale: 0.995 }}
+                        className="group relative w-full overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 backdrop-blur-xl"
+                        style={{
+                          background: snapshot.isDraggingOver
+                            ? `linear-gradient(135deg, ${V.primary}2e, ${V.card2}80)`
+                            : `linear-gradient(135deg, ${V.card}90, ${V.card2}30)`,
+                          border: `1px solid ${snapshot.isDraggingOver ? V.primary : V.border}`,
+                          boxShadow: snapshot.isDraggingOver ? `0 18px 50px ${V.glow}` : 'none',
+                        }}
+                      >
+
+                  {snapshot.isDraggingOver && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl backdrop-blur-sm" style={{ background: `${V.bg}b8` }}>
+                      <div className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black text-white" style={{ background: V.grad }}>
+                        <Icon className="h-4 w-4" /> Solte em {cat.label}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Glow on hover */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -290,7 +376,11 @@ export default function CategorySelector({
                     </div>
                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-all flex-shrink-0" style={{ color: V.muted }} />
                   </div>
-                </motion.button>
+                      </motion.button>
+                      {provided.placeholder}
+                    </motion.div>
+                  )}
+                </Droppable>
               );
             })}
           </motion.div>

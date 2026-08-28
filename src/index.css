@@ -17,6 +17,10 @@
   background-color: var(--color-bg, #09060f);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -30,8 +34,7 @@ html, body {
   min-height: 100vh;
   overflow-x: hidden;
 
-  /* fundo global do site */
-  background-color: #021b17; /* use a cor principal do seu layout */
+  background-color: var(--color-bg, #09060f);
 }
 
 #root {
@@ -115,9 +118,76 @@ html, body {
   transition-duration: 150ms;
 }
 
-/* Remove outline padrão dos botões */
-button:focus {
-  outline: none;
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary, #8b5cf6) 72%, white);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: white;
+  background: color-mix(in srgb, var(--color-primary, #8b5cf6) 72%, transparent);
+}
+
+.app-page {
+  position: relative;
+  min-height: 100vh;
+  isolation: isolate;
+  color: var(--color-text, #f5f0ff);
+  background:
+    radial-gradient(circle at 10% -10%, color-mix(in srgb, var(--color-primary, #8b5cf6) 16%, transparent), transparent 34rem),
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--color-secondary, #6366f1) 12%, transparent), transparent 30rem),
+    var(--color-bg, #09060f);
+}
+
+.app-shell {
+  width: min(100%, 80rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 3vw, 2rem);
+}
+
+.glass-panel {
+  border: 1px solid var(--color-border, rgba(139, 92, 246, 0.18));
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--color-card, #130e22) 92%, transparent),
+    color-mix(in srgb, var(--color-card-2, #1a1330) 62%, transparent));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.surface-card {
+  border: 1px solid var(--color-border, rgba(139, 92, 246, 0.18));
+  background: color-mix(in srgb, var(--color-card, #130e22) 86%, transparent);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.16);
+}
+
+.eyebrow {
+  color: var(--color-soft, #a78bfa);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.interactive-card {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease, background-color 180ms ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-primary, #8b5cf6) 48%, transparent);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.24), 0 0 0 1px color-mix(in srgb, var(--color-primary, #8b5cf6) 8%, transparent);
 }
 
 /* Previne zoom em inputs no iOS */
@@ -131,4 +201,19 @@ select {
 /* Melhoria de contraste no dark mode */
 .dark {
   color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

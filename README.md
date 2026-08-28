@@ -1,16 +1,30 @@
-# React + Vite
+# XpLog
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação para organizar backlog de jogos, registrar conclusões e avaliações, acompanhar estatísticas e compartilhar a jornada com amigos.
 
-Currently, two official plugins are available:
+## Recursos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- quadro com drag and drop entre “Jogando”, “Na fila” e “Instalados”;
+- catálogo, busca global e cadastro com dados do IGDB;
+- avaliações, platinas, histórico, conquistas e resumo anual;
+- modo foco com registro local de sessões;
+- perfis, amizades, comparações, chat e listas colaborativas;
+- recomendador de jogos e sugestão inteligente baseada no histórico;
+- temas, backup e restauração.
 
-## React Compiler
+## Desenvolvimento
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Requisitos: Node.js 20+ e um projeto Firebase com autenticação Google e Firestore.
 
-## Expanding the ESLint configuration
+1. Copie `.env.example` para `.env.local` e preencha os valores.
+2. Instale as dependências com `npm install`.
+3. Rode `npm run dev` para trabalhar apenas na interface.
+4. Para testar também as funções `/api`, use `npx vercel dev`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+As chaves `TWITCH_CLIENT_SECRET` e `GEMINI_API_KEY` são exclusivas do servidor e não podem receber o prefixo `VITE_`.
+
+## Verificações
+
+- `npm run lint` valida o código.
+- `npm run build` gera a versão de produção.
+- `npm audit` verifica vulnerabilidades conhecidas nas dependências.

@@ -1,5 +1,5 @@
 // src/components/WeeklyMissions.jsx — Sistema de missões semanais
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Target, Zap, CheckCircle, Lock, Trophy, Star, Clock, X, Gamepad2, Flame } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'react-hot-toast';
@@ -33,10 +33,6 @@ function generateMissions(seed) {
 
 function computeProgress(mission, gamesData, weeklyChanges) {
   const weekStart = new Date(getMondayKey() + 'T00:00:00');
-  const weekGames = gamesData.filter(g => {
-    if (!g.finishedDate) return false;
-    return new Date(g.finishedDate) >= weekStart;
-  });
   const weekZerados = gamesData.filter(g => g.status === 'zerados' && g.finishedDate && new Date(g.finishedDate) >= weekStart);
 
   switch (mission.type) {
@@ -114,7 +110,7 @@ export default function WeeklyMissions({ gamesData, onClose }) {
 
         {/* Missions */}
         <div className="p-5 space-y-4">
-          {missions.map((mission, i) => {
+          {missions.map((mission) => {
             const progress = computeProgress(mission, gamesData, weeklyChanges);
             const completed = progress >= mission.target;
             const claimed = claimedXP.includes(mission.id);

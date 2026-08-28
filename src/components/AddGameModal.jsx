@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Gamepad, Save, Upload, Loader2, Search, Image as ImageIcon, FileText, Trophy, Star, Calendar, CalendarDays } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { X, Gamepad, Save, Upload, Loader2, Search, Image as ImageIcon, FileText, Trophy, Star, Calendar, CalendarDays, AlertTriangle } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
@@ -23,7 +23,7 @@ const RatingStar = ({ rating, setRating, index }) => {
   const isSelected = index <= rating;
   return (
     <Star
-      className={`w-6 h-6 cursor-pointer transition-all duration-150 hover:scale-125 ${
+      className={`h-5 w-5 cursor-pointer transition-all duration-150 hover:scale-125 sm:h-6 sm:w-6 ${
         isSelected ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600 hover:text-yellow-300'
       }`}
       onClick={() => setRating(index)}
@@ -31,10 +31,10 @@ const RatingStar = ({ rating, setRating, index }) => {
   );
 };
 
-export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialData }) {
+export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialData, gamesData = [] }) {
   const { theme: V } = useTheme();
   const isEditing = !!gameToEdit;
-  const initialStatus = isEditing ? gameToEdit.status : 'jogando';
+  const initialStatus = isEditing ? gameToEdit.status : 'playing';
   const [formData, setFormData] = useState(isEditing ? gameToEdit : { ...initialGameData, status: initialStatus });
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
@@ -44,6 +44,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
   const [useCustomDate, setUseCustomDate] = useState(false);
   const [customDate, setCustomDate] = useState('');
@@ -58,7 +59,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         genre: initialData.genre || 'RPG',
         platform: initialData.platform || 'PC',
         imageBase64: initialData.imageUrl ? `LOADING_URL:${initialData.imageUrl}` : "",
-        status: 'jogando',
+        status: 'playing',
         timeToBeat: initialData.timeToBeat || 0,
         notes: '',
         isPlatinum: false
@@ -79,6 +80,41 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     if (!isZerado) { setUseCustomDate(false); setCustomDate(''); setInlineRating(0); }
   }, [isZerado]);
 
+  useEffect(() => {
+    if (isEditing) return undefined;
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setSearchError('');
+      setIsSearching(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const debounce = window.setTimeout(async () => {
+      setIsSearching(true);
+      setShowSearchResults(true);
+      setSearchError('');
+      try {
+        const results = await searchGameIGDB(query, { signal: controller.signal });
+        setSearchResults(results);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          setSearchResults([]);
+          setSearchError(error.message || 'Não foi possível buscar agora.');
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsSearching(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(debounce);
+      controller.abort();
+    };
+  }, [searchQuery, isEditing]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -88,18 +124,6 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     const current = formData.platform ? formData.platform.split(' | ').filter(p => p.trim() !== '') : [];
     const updated = current.includes(platform) ? current.filter(p => p !== platform) : [...current, platform];
     setFormData(prev => ({ ...prev, platform: updated.join(' | ') }));
-  };
-
-  const handleSearchSubmit = async (e) => {
-    e.preventDefault();
-    if (searchQuery.length < 3) { toast.error("Digite pelo menos 3 caracteres."); return; }
-    setIsSearching(true); setSearchResults([]); setShowSearchResults(true);
-    try {
-      const results = await searchGameIGDB(searchQuery);
-      setSearchResults(results);
-      if (results.length === 0) toast.error("Nenhum jogo encontrado.");
-    } catch { toast.error("Erro na busca."); }
-    finally { setIsSearching(false); }
   };
 
   const handleSelectGame = (gameResult) => {
@@ -131,11 +155,10 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
         imageToProcess = imageFile;
       } else if (imageBase64Data && imageBase64Data.startsWith('LOADING_URL:')) {
         const imageUrl = imageBase64Data.replace('LOADING_URL:', '');
-        toast('Baixando capa...', { icon: '⏳', id: 'img-proc' });
         try { imageToProcess = await convertUrlToFile(imageUrl, `${formData.nome}-cover.jpg`); }
         catch { imageBase64Data = ""; }
       }
-      if (imageToProcess) { imageBase64Data = await convertFileToBase64(imageToProcess); toast.success('Capa ok!', { id: 'img-proc' }); }
+      if (imageToProcess) imageBase64Data = await convertFileToBase64(imageToProcess);
       else if (imageBase64Data && imageBase64Data.startsWith('LOADING_URL:')) { imageBase64Data = ""; }
 
       let finishedDate = formData.finishedDate;
@@ -149,7 +172,20 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   };
 
   const previewImageURL = imageFile ? URL.createObjectURL(imageFile) : null;
-  const displayImage = previewImageURL || (formData.imageBase64 && !formData.imageBase64.startsWith('LOADING_URL:') ? formData.imageBase64 : null);
+  const remoteImagePreview = formData.imageBase64?.startsWith('LOADING_URL:')
+    ? formData.imageBase64.replace('LOADING_URL:', '')
+    : null;
+  const displayImage = previewImageURL || remoteImagePreview || formData.imageBase64 || null;
+  const duplicateGame = useMemo(() => {
+    if (isEditing || formData.nome.trim().length < 3) return null;
+    const normalize = value => String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLocaleLowerCase('pt-BR');
+    const currentName = normalize(formData.nome);
+    return gamesData.find(game => normalize(game.nome) === currentName) || null;
+  }, [formData.nome, gamesData, isEditing]);
   const availableCategories = Object.entries(categoryNames);
   const isPlatformSelected = (p) => formData.platform ? formData.platform.split(' | ').includes(p) : false;
 
@@ -159,12 +195,12 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const sectionStyle = { background: V.faint, border: `1px solid ${V.border}` };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-3xl rounded-3xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden"
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="flex h-[100dvh] max-h-[100dvh] w-full max-w-3xl flex-col overflow-hidden rounded-none shadow-2xl sm:h-auto sm:max-h-[min(90dvh,56rem)] sm:rounded-3xl"
         style={{ background: V.bg, border: `1px solid ${V.border}` }}>
 
         {/* Header */}
-        <div className="flex-shrink-0 backdrop-blur-xl border-b px-6 py-4"
+        <div className="flex-shrink-0 border-b px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4"
           style={{ background: `${V.card}f0`, borderColor: V.border }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -188,7 +224,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:space-y-6 sm:p-6">
 
           {/* Busca IGDB */}
           {!isEditing && (
@@ -199,22 +235,23 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                   Buscar no IGDB
                 </label>
               </div>
-              <form onSubmit={handleSearchSubmit} className="flex gap-2">
+              <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); if (e.target.value.length < 3) { setSearchResults([]); setShowSearchResults(false); } }}
-                  placeholder="Nome do jogo..."
-                  className="flex-1 px-4 py-3 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Digite o nome do jogo..."
+                  autoComplete="off"
+                  aria-label="Buscar jogo no IGDB"
+                  aria-expanded={showSearchResults}
+                  className="w-full rounded-xl py-3 pl-4 pr-12 text-sm transition-all focus:outline-none focus:ring-2"
                   style={{ ...inputStyle, '--tw-ring-color': V.primary }}
                 />
-                <button type="submit" disabled={isSearching || searchQuery.length < 3}
-                  className="px-4 py-3 rounded-xl font-bold disabled:opacity-50 transition-all flex items-center gap-2 text-sm whitespace-nowrap text-white"
-                  style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})` }}>
-                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  <span className="hidden sm:inline">Buscar</span>
-                </button>
-              </form>
+                <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2" style={{ color: V.primary }}>
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </div>
+              </div>
+              <p className="mt-2 text-[11px]" style={{ color: V.muted }}>As sugestões aparecem automaticamente a partir de 2 caracteres.</p>
 
               {showSearchResults && (
                 <div className="mt-3 rounded-xl overflow-hidden" style={sectionStyle}>
@@ -223,8 +260,10 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       <Loader2 className="w-4 h-4 animate-spin" style={{ color: V.primary }} />
                       <span className="text-sm">Buscando...</span>
                     </div>
+                  ) : searchError ? (
+                    <p className="p-4 text-center text-sm text-red-300">{searchError}</p>
                   ) : searchResults.length > 0 ? (
-                    <div className="max-h-48 overflow-y-auto">
+                    <div className="max-h-[min(40dvh,18rem)] overflow-y-auto overscroll-contain">
                       {searchResults.map(game => (
                         <button key={game.id} onClick={() => handleSelectGame(game)}
                           className="w-full p-3 flex items-center gap-3 border-b text-left transition-colors hover:opacity-80"
@@ -251,7 +290,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             <input type="file" ref={fileInputRef} onChange={(e) => setImageFile(e.target.files[0])} style={{ display: 'none' }} accept="image/*" />
 
             {/* Capa + Campos principais */}
-            <div className="grid md:grid-cols-[200px,1fr] gap-6">
+            <div className="grid gap-5 md:grid-cols-[200px,1fr] md:gap-6">
               <div className="space-y-2 mx-auto md:mx-0 w-full max-w-[200px]">
                 <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-center md:text-left" style={labelStyle}>Capa</label>
                 <button type="button" onClick={() => fileInputRef.current.click()}
@@ -280,8 +319,14 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                   <input type="text" name="nome" value={formData.nome} onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 transition-all"
                     style={inputStyle} placeholder="Nome do jogo" />
+                  {duplicateGame && (
+                    <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2.5 text-amber-200">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <p className="text-xs leading-5"><strong>Este jogo já está na coleção</strong> em {categoryNames[duplicateGame.status] || duplicateGame.status}. Você ainda pode adicionar outra edição.</p>
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Gênero</label>
                     <select name="genre" value={formData.genre} onChange={handleChange}
@@ -336,7 +381,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       {inlineRating > 0 ? `${inlineRating}/10` : '—'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 justify-center">
+                  <div className="flex items-center justify-center gap-0.5 sm:gap-1">
                     {Array.from({ length: 10 }, (_, i) => i + 1).map(i => (
                       <RatingStar key={i} rating={inlineRating} setRating={setInlineRating} index={i} />
                     ))}

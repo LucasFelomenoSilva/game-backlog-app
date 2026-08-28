@@ -116,9 +116,9 @@ export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
           </button>
           <button
             onClick={() => setDismissed(true)}
-            className="p-1.5 rounded-lg transition-colors"
-            style={{ hover: { background: V.faint } }}
+            className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
             title="Dispensar"
+            aria-label="Dispensar sugestão"
           >
             <X className="w-3.5 h-3.5" style={{ color: V.low }} />
           </button>

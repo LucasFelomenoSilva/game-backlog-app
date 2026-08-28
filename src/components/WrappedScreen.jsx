@@ -1,11 +1,19 @@
 // src/components/WrappedScreen.jsx — Spotify Wrapped estilo Gaming
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Trophy, Star, Clock, Gamepad2, Heart, Zap, Award, ChevronRight, Share2, Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 // html2canvas: import dinâmico na função de export
 import { toast } from 'react-hot-toast';
 
 const SLIDES = ['intro', 'topGame', 'stats', 'genre', 'timeline', 'platinum', 'finale'];
+const WRAPPED_PARTICLES = Array.from({ length: 30 }, (_, index) => ({
+  id: index,
+  size: 20 + ((index * 29) % 60),
+  left: (index * 37) % 100,
+  top: (index * 61) % 100,
+  delay: (index % 10) * 0.3,
+  duration: 2 + (index % 6) * 0.5,
+}));
 
 function useCountUp(target, duration = 1500, active = false) {
   const [val, setVal] = useState(0);
@@ -24,17 +32,17 @@ function useCountUp(target, duration = 1500, active = false) {
 }
 
 // ── Slide: Intro ──────────────────────────────────────────────────────────────
-function SlideIntro({ year, V, active }) {
+function SlideIntro({ year, V }) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-8 relative overflow-hidden">
       <div className="absolute inset-0">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} className="absolute rounded-full opacity-10 animate-pulse"
+        {WRAPPED_PARTICLES.map((particle) => (
+          <div key={particle.id} className="absolute rounded-full opacity-10 animate-pulse"
             style={{
-              width: `${20 + Math.random() * 60}px`, height: `${20 + Math.random() * 60}px`,
-              left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`,
-              background: V.grad, animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`,
+              width: `${particle.size}px`, height: `${particle.size}px`,
+              left: `${particle.left}%`, top: `${particle.top}%`,
+              background: V.grad, animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
             }} />
         ))}
       </div>
@@ -53,7 +61,7 @@ function SlideIntro({ year, V, active }) {
 }
 
 // ── Slide: Top Game ───────────────────────────────────────────────────────────
-function SlideTopGame({ game, V, active }) {
+function SlideTopGame({ game, V }) {
   if (!game) return (
     <div className="flex flex-col items-center justify-center h-full" style={{ color: V.muted }}>
       <Gamepad2 className="w-16 h-16 mb-4 opacity-30" />
@@ -183,7 +191,7 @@ function SlideTimeline({ monthlyData, V, active }) {
 }
 
 // ── Slide: Platinas ───────────────────────────────────────────────────────────
-function SlidePlatinum({ platinumGames, V, active }) {
+function SlidePlatinum({ platinumGames, V }) {
   return (
     <div className="flex flex-col justify-center h-full px-6">
       <p className="text-xs font-black uppercase tracking-widest mb-6 px-4 py-2 rounded-full w-fit" style={{ background: 'rgba(245,158,11,0.15)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.3)' }}>
@@ -202,7 +210,7 @@ function SlidePlatinum({ platinumGames, V, active }) {
             {platinumGames.length === 1 ? 'jogo platinado!' : 'jogos platinados!'} Incrível! 💪
           </p>
           <div className="space-y-3">
-            {platinumGames.slice(0, 4).map((game, i) => (
+            {platinumGames.slice(0, 4).map((game) => (
               <div key={game.id} className="flex items-center gap-3 p-3 rounded-2xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                 <span className="text-xl">🏆</span>
                 <div className="flex-1 min-w-0">

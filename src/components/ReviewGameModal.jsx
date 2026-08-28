@@ -1,6 +1,6 @@
 // src/components/ReviewGameModal.jsx
 import React, { useState } from 'react';
-import { X, Star, CheckCircle, Trophy } from 'lucide-react';
+import { X, Star, CheckCircle, Trophy, CalendarDays } from 'lucide-react';
 import { categoryNames } from '../data/categories';
 
 // Componente para a seleção de estrela
@@ -22,6 +22,7 @@ export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
     const [rating, setRating] = useState(10);
     const [reviewText, setReviewText] = useState('');
     const [isPlatinum, setIsPlatinum] = useState(game.isPlatinum || false);
+    const [finishedDate, setFinishedDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
 
     const handleSave = (e) => {
@@ -31,7 +32,8 @@ export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
         const reviewData = {
             rating: rating,
             reviewText: reviewText.trim(),
-            isPlatinum: isPlatinum
+            isPlatinum: isPlatinum,
+            finishedDate: new Date(`${finishedDate}T12:00:00`).toISOString(),
         };
         
         onReviewSubmit(reviewData);
@@ -41,8 +43,8 @@ export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
     const cleanCategoryName = categoryNames['zerados'].split('(')[0].trim();
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-            <div className="bg-gray-800 dark:bg-gray-900 rounded-3xl w-full max-w-md p-6 shadow-2xl border border-gray-700 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm animate-fadeIn sm:items-center sm:p-4">
+            <div className="max-h-[100dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-gray-700 bg-gray-800 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl dark:bg-gray-900 sm:max-h-[90dvh] sm:rounded-3xl sm:p-6">
                 
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -77,6 +79,22 @@ export default function ReviewGameModal({ game, onClose, onReviewSubmit }) {
                             ))}
                         </div>
                         <p className="text-center text-sm text-gray-400 mt-2">Clique no ícone para selecionar a nota (1 a 10).</p>
+                    </div>
+
+                    <div>
+                        <label htmlFor="finishedDate" className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <CalendarDays className="h-4 w-4 text-cyan-400" /> Data da conclusão
+                        </label>
+                        <input
+                            id="finishedDate"
+                            type="date"
+                            required
+                            value={finishedDate}
+                            max={new Date().toISOString().split('T')[0]}
+                            onChange={(event) => setFinishedDate(event.target.value)}
+                            className="w-full rounded-xl border border-gray-700 bg-gray-700/50 p-3 text-white focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                            style={{ colorScheme: 'dark' }}
+                        />
                     </div>
 
                     {/* NOVO: Checkbox de Platina */}
