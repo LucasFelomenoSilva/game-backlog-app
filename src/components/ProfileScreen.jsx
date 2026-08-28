@@ -344,16 +344,16 @@ export default function ProfileScreen({
         <EditProfileModal user={{ ...user, displayName: localDisplayName, bio: localBio }} onSave={handleSaveProfile} onClose={() => setShowEditProfile(false)} />
       )}
 
-      <div className="min-h-screen pb-24" style={{ background: V.bg, fontFamily: '-apple-system, sans-serif' }}>
+      <div className="app-page min-h-screen pb-28">
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at 50% 0%, ${V.glow} 0%, transparent 70%)`, opacity: 0.5 }} />
+          style={{ background: `radial-gradient(ellipse at 50% 0%, ${V.glow} 0%, transparent 70%)`, opacity: 0.25 }} />
 
-        <nav className="sticky top-0 z-50 border-b" style={{ background: `${V.bg}d8`, backdropFilter: 'blur(24px)', borderColor: V.border }}>
-          <div className="max-w-xl mx-auto px-5 h-14 flex items-center justify-between">
-            <button onClick={goBack} className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-60" style={{ color: V.soft }}>
+        <nav className="sticky top-0 z-30 border-b" style={{ background: `${V.bg}d8`, backdropFilter: 'blur(24px)', borderColor: V.border }}>
+          <div className="app-shell flex h-16 items-center justify-between">
+            <button onClick={goBack} className="flex items-center gap-1.5 text-sm font-medium transition-opacity hover:opacity-60 lg:invisible" style={{ color: V.soft }}>
               <ChevronLeft className="w-4 h-4" />Voltar
             </button>
-            <span className="text-sm font-bold tracking-wide" style={{ color: V.text }}>Perfil</span>
+            <span className="text-sm font-bold tracking-wide lg:text-base" style={{ color: V.text }}>Meu perfil</span>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowTheme(true)} className="w-8 h-8 flex items-center justify-center rounded-xl transition-all hover:opacity-70" style={{ background: V.faint, border: `1px solid ${V.border}` }}>
                 <Settings className="w-3.5 h-3.5" style={{ color: V.muted }} />
@@ -370,22 +370,22 @@ export default function ProfileScreen({
           </div>
         </nav>
 
-        <div className="relative max-w-xl mx-auto px-4 pt-6 space-y-5">
+        <div className="app-shell relative space-y-6 pt-7 sm:pt-9">
           <motion.div
             initial={{ opacity: 0, scale: 0.97, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             whileHover={{ scale: 1.008, y: -2 }}
             transition={{ type: 'spring', stiffness: 120, damping: 15 }}
-            className="relative overflow-hidden rounded-3xl p-6"
+            className="relative overflow-hidden rounded-3xl p-6 sm:p-8"
             style={{ background: `linear-gradient(135deg, ${V.card}b0 0%, ${V.card2}40 100%)`, border: `1px solid ${V.border}` }}
           >
             <div className="absolute -top-16 -left-16 w-56 h-56 rounded-full blur-3xl pointer-events-none" style={{ background: V.primary, opacity: 0.12 }} />
             <div className="absolute -bottom-16 -right-8 w-48 h-48 rounded-full blur-3xl pointer-events-none" style={{ background: V.secondary, opacity: 0.10 }} />
 
-            <div className="relative flex items-start gap-4">
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
               <label className="relative cursor-pointer group flex-shrink-0">
                 <div className="absolute -inset-1 rounded-2xl blur opacity-60" style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }} />
-                <div className="relative w-[76px] h-[76px] rounded-2xl overflow-hidden" style={{ border: `2px solid ${V.primary}` }}>
+                <div className="relative h-24 w-24 overflow-hidden rounded-2xl sm:h-28 sm:w-28" style={{ border: `2px solid ${V.primary}` }}>
                   {user?.photoBase64 || user?.photoURL
                     ? <img src={user.photoBase64 || user.photoURL} className="w-full h-full object-cover" alt="avatar" />
                     : <div className="w-full h-full flex items-center justify-center text-2xl font-black text-white" style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>{initial}</div>
@@ -400,10 +400,11 @@ export default function ProfileScreen({
                 </div>
               </label>
 
-              <div className="flex-1 min-w-0 pt-1">
+              <div className="min-w-0 flex-1 pt-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <h1 className="text-xl font-black truncate" style={{ color: V.text }}>{name}</h1>
+                    <p className="eyebrow mb-1">Perfil do jogador</p>
+                    <h1 className="truncate text-2xl font-black sm:text-3xl" style={{ color: V.text }}>{name}</h1>
                     {localBio ? (
                       <p className="text-xs mt-0.5 line-clamp-2" style={{ color: V.muted }}>{localBio}</p>
                     ) : (
@@ -427,22 +428,22 @@ export default function ProfileScreen({
               </div>
             </div>
 
-            <div className="relative grid grid-cols-4 gap-2 mt-5 pt-4" style={{ borderTop: `1px solid ${V.border}` }}>
+            <div className="relative mt-6 grid grid-cols-2 gap-3 border-t pt-5 sm:grid-cols-4" style={{ borderColor: V.border }}>
               {[
                 { label: 'Zerados',  value: S.finished,    icon: CheckCircle, color: '#10b981' },
                 { label: 'Total',    value: S.total,       icon: Gamepad2,    color: V.soft    },
                 { label: 'Horas',    value: `${S.hours}h`, icon: Clock,       color: '#3b82f6' },
                 { label: 'Platinas', value: S.platinas,    icon: Trophy,      color: '#f59e0b' },
               ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="flex flex-col items-center gap-1">
-                  <span className="text-xl font-black" style={{ color }}>{value}</span>
+                <div key={label} className="flex flex-col items-center gap-1 rounded-2xl border p-3 text-center" style={{ background: V.faint, borderColor: V.border }}>
+                  <span className="text-xl font-black sm:text-2xl" style={{ color }}>{value}</span>
                   <span className="text-[9px] uppercase tracking-wider" style={{ color: V.muted }}>{label}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <motion.button
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -624,7 +625,7 @@ export default function ProfileScreen({
                 </div>
                 <span className="text-sm font-black" style={{ color: V.text }}>Zerados Recentemente</span>
               </div>
-              <div className="space-y-2">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {S.recent.map(game => (
                   <div key={game.id} className="flex items-center gap-3 p-3 rounded-2xl" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                     <div className="w-10 h-14 rounded-xl overflow-hidden flex-shrink-0" style={{ border: `1px solid ${V.border}`, background: V.faint }}>
@@ -668,7 +669,7 @@ export default function ProfileScreen({
               </span>
             </div>
             <div className="rounded-2xl p-4" style={{ background: V.card, border: `1px solid ${V.border}` }}>
-              <div className="grid grid-cols-4 gap-2 mb-4">
+              <div className="grid grid-cols-4 gap-2 mb-4 sm:grid-cols-8">
                 {BADGES.map(({ emoji, label, req }) => {
                   const on = totalFinishedGames >= req;
                   return (

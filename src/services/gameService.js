@@ -20,7 +20,7 @@
 import { db } from '../firebase';
 import {
   doc, getDoc, setDoc, updateDoc,
-  collection, query, where, getDocs,
+  collection, query, where, getDocs, serverTimestamp,
 } from 'firebase/firestore';
 
 // ── Quando migrar para Java, defina a URL base aqui ───────────────────────
@@ -53,12 +53,13 @@ export async function createUserData(uid, initialData) {
  * Java: PUT /api/users/{uid}
  */
 export async function saveUserData(uid, { gamesData, achievements, gameHistory, photoBase64 }) {
-  await updateDoc(doc(db, 'users', uid), {
+  await setDoc(doc(db, 'users', uid), {
     gamesData: JSON.parse(JSON.stringify(gamesData)),
     achievements,
     gameHistory: JSON.parse(JSON.stringify(gameHistory)),
     photoBase64: photoBase64 || null,
-  });
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 /**

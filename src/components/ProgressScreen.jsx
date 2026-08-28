@@ -1,231 +1,198 @@
-// src/components/ProgressScreen.jsx
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, Clock, History, Star, Heart, Sparkles, Target, Flame, Trophy, Award } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'; 
-import { useTheme } from '../context/ThemeContext'; // <-- Importado
+import {
+  Award, CheckCircle2, Clock3, Flame, Gamepad2,
+  Heart, History, Star, Target, Trophy,
+} from 'lucide-react';
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.07 } },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 30, rotateX: 10, scale: 0.97 },
-  show: {
-    opacity: 1,
-    y: 0,
-    rotateX: 0,
-    scale: 1,
-    transition: { type: 'spring', stiffness: 120, damping: 15 }
-  }
+  hidden: { opacity: 0, y: 18, scale: 0.985 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 150, damping: 18 } },
 };
 
-export default function ProgressScreen({ gamesData, gameHistory, totalFinishedGames }) {
-  const { theme: V } = useTheme(); // <-- Usando as cores do tema
+export default function ProgressScreen({ gamesData = [], gameHistory = [], totalFinishedGames = 0 }) {
+  const { theme: V } = useTheme();
 
-  const statusCounts = useMemo(() => {
-    return gamesData.reduce((acc, game) => {
+  const stats = useMemo(() => {
+    const statusCounts = gamesData.reduce((acc, game) => {
       acc[game.status] = (acc[game.status] || 0) + 1;
       return acc;
     }, {});
+    const finished = gamesData.filter(game => game.status === 'zerados');
+    const rated = finished.filter(game => Number(game.rating) > 0);
+    const totalHours = gamesData.reduce((sum, game) => sum + (Number(game.timeToBeat) || 0), 0);
+    const avgRating = rated.length
+      ? (rated.reduce((sum, game) => sum + Number(game.rating), 0) / rated.length).toFixed(1)
+      : '—';
+    const platinumCount = finished.filter(game => game.isPlatinum).length;
+    const genres = finished.reduce((acc, game) => {
+      if (game.genre) acc[game.genre] = (acc[game.genre] || 0) + 1;
+      return acc;
+    }, {});
+    const genreRanking = Object.entries(genres)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+    const completion = gamesData.length ? Math.round((finished.length / gamesData.length) * 100) : 0;
+    return { statusCounts, totalHours, avgRating, platinumCount, genreRanking, completion };
   }, [gamesData]);
 
-  const advancedStats = useMemo(() => {
-    const finishedGames = gamesData.filter(g => g.status === 'zerados');
-    const ratedGames = finishedGames.filter(g => g.rating > 0);
-    const totalRating = ratedGames.reduce((sum, g) => sum + parseInt(g.rating), 0);
-    const avgRating = ratedGames.length > 0 ? (totalRating / ratedGames.length).toFixed(1) : '-';
-    const platinumGames = finishedGames.filter(g => g.isPlatinum);
-    const platinumCount = platinumGames.length;
-    const genres = {};
-    finishedGames.forEach(g => { if (g.genre) { genres[g.genre] = (genres[g.genre] || 0) + 1; } });
-    let favoriteGenre = '-';
-    let maxCount = 0;
-    Object.entries(genres).forEach(([genre, count]) => {
-        if (count > maxCount) { maxCount = count; favoriteGenre = genre; }
-    });
-    return { avgRating, favoriteGenre, platinumCount };
-  }, [gamesData]);
-
-  const totalHours = gamesData.reduce((sum, game) => sum + (Number(game.timeToBeat) || 0), 0);
-  
   const chartData = [
-    { name: 'Zerados', count: statusCounts.zerados || 0, fill: '#10b981' }, 
-    { name: 'Jogando', count: statusCounts.playing || 0, fill: V.primary }, 
-    { name: 'Backlog', count: statusCounts.backlog || 0, fill: V.accent },
-    { name: 'Desejos', count: statusCounts.desejados || 0, fill: '#f59e0b' }, 
+    { name: 'Zerados', count: stats.statusCounts.zerados || 0, fill: '#10b981' },
+    { name: 'Jogando', count: stats.statusCounts.playing || 0, fill: V.primary },
+    { name: 'Na fila', count: stats.statusCounts.backlog || 0, fill: V.accent },
+    { name: 'Desejos', count: stats.statusCounts.desejados || 0, fill: '#f59e0b' },
   ].filter(item => item.count > 0);
-  
-  const recentHistory = useMemo(() => {
-      return [...gameHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-  }, [gameHistory]);
+
+  const recentHistory = useMemo(
+    () => [...gameHistory].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5),
+    [gameHistory],
+  );
+  const maxGenreCount = Math.max(1, ...stats.genreRanking.map(item => item.count));
+
+  const summary = [
+    { label: 'Horas estimadas', value: `${stats.totalHours}h`, hint: `${gamesData.length} jogos catalogados`, icon: Clock3, color: V.soft },
+    { label: 'Jogos zerados', value: totalFinishedGames, hint: `${stats.completion}% da coleção`, icon: Gamepad2, color: '#10b981' },
+    { label: 'Nota média', value: stats.avgRating, hint: 'entre jogos avaliados', icon: Star, color: '#f59e0b' },
+    { label: 'Platinas', value: stats.platinumCount, hint: 'jogos completados em 100%', icon: Trophy, color: '#facc15' },
+  ];
 
   return (
-    <div className="min-h-screen pb-24 pt-6" style={{ background: V.bg }}>
-      <div className="max-w-md mx-auto px-4">
-        
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 rounded-2xl shadow-lg" style={{ background: `linear-gradient(to bottom right, ${V.primary}, ${V.secondary})`, boxShadow: `0 4px 14px ${V.primary}4d` }}>
-              <TrendingUp className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold" style={{ color: V.text }}>Estatísticas</h1>
-              <p className="text-sm" style={{ color: V.muted }}>Seu DNA de jogador em números</p>
-            </div>
-          </div>
-        </div>
+    <div className="app-page min-h-screen pb-28">
+      <motion.main
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="app-shell py-7 sm:py-9"
+      >
+        <motion.header variants={cardVariants} className="mb-6">
+          <p className="eyebrow mb-2">Sua jornada</p>
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: V.text }}>Estatísticas</h1>
+          <p className="mt-1 text-sm" style={{ color: V.muted }}>Seu jeito de jogar traduzido em números.</p>
+        </motion.header>
 
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 gap-3 mb-6">
-          {[
-            { label: 'Zerados', value: totalFinishedGames, text: 'jogos concluídos', icon: CheckCircle, color1: '#10b981', color2: '#34d399' },
-            { label: 'Horas', value: `${totalHours}h`, text: 'de jogatina estimada', icon: Clock, color1: V.primary, color2: V.secondary },
-            { label: 'Nota Média', value: advancedStats.avgRating, text: 'nos jogos zerados', icon: Star, color1: '#f59e0b', color2: '#fbbf24' },
-            { label: 'Vício', value: advancedStats.favoriteGenre, text: 'gênero mais zerado', icon: Heart, color1: V.accent, color2: '#fb7185' },
-          ].map((stat, i) => (
-            <motion.div key={i} variants={cardVariants} whileHover={{ scale: 1.025, y: -3 }} className="relative group">
-              <div className="absolute -inset-0.5 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300" style={{ background: `linear-gradient(to right, ${stat.color1}, ${stat.color2})` }}></div>
-              <div className="relative backdrop-blur-xl rounded-2xl p-5 border" style={{ background: `${V.card}e6`, borderColor: V.border }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-2 rounded-xl" style={{ background: `linear-gradient(to bottom right, ${stat.color1}, ${stat.color2})` }}>
-                    <stat.icon className="w-4 h-4 text-white fill-current" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: V.muted }}>{stat.label}</span>
-                </div>
-                <div className="text-3xl font-bold mb-1 truncate leading-9" style={{ color: stat.color1 }}>{stat.value}</div>
-                <div className="text-xs" style={{ color: V.low }}>{stat.text}</div>
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Resumo das estatísticas">
+          {summary.map(({ label, value, hint, icon: Icon, color }) => (
+            <motion.article
+              key={label}
+              variants={cardVariants}
+              whileHover={{ y: -3 }}
+              className="surface-card rounded-2xl p-4 sm:p-5"
+            >
+              <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl" style={{ background: `${color}18`, color }}>
+                <Icon className="h-5 w-5" />
               </div>
-            </motion.div>
+              <p className="text-2xl font-black sm:text-3xl" style={{ color: V.text }}>{value}</p>
+              <p className="mt-1 text-sm font-bold" style={{ color: V.muted }}>{label}</p>
+              <p className="mt-0.5 text-[11px]" style={{ color }}>{hint}</p>
+            </motion.article>
           ))}
-        </motion.div>
+        </section>
 
-        {advancedStats.platinumCount > 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 15 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            whileHover={{ scale: 1.015, y: -2 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 15 }}
-            className="relative group mb-6"
-          >
-            <div className="absolute -inset-0.5 rounded-3xl blur opacity-40 group-hover:opacity-60 transition duration-300 animate-pulse" style={{ background: `linear-gradient(to right, #f59e0b, #facc15, #f59e0b)` }}></div>
-            <div className="relative backdrop-blur-xl rounded-3xl p-6 border-2" style={{ background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.5)' }}>
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl" style={{ background: `linear-gradient(to bottom right, #f59e0b, #d97706)` }}>
-                  <Trophy className="w-10 h-10 text-yellow-900 fill-yellow-900" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award className="w-5 h-5 text-yellow-400" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-yellow-300">Conquistas Épicas</span>
-                  </div>
-                  <div className="text-5xl font-black mb-1" style={{ color: '#fde047' }}>{advancedStats.platinumCount}</div>
-                  <div className="text-sm font-bold text-yellow-200">{advancedStats.platinumCount === 1 ? 'Jogo Platinado' : 'Jogos Platinados'}</div>
-                  <div className="text-xs mt-1" style={{ color: 'rgba(250,204,21,0.7)' }}>100% de conclusão alcançados</div>
-                </div>
+        <section className="mt-4 grid gap-4 lg:grid-cols-2">
+          <motion.article variants={cardVariants} className="glass-panel rounded-3xl p-5 sm:p-6">
+            <div className="mb-2 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-black" style={{ color: V.text }}>Distribuição da coleção</h2>
+                <p className="text-sm" style={{ color: V.muted }}>Onde estão seus jogos agora</p>
               </div>
-              <div className="mt-4 pt-4 border-t" style={{ borderColor: 'rgba(245,158,11,0.3)' }}>
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="text-yellow-300 font-semibold">Taxa de Platinação</span>
-                  <span className="text-yellow-200 font-bold">{totalFinishedGames > 0 ? Math.round((advancedStats.platinumCount / totalFinishedGames) * 100) : 0}%</span>
-                </div>
-                <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(113,63,18,0.3)' }}>
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${totalFinishedGames > 0 ? (advancedStats.platinumCount / totalFinishedGames) * 100 : 0}%`, background: `linear-gradient(to right, #f59e0b, #f59e0b)` }}></div>
-                </div>
+              <div className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: V.faint, color: V.soft }}>
+                <Target className="h-5 w-5" />
               </div>
             </div>
-          </motion.div>
-        )}
-
-        {gamesData.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            whileHover={{ scale: 1.01 }}
-            className="relative group mb-6"
-          >
-            <div className="absolute -inset-0.5 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-300" style={{ background: `linear-gradient(to right, ${V.primary}, ${V.accent})` }}></div>
-            <div className="relative backdrop-blur-xl rounded-3xl p-6 border" style={{ background: `${V.card}e6`, borderColor: V.border }}>
-              <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 rounded-xl" style={{ background: `linear-gradient(to bottom right, ${V.primary}, ${V.accent})` }}>
-                  <Target className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-bold flex items-center gap-2" style={{ color: V.text }}>Distribuição de Jogos</h3>
-              </div>
-              <div style={{ width: '100%', height: 280, position: 'relative' }}>
+            {chartData.length ? (
+              <div className="relative h-[280px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={4} strokeWidth={0}>
-                      {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    <Pie data={chartData} dataKey="count" nameKey="name" cx="50%" cy="47%" innerRadius={66} outerRadius={92} paddingAngle={4} strokeWidth={0}>
+                      {chartData.map(entry => <Cell key={entry.name} fill={entry.fill} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: V.card, border: `1px solid ${V.border}`, borderRadius: '16px', backdropFilter: 'blur(20px)', padding: '12px 16px' }} itemStyle={{ color: '#fff', fontWeight: 'bold', fontSize: '14px' }} labelStyle={{ color: V.muted, fontSize: '12px', marginBottom: '4px' }} />
-                    <Legend layout="horizontal" verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ paddingTop: '24px', fontSize: '13px', fontWeight: '600', color: V.muted }} />
+                    <Tooltip contentStyle={{ background: V.card2, border: `1px solid ${V.border}`, borderRadius: 14, color: V.text }} />
+                    <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ color: V.muted, fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none pb-10">
-                  <div className="p-4 backdrop-blur-xl rounded-2xl border" style={{ background: `${V.bg}cc`, borderColor: V.border }}>
-                    <span className="text-4xl font-bold block mb-1" style={{ color: V.primary }}>{gamesData.length}</span>
-                    <p className="text-xs uppercase tracking-wider font-bold" style={{ color: V.low }}>Total</p>
-                  </div>
+                <div className="pointer-events-none absolute left-1/2 top-[47%] -translate-x-1/2 -translate-y-1/2 text-center">
+                  <p className="text-3xl font-black" style={{ color: V.text }}>{gamesData.length}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: V.muted }}>jogos</p>
                 </div>
+              </div>
+            ) : (
+              <div className="grid h-[280px] place-items-center text-sm" style={{ color: V.muted }}>Adicione jogos para visualizar a distribuição.</div>
+            )}
+          </motion.article>
+
+          <motion.article variants={cardVariants} className="glass-panel rounded-3xl p-5 sm:p-6">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-black" style={{ color: V.text }}>Gêneros favoritos</h2>
+                <p className="text-sm" style={{ color: V.muted }}>Com base nos jogos que você zerou</p>
+              </div>
+              <div className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: V.faint, color: V.soft }}>
+                <Heart className="h-5 w-5" />
               </div>
             </div>
-          </motion.div>
-        )}
-
-        {recentHistory.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="relative group"
-          >
-            <div className="absolute -inset-0.5 rounded-3xl blur opacity-20 group-hover:opacity-30 transition duration-300" style={{ background: `linear-gradient(to right, ${V.accent}, ${V.primary})` }}></div>
-            <div className="relative backdrop-blur-xl rounded-3xl p-6 border" style={{ background: `${V.card}e6`, borderColor: V.border }}>
-              <div className="flex items-center gap-2 mb-5">
-                <div className="p-2 rounded-xl" style={{ background: `linear-gradient(to bottom right, ${V.accent}, ${V.primary})` }}>
-                  <Flame className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-bold" style={{ color: V.text }}>Recém Zerados</h3>
-              </div>
-              <div className="space-y-3">
-                {recentHistory.map((item, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.02, x: 4 }}
-                    className="group/item relative"
-                  >
-                    <div className="absolute -inset-0.5 rounded-2xl blur opacity-0 group-hover/item:opacity-20 transition duration-300" style={{ background: `linear-gradient(to right, #10b981, #34d399)` }}></div>
-                    <div className="relative flex items-center gap-4 p-4 rounded-2xl backdrop-blur-sm border transition-all duration-300" style={{ background: V.faint, borderColor: V.border }}>
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg" style={{ background: `linear-gradient(to bottom right, #10b981, #059669)` }}>
-                          <CheckCircle className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2" style={{ background: '#f59e0b', borderColor: V.bg }}>
-                          <Sparkles className="w-3 h-3 text-white" />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold truncate mb-1 text-sm" style={{ color: V.text }} title={item.game}>{item.game}</div>
-                        <div className="flex items-center gap-1.5 text-xs" style={{ color: V.muted }}>
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{new Date(item.date).toLocaleDateString("pt-BR", { day: 'numeric', month: 'long' })}</span>
-                        </div>
-                      </div>
-                      <div className="text-2xl">🎮</div>
+            {stats.genreRanking.length ? (
+              <div className="space-y-5">
+                {stats.genreRanking.map((genre, index) => (
+                  <div key={genre.name}>
+                    <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                      <span className="font-bold" style={{ color: V.text }}>{genre.name}</span>
+                      <span style={{ color: V.muted }}>{genre.count} {genre.count === 1 ? 'jogo' : 'jogos'}</span>
                     </div>
+                    <div className="h-2 overflow-hidden rounded-full" style={{ background: V.faint }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(genre.count / maxGenreCount) * 100}%` }}
+                        transition={{ delay: 0.2 + index * 0.08, duration: 0.55, ease: 'easeOut' }}
+                        className="h-full rounded-full"
+                        style={{ background: index === 0 ? V.grad : `${V.primary}aa` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-56 place-items-center text-center text-sm" style={{ color: V.muted }}>Os gêneros aparecem quando você conclui jogos.</div>
+            )}
+          </motion.article>
+        </section>
+
+        <section className="mt-4 grid gap-4 lg:grid-cols-[1.35fr_.65fr]">
+          <motion.article variants={cardVariants} className="glass-panel rounded-3xl p-5 sm:p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400"><History className="h-5 w-5" /></div>
+              <div><h2 className="text-lg font-black" style={{ color: V.text }}>Zerados recentemente</h2><p className="text-xs" style={{ color: V.muted }}>Suas últimas conquistas</p></div>
+            </div>
+            {recentHistory.length ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {recentHistory.map((item, index) => (
+                  <motion.div key={`${item.game}-${item.date}-${index}`} whileHover={{ x: 3 }} className="flex items-center gap-3 rounded-2xl border p-3.5" style={{ background: V.card2, borderColor: V.border }}>
+                    <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400"><CheckCircle2 className="h-5 w-5" /></div>
+                    <div className="min-w-0"><p className="truncate text-sm font-bold" style={{ color: V.text }}>{item.game}</p><p className="mt-1 text-[11px]" style={{ color: V.muted }}>{new Date(`${item.date}T12:00:00`).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p></div>
                   </motion.div>
                 ))}
               </div>
-            </div>
-          </motion.div>
-        )}
+            ) : <p className="py-8 text-center text-sm" style={{ color: V.muted }}>Nenhum jogo zerado ainda.</p>}
+          </motion.article>
 
-      </div>
+          <motion.article variants={cardVariants} className="relative overflow-hidden rounded-3xl border p-6" style={{ background: 'linear-gradient(145deg,rgba(245,158,11,.13),rgba(245,158,11,.035))', borderColor: 'rgba(245,158,11,.25)' }}>
+            <Award className="absolute -bottom-5 -right-4 h-28 w-28 text-amber-400 opacity-[0.06]" />
+            <div className="relative">
+              <Flame className="mb-5 h-6 w-6 text-amber-400" />
+              <p className="text-4xl font-black text-amber-300">{stats.platinumCount}</p>
+              <h2 className="mt-1 font-black text-amber-100">{stats.platinumCount === 1 ? 'Jogo platinado' : 'Jogos platinados'}</h2>
+              <p className="mt-2 text-xs leading-5 text-amber-100/55">{totalFinishedGames ? Math.round((stats.platinumCount / totalFinishedGames) * 100) : 0}% dos jogos zerados chegaram aos 100%.</p>
+            </div>
+          </motion.article>
+        </section>
+      </motion.main>
     </div>
   );
 }

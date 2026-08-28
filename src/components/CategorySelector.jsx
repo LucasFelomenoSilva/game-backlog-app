@@ -102,7 +102,7 @@ export default function CategorySelector({
           <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
             {/* Avatar + Saudação */}
             <div className="flex items-center gap-3">
-              <div className="relative group cursor-pointer">
+              <div className="relative group cursor-pointer lg:hidden">
                 <div className="absolute -inset-0.5 rounded-2xl blur opacity-60"
                   style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }} />
                 <div className="relative w-14 h-14 rounded-2xl overflow-hidden"

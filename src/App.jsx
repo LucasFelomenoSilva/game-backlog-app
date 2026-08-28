@@ -175,7 +175,7 @@ function AppInner() {
 
   const tabContent = renderTab();
   if (tabContent) return (
-    <div style={{ background: V.bg }} className="min-h-screen overflow-x-hidden">
+    <div style={{ background: V.bg }} className="min-h-screen overflow-x-hidden lg:pl-64">
       <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
       <AnimatePresence mode="wait">
         <motion.div
@@ -190,7 +190,7 @@ function AppInner() {
           {tabContent}
         </motion.div>
       </AnimatePresence>
-      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} />
+      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} user={user} totalFinishedGames={games.totalFinishedGames} />
     </div>
   );
 
@@ -221,7 +221,7 @@ function AppInner() {
     : 'selector';
 
   return (
-    <div className="relative min-h-screen bg-gray-900 overflow-x-hidden">
+    <div className={`relative min-h-screen overflow-x-hidden ${!games.selectedGame && !isReviewModalOpen ? 'lg:pl-64' : ''}`} style={{ background: V.bg }}>
       <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
       {showConfetti && <Confetti />}
       {showWrapped  && <Suspense fallback={<ModalLoader />}><LazyWrappedScreen  gamesData={games.gamesData} onClose={() => setShowWrapped(false)} /></Suspense>}
@@ -265,7 +265,7 @@ function AppInner() {
         </Suspense>
       )}
       {!games.selectedGame && !isReviewModalOpen && (
-        <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} />
+        <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} user={user} totalFinishedGames={games.totalFinishedGames} />
       )}
     </div>
   );

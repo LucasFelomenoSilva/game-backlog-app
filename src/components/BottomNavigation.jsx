@@ -1,7 +1,8 @@
 // src/components/BottomNavigation.jsx
 import React from 'react';
-import { Joystick, TrendingUp, Trophy, User, Users } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext'; // <-- Importado
+import { motion } from 'framer-motion';
+import { Gamepad2, Joystick, TrendingUp, Trophy, User, Users } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const TABS = [
   { id: 'categories',   label: 'Backlog',  icon: Joystick },
@@ -11,17 +12,95 @@ const TABS = [
   { id: 'profile',      label: 'Perfil',   icon: User },
 ];
 
-export default function BottomNavigation({ activeTab, setActiveTab, friendRequestCount = 0 }) {
-  const { theme: V } = useTheme(); // <-- Usando as cores do tema
+export default function BottomNavigation({
+  activeTab,
+  setActiveTab,
+  friendRequestCount = 0,
+  user,
+  totalFinishedGames = 0,
+}) {
+  const { theme: V } = useTheme();
+  const avatar = user?.photoBase64 || user?.photoURL;
+  const firstName = user?.displayName?.split(' ')[0] || 'Gamer';
 
   return (
-    <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 px-3 pb-[max(.75rem,env(safe-area-inset-bottom))]">
-      <div className="absolute inset-x-0 bottom-0 h-28"
-        style={{
-          background: `linear-gradient(to top, ${V.bg} 0%, ${V.bg}d8 50%, transparent 100%)`,
-        }} />
+    <>
+      <aside
+        className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r px-4 py-5 lg:flex"
+        style={{ background: V.bg, borderColor: V.border }}
+      >
+        <button
+          type="button"
+          onClick={() => setActiveTab('categories')}
+          className="flex items-center gap-3 rounded-2xl px-2 py-2 text-left"
+          aria-label="Abrir o backlog"
+        >
+          <span
+            className="grid h-10 w-10 place-items-center rounded-xl text-white shadow-lg"
+            style={{ background: V.grad, boxShadow: `0 10px 28px ${V.glow}` }}
+          >
+            <Gamepad2 className="h-5 w-5" />
+          </span>
+          <span>
+            <strong className="block text-lg font-black leading-none tracking-tight" style={{ color: V.text }}>XpLog</strong>
+            <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: V.muted }}>Game backlog</span>
+          </span>
+        </button>
 
-      <div className="glass-panel pointer-events-auto relative mx-auto max-w-xl rounded-[1.65rem] p-1.5 shadow-2xl">
+        <nav className="mt-7 space-y-1" aria-label="Navegação principal">
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const hasBadge = tab.id === 'friends' && friendRequestCount > 0;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className="relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-sm font-bold transition-colors"
+                style={{ color: isActive ? V.soft : V.muted }}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="desktop-navigation-active"
+                    className="absolute inset-0 rounded-xl border"
+                    style={{ background: V.faint, borderColor: `${V.primary}45` }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  />
+                )}
+                <Icon className="relative h-[18px] w-[18px]" />
+                <span className="relative flex-1 text-left">{tab.label}</span>
+                {hasBadge && (
+                  <span className="relative grid min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[9px] font-black text-white">
+                    {friendRequestCount > 9 ? '9+' : friendRequestCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto rounded-2xl border p-3" style={{ background: V.card, borderColor: V.border }}>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 overflow-hidden rounded-xl border" style={{ borderColor: V.border, background: V.faint }}>
+              {avatar
+                ? <img src={avatar} alt="Perfil" className="h-full w-full object-cover" />
+                : <span className="grid h-full w-full place-items-center text-sm font-black" style={{ color: V.soft }}>{firstName.charAt(0)}</span>}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold" style={{ color: V.text }}>{firstName}</p>
+              <p className="truncate text-[11px]" style={{ color: V.muted }}>{totalFinishedGames} jogos zerados</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-40 px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] lg:hidden">
+        <div className="absolute inset-x-0 bottom-0 h-28"
+          style={{ background: `linear-gradient(to top, ${V.bg} 0%, ${V.bg}d8 50%, transparent 100%)` }} />
+
+        <div className="glass-panel pointer-events-auto relative mx-auto max-w-xl rounded-[1.4rem] p-1.5 shadow-2xl">
         <div className="flex items-center justify-between gap-1">
           {TABS.map((tab) => {
             const Icon    = tab.icon;
@@ -31,14 +110,13 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className="group relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 transition-all duration-300 sm:flex-row sm:gap-2"
                 aria-label={`Abrir ${tab.label}`}
                 aria-current={isActive ? 'page' : undefined}
               >
-                {isActive && (
-                  <div className="absolute inset-0 rounded-2xl" style={{ background: V.faint, border: `1px solid ${V.border}` }} />
-                )}
+                {isActive && <motion.div layoutId="mobile-navigation-active" className="absolute inset-0 rounded-2xl" style={{ background: V.faint, border: `1px solid ${V.border}` }} transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
 
                 <div className={`relative z-10 rounded-xl p-2 transition-all duration-300 ${
                   isActive ? 'shadow-lg' : ''
@@ -67,7 +145,8 @@ export default function BottomNavigation({ activeTab, setActiveTab, friendReques
             );
           })}
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

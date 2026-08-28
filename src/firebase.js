@@ -1,7 +1,11 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -16,6 +20,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Mantém escritas pendentes no dispositivo. Se a rede cair ou a aba for
+// fechada logo depois de uma alteração, o Firestore retoma o envio depois.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
 export const storage = getStorage(app);
-export const googleProvider = new GoogleAuthProvider(); 
+export const googleProvider = new GoogleAuthProvider();

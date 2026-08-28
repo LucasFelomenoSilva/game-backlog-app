@@ -1,5 +1,6 @@
 // src/components/FriendsScreen.jsx
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   Users, Search, UserPlus, MessageCircle, Eye, Copy,
   Check, X, UserMinus, Trophy, Bell, Hash, Loader2,
@@ -43,11 +44,11 @@ function TabBtn({ tab, active, onClick, badge = 0, V }) {
   return (
     <button
       onClick={() => onClick(tab.id)}
-      className="relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all duration-200"
+      className="relative flex min-w-20 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 transition-all duration-200 sm:flex-row sm:gap-2"
       style={{
-        background: active ? `linear-gradient(135deg, ${V.primary}, ${V.secondary})` : 'transparent',
-        color: active ? '#fff' : V.muted,
-        boxShadow: active ? `0 4px 14px ${V.glow}` : 'none',
+        background: active ? V.faint : 'transparent',
+        borderColor: active ? `${V.primary}55` : 'transparent',
+        color: active ? V.soft : V.muted,
       }}
     >
       <Icon className="w-4 h-4" />
@@ -62,7 +63,7 @@ function TabBtn({ tab, active, onClick, badge = 0, V }) {
 
 function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile, onOpenChat, onRemove, V }) {
   return (
-    <div className="rounded-2xl p-4 transition-all" style={{ background: V.card, border: `1px solid ${V.border}` }}>
+    <motion.div whileHover={{ y: -2 }} className="rounded-2xl p-4 transition-all" style={{ background: V.card, border: `1px solid ${V.border}` }}>
       <div className="flex items-center gap-3">
         <Avatar profile={profile} size={12} V={V} />
         <div className="flex-1 min-w-0">
@@ -96,7 +97,7 @@ function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile,
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -212,32 +213,24 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
           onClose={() => setProfileModal(null)} onOpenChat={onOpenChat} />
       )}
 
-      <div className="min-h-screen pb-24 pt-6" style={{ background: V.bg }}>
-        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[250px] pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at 50% 0%, ${V.glow} 0%, transparent 70%)`, opacity: 0.45 }} />
+      <div className="app-page min-h-screen pb-28">
+        <div className="app-shell py-7 sm:py-9">
 
-        <div className="relative max-w-md mx-auto px-4">
-
-          <div className="mb-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})`, boxShadow: `0 4px 20px ${V.glow}` }}>
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black" style={{ color: V.text }}>Social</h1>
-                <p className="text-xs" style={{ color: V.muted }}>Conecte com outros jogadores</p>
-              </div>
+          <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="eyebrow mb-2">Sua comunidade</p>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: V.text }}>Social</h1>
+              <p className="mt-1 text-sm" style={{ color: V.muted }}>Descubra o que seus amigos andam jogando.</p>
             </div>
 
-            <div className="relative rounded-2xl p-4 overflow-hidden"
-              style={{ background: `linear-gradient(135deg, ${V.card}, ${V.card2})`, border: `1px solid ${V.border}` }}>
-              <div className="relative flex items-center justify-between">
+            <div className="relative min-w-72 overflow-hidden rounded-2xl p-4"
+              style={{ background: V.card, border: `1px solid ${V.border}` }}>
+              <div className="relative flex items-center justify-between gap-5">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: V.muted }}>
                     <Hash className="w-3 h-3" />Meu Código
                   </p>
-                  <p className="text-2xl font-black font-mono tracking-widest" style={{ color: V.soft }}>{myCode}</p>
+                  <p className="font-mono text-xl font-black tracking-widest" style={{ color: V.soft }}>{myCode || '—'}</p>
                   <p className="text-[10px] mt-1" style={{ color: V.low }}>Compartilhe com amigos</p>
                 </div>
                 <button onClick={copyCode} className="p-3 rounded-xl transition-all duration-300"
@@ -246,24 +239,22 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
                 </button>
               </div>
             </div>
-          </div>
+          </header>
 
-          <div className="mb-5 p-1.5 rounded-2xl space-y-1"
+          <div className="no-scrollbar mb-5 overflow-x-auto rounded-2xl p-1.5"
             style={{ background: V.card, border: `1px solid ${V.border}` }}>
-            <div className="grid grid-cols-3 gap-1">
-              {TAB_ROW1.map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} V={V} />)}
-            </div>
-            <div className="grid grid-cols-2 gap-1">
-              {TAB_ROW2.map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} badge={tab.id === 'requests' ? requests.length : 0} V={V} />)}
+            <div className="grid min-w-[520px] grid-cols-5 gap-1">
+              {[...TAB_ROW1, ...TAB_ROW2].map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} badge={tab.id === 'requests' ? requests.length : 0} V={V} />)}
             </div>
           </div>
 
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           {activeTab === 'friends' && (
-            <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {loadingFriends ? (
-                <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.primary }} /></div>
+                <div className="flex justify-center py-16 sm:col-span-2"><Loader2 className="w-8 h-8 animate-spin" style={{ color: V.primary }} /></div>
               ) : friendsData.length === 0 ? (
-                <div className="text-center py-16 rounded-3xl" style={{ background: V.card, border: `1px solid ${V.border}` }}>
+                <div className="rounded-3xl py-16 text-center sm:col-span-2" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                   <Gamepad2 className="w-14 h-14 mx-auto mb-4" style={{ color: V.low }} />
                   <p className="font-bold" style={{ color: V.muted }}>Nenhum amigo ainda</p>
                   <p className="text-sm mt-1" style={{ color: V.low }}>Use a aba Buscar</p>
@@ -441,7 +432,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
           )}
 
           {activeTab === 'add' && (
-            <div className="space-y-4">
+            <div className="mx-auto max-w-3xl space-y-4">
               <div className="rounded-2xl p-5" style={{ background: V.card, border: `1px solid ${V.border}` }}>
                 <div className="flex items-center gap-2 mb-3">
                   <UserPlus className="w-4 h-4" style={{ color: V.soft }} />
@@ -539,6 +530,7 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
               </div>
             </div>
           )}
+          </motion.div>
         </div>
       </div>
     </>

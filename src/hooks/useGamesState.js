@@ -11,6 +11,7 @@ import { useUndoDelete } from './useUndoDelete.jsx';
 export function useGamesState(user) {
   const { firestoreData } = useAuth();
   const { deleteWithUndo } = useUndoDelete();
+  const userId = user?.uid || null;
 
   const [gamesData,          setGamesData]          = useState([]);
   const [achievements,       setAchievements]       = useState([]);
@@ -19,17 +20,20 @@ export function useGamesState(user) {
   const [selectedCategory,   setSelectedCategory]   = useState(null);
   const [selectedGame,       setSelectedGame]       = useState(null);
 
-  const initialLoadDone = useRef(false);
+  const [hydratedUserId, setHydratedUserId] = useState(null);
+  const saveSequence = useRef(0);
+  const pendingSaveMessage = useRef(null);
 
   // ── Carrega dados quando firestoreData muda (login/logout) ─────────────────
   useEffect(() => {
-    if (!firestoreData) {
+    if (!userId || !firestoreData) {
       // Logout
       setGamesData([]);
       setAchievements([]);
       setGameHistory([]);
       setTotalFinishedGames(0);
-      initialLoadDone.current = false;
+      setHydratedUserId(null);
+      saveSequence.current += 1;
       return;
     }
 
@@ -56,18 +60,35 @@ export function useGamesState(user) {
     setGameHistory(hist);
     setTotalFinishedGames(games.filter(g => g.status === 'zerados').length);
 
-    setTimeout(() => { initialLoadDone.current = true; }, 100);
-  }, [firestoreData]);
+    // Este estado só muda no mesmo lote da hidratação acima. Assim o efeito de
+    // persistência nunca consegue salvar o estado vazio inicial sobre a nuvem.
+    setHydratedUserId(userId);
+  }, [firestoreData, userId]);
 
-  // ── Auto-save com debounce ─────────────────────────────────────────────────
+  // ── Auto-save imediato ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user || !initialLoadDone.current) return;
-    const handler = setTimeout(() => {
-      saveUserData(user.uid, { gamesData, achievements, gameHistory, photoBase64: user.photoBase64 || null })
-        .catch(err => console.error('Erro ao salvar:', err));
-    }, 1500);
-    return () => clearTimeout(handler);
-  }, [gamesData, achievements, gameHistory, user]);
+    if (!userId || hydratedUserId !== userId) return;
+
+    const sequence = ++saveSequence.current;
+    const successMessage = pendingSaveMessage.current;
+
+    saveUserData(userId, {
+      gamesData,
+      achievements,
+      gameHistory,
+      photoBase64: user.photoBase64 || null,
+    }).then(() => {
+      if (sequence !== saveSequence.current) return;
+      if (successMessage) {
+        pendingSaveMessage.current = null;
+        toast.success(successMessage);
+      }
+    }).catch(err => {
+      console.error('Erro ao salvar:', err);
+      if (sequence !== saveSequence.current) return;
+      toast.error('Não foi possível salvar na nuvem. Mantenha o app aberto e tente novamente.');
+    });
+  }, [gamesData, achievements, gameHistory, hydratedUserId, userId, user?.photoBase64]);
 
   // ── calculateStats ─────────────────────────────────────────────────────────
   const calculateStats = useCallback((data) => {
@@ -108,18 +129,18 @@ export function useGamesState(user) {
   const handleAddNewGame = useCallback((newGame) => {
     const game = { ...newGame, id: Date.now().toString() };
     if (game.status === 'zerados' && !game.finishedDate) game.finishedDate = new Date().toISOString();
+    pendingSaveMessage.current = 'Jogo salvo na nuvem!';
     setGamesData(prev => { const next = [...prev, game]; calculateStats(next); return next; });
     if (newGame.status === 'zerados') {
       setGameHistory(prev => [...prev, { game: newGame.nome, status: 'zerado', date: new Date().toISOString().split('T')[0] }]);
     }
-    toast.success('Jogo salvo!');
   }, [calculateStats]);
 
   const handleEditGame = useCallback((updated) => {
     if (updated.status === 'zerados' && !updated.finishedDate) updated.finishedDate = new Date().toISOString();
+    pendingSaveMessage.current = 'Jogo atualizado na nuvem!';
     setGamesData(prev => { const next = prev.map(g => g.id === updated.id ? updated : g); calculateStats(next); return next; });
     setSelectedGame(prev => prev?.id === updated.id ? updated : prev);
-    toast.success('Jogo atualizado!');
   }, [calculateStats]);
 
   const handleDeleteGame = useCallback((gameId) => {

@@ -1,15 +1,24 @@
 // src/context/ThemeContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// A cor escolhida pelo jogador funciona como acento. As superfícies permanecem
+// neutras para dar mais destaque às capas, aos dados e aos estados dos jogos.
+const NEUTRAL_SURFACES = {
+  bg: '#090b0e',
+  card: '#111419',
+  card2: '#181c22',
+  border: 'rgba(255,255,255,0.085)',
+  text: '#f4f6f8',
+  muted: 'rgba(226,232,240,0.58)',
+  low: 'rgba(226,232,240,0.28)',
+};
+
 export const THEMES = {
   violet: {
     id: 'violet',
     name: 'Roxo',
     emoji: '💜',
-    bg: '#09060f',
-    card: '#130e22',
-    card2: '#1a1330',
-    border: 'rgba(139,92,246,0.18)',
+    ...NEUTRAL_SURFACES,
     faint: 'rgba(139,92,246,0.08)',
     primary: '#8b5cf6',
     secondary: '#6366f1',
@@ -27,10 +36,7 @@ export const THEMES = {
     id: 'cyan',
     name: 'Azul',
     emoji: '🔵',
-    bg: '#050d14',
-    card: '#091622',
-    card2: '#0e1f30',
-    border: 'rgba(6,182,212,0.18)',
+    ...NEUTRAL_SURFACES,
     faint: 'rgba(6,182,212,0.08)',
     primary: '#06b6d4',
     secondary: '#3b82f6',
@@ -48,10 +54,7 @@ export const THEMES = {
     id: 'emerald',
     name: 'Verde',
     emoji: '💚',
-    bg: '#030d09',
-    card: '#071a10',
-    card2: '#0c2418',
-    border: 'rgba(16,185,129,0.18)',
+    ...NEUTRAL_SURFACES,
     faint: 'rgba(16,185,129,0.08)',
     primary: '#10b981',
     secondary: '#059669',
@@ -69,10 +72,7 @@ export const THEMES = {
     id: 'rose',
     name: 'Vermelho',
     emoji: '❤️',
-    bg: '#0f0508',
-    card: '#1e0a10',
-    card2: '#2a0e17',
-    border: 'rgba(244,63,94,0.18)',
+    ...NEUTRAL_SURFACES,
     faint: 'rgba(244,63,94,0.08)',
     primary: '#f43f5e',
     secondary: '#e11d48',
@@ -90,10 +90,7 @@ export const THEMES = {
     id: 'amber',
     name: 'Laranja',
     emoji: '🟠',
-    bg: '#0f0900',
-    card: '#1e1400',
-    card2: '#2a1c00',
-    border: 'rgba(245,158,11,0.18)',
+    ...NEUTRAL_SURFACES,
     faint: 'rgba(245,158,11,0.08)',
     primary: '#f59e0b',
     secondary: '#d97706',
