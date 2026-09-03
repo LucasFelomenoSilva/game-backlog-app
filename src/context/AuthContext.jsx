@@ -32,23 +32,6 @@ export function AuthProvider({ children }) {
     () => LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]
   );
 
-  const requestNotificationPermission = useCallback(async (userId) => {
-    if (!('Notification' in window) || Notification.permission === 'granted') return;
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') return;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
-      });
-      await setDoc(doc(db, 'pushSubs', userId), { subscription: JSON.stringify(sub) });
-      toast.success('Notificações ativadas!');
-    } catch (err) {
-      console.error('Erro ao assinar push:', err);
-    }
-  }, []);
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
@@ -69,7 +52,6 @@ export function AuthProvider({ children }) {
           });
 
           initUserSocialProfile(currentUser.uid, currentUser.displayName, currentUser.photoURL);
-          requestNotificationPermission(currentUser.uid);
         } else {
           setUser(null);
           setFirestoreData(null);
@@ -85,7 +67,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [requestNotificationPermission]);
+  }, []);
 
   const signIn = useCallback(async () => {
     try {

@@ -76,7 +76,8 @@ export function useGamesState(user) {
       gamesData,
       achievements,
       gameHistory,
-      photoBase64: user.photoBase64 || null,
+      photoBase64: user?.photoBase64 || null,
+      photoURL: user?.photoURL || null,
     }).then(() => {
       if (sequence !== saveSequence.current) return;
       if (successMessage) {
@@ -88,7 +89,7 @@ export function useGamesState(user) {
       if (sequence !== saveSequence.current) return;
       toast.error('Não foi possível salvar na nuvem. Mantenha o app aberto e tente novamente.');
     });
-  }, [gamesData, achievements, gameHistory, hydratedUserId, userId, user?.photoBase64]);
+  }, [gamesData, achievements, gameHistory, hydratedUserId, userId, user?.photoBase64, user?.photoURL]);
 
   // ── calculateStats ─────────────────────────────────────────────────────────
   const calculateStats = useCallback((data) => {

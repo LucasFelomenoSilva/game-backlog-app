@@ -1,8 +1,16 @@
+import { enforceRateLimit, errorResponse, HttpError, requireFirebaseUser } from './_auth.js';
+
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
 function json(data, status = 200) {
-  return Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
+  return Response.json(data, {
+    status,
+    headers: {
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
 
 async function getAccessToken(clientId, clientSecret) {
@@ -26,14 +34,19 @@ export default {
   async fetch(request) {
     if (request.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
 
-    const clientId = process.env.TWITCH_CLIENT_ID;
-    const clientSecret = process.env.TWITCH_CLIENT_SECRET;
-    if (!clientId || !clientSecret) return json({ error: 'Catálogo de jogos não configurado.' }, 503);
-
     try {
+      const user = await requireFirebaseUser(request);
+      enforceRateLimit(`igdb:${user.uid}`, { limit: 30, windowMs: 60_000 });
+
+      const clientId = process.env.TWITCH_CLIENT_ID;
+      const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+      if (!clientId || !clientSecret) {
+        throw new HttpError(503, 'Catálogo de jogos não configurado.');
+      }
+
       const { query } = await request.json();
       const cleanQuery = String(query || '').trim().slice(0, 100);
-      if (cleanQuery.length < 2) return json({ error: 'Digite ao menos 2 caracteres.' }, 400);
+      if (cleanQuery.length < 2) throw new HttpError(400, 'Digite ao menos 2 caracteres.');
 
       const safeQuery = cleanQuery.replace(/["\\]/g, ' ');
       const token = await getAccessToken(clientId, clientSecret);
@@ -62,8 +75,10 @@ export default {
           : 'Data desconhecida',
       })));
     } catch (error) {
-      console.error('IGDB proxy error:', error);
-      return json({ error: error.message || 'Erro ao buscar jogos.' }, 502);
+      if (!(error instanceof HttpError) || error.status >= 500) {
+        console.error('IGDB proxy error:', error);
+      }
+      return errorResponse(error, 'Erro ao buscar jogos.');
     }
   },
 };

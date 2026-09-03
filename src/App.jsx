@@ -1,7 +1,7 @@
 // src/App.jsx
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,7 +25,7 @@ import FriendProfileScreen from './components/FriendProfileScreen';
 
 import {
   LazyProgressScreen, LazyProfileScreen, LazyEnhancedAchievements,
-  LazyFriendsScreen, LazyWrappedScreen, LazyGameRecommender,
+  LazyFriendsScreen, LazyWrappedScreen,
   LazyBackupRestore, LazyWeeklyMissions, LazySurpriseMe,
   LazyCollabList, LazyLevelUpOverlay,
 } from './lazyComponents';
@@ -75,10 +75,8 @@ function AppInner() {
   const [viewingFriend,      setViewingFriend]      = useState(null);
   const [isAddGameModalOpen, setIsAddGameModalOpen] = useState(false);
   const [gameToEdit,         setGameToEdit]         = useState(null);
-  const [draftGame,          setDraftGame]          = useState(null);
   const [isReviewModalOpen,  setIsReviewModalOpen]  = useState(false);
   const [gameToReview,       setGameToReview]       = useState(null);
-  const [isRecommenderOpen,  setIsRecommenderOpen]  = useState(false);
   const [isBackupOpen,       setIsBackupOpen]       = useState(false);
   const [showWrapped,        setShowWrapped]        = useState(false);
   const [showMissions,       setShowMissions]       = useState(false);
@@ -120,10 +118,6 @@ function AppInner() {
     setGameToEdit(null);
   }, [gameToEdit, games]);
 
-  const handleSelectRecommendation = useCallback((game) => {
-    setDraftGame(game); setIsRecommenderOpen(false); setIsAddGameModalOpen(true);
-  }, []);
-
   const handleCompleteFinish = useCallback((reviewData) => {
     games.handleCompleteGameFinish(gameToReview, reviewData, triggerConfetti);
     setIsReviewModalOpen(false); setGameToReview(null);
@@ -149,7 +143,7 @@ function AppInner() {
   if (chatOpen) return (
     <>
       <Toaster position="top-center" toastOptions={{ style: { background: '#1f2937', color: '#fff', border: '1px solid #374151' } }} />
-      <ChatScreen currentUser={{ ...user, photoURL: user?.photoBase64 || user?.photoURL }} friendUid={chatOpen.uid} friendProfile={chatOpen.profile} onBack={() => setChatOpen(null)} />
+      <ChatScreen currentUser={user} friendUid={chatOpen.uid} friendProfile={chatOpen.profile} onBack={() => setChatOpen(null)} />
     </>
   );
 
@@ -197,8 +191,6 @@ function AppInner() {
   const renderMain = () => {
     if (isReviewModalOpen && gameToReview)
       return <ReviewGameModal game={gameToReview} onClose={() => { setIsReviewModalOpen(false); setGameToReview(null); }} onReviewSubmit={handleCompleteFinish} />;
-    if (isRecommenderOpen)
-      return <Suspense fallback={<ModalLoader />}><LazyGameRecommender onClose={() => setIsRecommenderOpen(false)} onSelectGame={handleSelectRecommendation} /></Suspense>;
     if (games.selectedGame)
       return <GameDetail selectedGame={games.selectedGame} setSelectedGame={games.setSelectedGame} handleUpdateGameStatus={games.handleUpdateGameStatus} handleDeleteGame={games.handleDeleteGame} openEditModal={openEditModal} openReviewModal={openReviewModal} triggerConfetti={triggerConfetti} />;
     if (games.selectedCategory)
@@ -212,8 +204,6 @@ function AppInner() {
 
   const mainKey = isReviewModalOpen && gameToReview
     ? 'review'
-    : isRecommenderOpen
-    ? 'recommender'
     : games.selectedGame
     ? 'detail-' + games.selectedGame.id
     : games.selectedCategory
@@ -245,19 +235,21 @@ function AppInner() {
         </AnimatePresence>
       </div>
 
-      {/* Botão flutuante — Recomendador IA */}
-      {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isRecommenderOpen && !isAddGameModalOpen && (
+      {/* Prévia da futura recomendação por IA */}
+      {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isAddGameModalOpen && (
         <button
-          onClick={() => setIsRecommenderOpen(true)}
-          className="fixed bottom-24 right-6 z-30 p-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-full shadow-2xl shadow-purple-500/30 text-white transition-all duration-300 hover:scale-110 border-2 border-purple-400/30"
-          title="Pedir recomendação à IA"
+          onClick={() => toast('Recomendações com IA chegam em breve!', { icon: '✨' })}
+          className="fixed bottom-24 right-6 z-30 flex items-center gap-2 rounded-full border-2 border-purple-400/30 bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-white shadow-2xl shadow-purple-500/30 transition-all duration-300 hover:scale-105"
+          title="Recomendações com IA — em breve"
+          aria-label="Recomendações com IA — em breve"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+          <span className="text-xs font-black uppercase tracking-wider">IA em breve</span>
         </button>
       )}
 
       {isAddGameModalOpen && (
-        <AddGameModal onClose={() => { setIsAddGameModalOpen(false); setGameToEdit(null); setDraftGame(null); }} onSaveGame={handleSaveGame} gameToEdit={gameToEdit} initialData={draftGame} gamesData={games.gamesData} />
+        <AddGameModal onClose={() => { setIsAddGameModalOpen(false); setGameToEdit(null); }} onSaveGame={handleSaveGame} gameToEdit={gameToEdit} gamesData={games.gamesData} />
       )}
       {isBackupOpen && (
         <Suspense fallback={<ModalLoader />}>

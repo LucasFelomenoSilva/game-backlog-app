@@ -1,8 +1,16 @@
+import { auth } from '../firebase';
+
 export async function searchGameIGDB(gameName, { signal } = {}) {
     try {
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) throw new Error('Faça login novamente para buscar jogos.');
+
         const response = await fetch('/api/igdb', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({ query: gameName }),
             signal,
         });

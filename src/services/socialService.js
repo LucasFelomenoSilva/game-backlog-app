@@ -5,7 +5,6 @@ import {
   query, where, getDocs, addDoc, onSnapshot,
   orderBy, serverTimestamp, arrayUnion, arrayRemove
 } from 'firebase/firestore';
-import { getUserGames } from './gameService';
 
 // Gera um código único tipo Discord (ex: GAMER#4821)
 export function generateUserCode() {
@@ -109,10 +108,10 @@ export async function getSocialProfile(uid) {
 
 // Busca dados de jogo públicos do amigo (salvo em users/{uid}/gamesData)
 export async function getFriendGamesData(uid) {
-  const ref = doc(db, 'users', uid);
+  const ref = doc(db, 'publicProfiles', uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) return [];
-  return getUserGames(uid, snap.data().gamesData);
+  return Array.isArray(snap.data().gamesData) ? snap.data().gamesData : [];
 }
 
 // ---- CHAT ----
@@ -123,23 +122,25 @@ export function getChatId(uid1, uid2) {
 }
 
 // Envia mensagem
-export async function sendMessage(chatId, senderUid, senderName, senderPhoto, text) {
-  const chatRef = collection(db, 'chats', chatId, 'messages');
-  await addDoc(chatRef, {
-    senderUid,
-    senderName,
-    senderPhoto: senderPhoto || null,
-    text,
-    createdAt: serverTimestamp(),
-  });
-
-  // Atualiza metadados da conversa
+export async function sendMessage(chatId, senderUid, recipientUid, senderName, senderPhoto, text) {
+  const safePhoto = /^https:\/\//i.test(String(senderPhoto || ''))
+    ? String(senderPhoto).slice(0, 2048)
+    : null;
   const metaRef = doc(db, 'chats', chatId);
   await setDoc(metaRef, {
     lastMessage: text,
     lastMessageAt: serverTimestamp(),
-    participants: [senderUid],
+    participants: [senderUid, recipientUid].sort(),
   }, { merge: true });
+
+  const chatRef = collection(db, 'chats', chatId, 'messages');
+  await addDoc(chatRef, {
+    senderUid,
+    senderName: String(senderName || 'Gamer').slice(0, 120),
+    senderPhoto: safePhoto,
+    text: String(text).slice(0, 1000),
+    createdAt: serverTimestamp(),
+  });
 }
 
 // Listener de mensagens em tempo real

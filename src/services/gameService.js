@@ -26,6 +26,47 @@ import {
 const MAX_BATCH_OPERATIONS = 450;
 const saveQueues = new Map();
 
+function cleanPublicText(value, maxLength) {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
+export function toPublicGames(gamesData = []) {
+  if (!Array.isArray(gamesData)) return [];
+
+  return gamesData.map((game, index) => {
+    let sourceImage = String(game?.imageUrl || game?.imageBase64 || '').trim();
+    if (sourceImage.startsWith('LOADING_URL:')) {
+      sourceImage = sourceImage.replace('LOADING_URL:', '').trim();
+    }
+    if (sourceImage.startsWith('//')) {
+      sourceImage = 'https:' + sourceImage;
+    }
+
+    let imageUrl = '';
+    if (/^https?:\/\//i.test(sourceImage)) {
+      imageUrl = sourceImage.slice(0, 2048);
+    } else if (sourceImage.startsWith('data:image/')) {
+      // Para capas Base64, preserva para jogos visíveis no perfil (zerados, playing, jogando)
+      const isVisible = game?.status === 'zerados' || game?.status === 'playing' || game?.status === 'jogando';
+      if (isVisible) {
+        imageUrl = sourceImage.length <= 350_000 ? sourceImage : '';
+      }
+    }
+
+    return {
+      id: cleanPublicText(game?.id ?? index, 100),
+      nome: cleanPublicText(game?.nome, 160),
+      status: cleanPublicText(game?.status, 40),
+      platform: cleanPublicText(game?.platform, 160),
+      rating: Math.max(0, Math.min(10, Number(game?.rating) || 0)),
+      isPlatinum: Boolean(game?.isPlatinum),
+      finishedDate: cleanPublicText(game?.finishedDate, 40),
+      imageUrl,
+      imageBase64: imageUrl.startsWith('data:image/') ? imageUrl : '',
+    };
+  });
+}
+
 function gameDocumentId(game, index) {
   const rawId = String(game?.id ?? index);
   return `game_${encodeURIComponent(rawId).slice(0, 1000)}`;
@@ -90,11 +131,15 @@ export async function createUserData(uid, initialData) {
  * Salva todos os dados do usuário (games, achievements, history, avatar).
  * Java: PUT /api/users/{uid}
  */
-export async function saveUserData(uid, { gamesData, achievements, gameHistory, photoBase64 }) {
+export async function saveUserData(uid, { gamesData, achievements, gameHistory, photoBase64, photoURL }) {
   const persist = async () => {
     const cleanGames = JSON.parse(JSON.stringify(gamesData));
     const gamesCollection = collection(db, 'users', uid, 'games');
-    const existingGames = await getDocs(gamesCollection);
+    const publicProfileRef = doc(db, 'publicProfiles', uid);
+    const [existingGames, publicProfile] = await Promise.all([
+      getDocs(gamesCollection),
+      getDoc(publicProfileRef),
+    ]);
     const nextDocumentIds = new Set();
     const operations = [];
 
@@ -120,6 +165,18 @@ export async function saveUserData(uid, { gamesData, achievements, gameHistory, 
       updatedAt: serverTimestamp(),
     }, { merge: true }));
 
+    if (publicProfile.exists()) {
+      const publicUpdates = {
+        gamesData: toPublicGames(cleanGames),
+        updatedAt: serverTimestamp(),
+      };
+      const avatar = photoBase64 || photoURL;
+      if (avatar) {
+        publicUpdates.photoURL = avatar;
+      }
+      operations.push(batch => batch.set(publicProfileRef, publicUpdates, { merge: true }));
+    }
+
     await commitOperations(operations);
   };
 
@@ -135,11 +192,41 @@ export async function saveUserData(uid, { gamesData, achievements, gameHistory, 
 }
 
 /**
- * Atualiza apenas o avatar do usuário.
+ * Atualiza apenas o avatar do usuário e sincroniza com o perfil público se existir.
  * Java: PATCH /api/users/{uid}/avatar
  */
 export async function updateUserAvatar(uid, photoBase64) {
   await updateDoc(doc(db, 'users', uid), { photoBase64 });
+  try {
+    const publicProfileRef = doc(db, 'publicProfiles', uid);
+    const publicSnap = await getDoc(publicProfileRef);
+    if (publicSnap.exists()) {
+      await setDoc(publicProfileRef, {
+        photoURL: photoBase64 || '',
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (err) {
+    console.warn('Não foi possível sincronizar avatar com publicProfile:', err);
+  }
+}
+
+/**
+ * Sincroniza explicitamente o perfil público com os dados e avatar atuais.
+ */
+export async function syncPublicProfile(uid, user, gamesData) {
+  const publicProfileRef = doc(db, 'publicProfiles', uid);
+  const snap = await getDoc(publicProfileRef);
+  if (!snap.exists()) return false;
+
+  const currentData = snap.data();
+  const photoURL = user?.photoBase64 || user?.photoURL || currentData.photoURL || '';
+  await setDoc(publicProfileRef, {
+    photoURL,
+    gamesData: toPublicGames(gamesData),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+  return true;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -155,11 +242,8 @@ export async function getPublicProfile(username) {
   const snap = await getDocs(q);
   if (snap.empty) return null;
 
-  const profile  = snap.docs[0].data();
-  const userDoc = await getDoc(doc(db, 'users', profile.uid));
-  const legacyGamesData = userDoc.exists() ? userDoc.data().gamesData : [];
-  const gamesData = await getUserGames(profile.uid, legacyGamesData);
-
+  const profile = snap.docs[0].data();
+  const gamesData = Array.isArray(profile.gamesData) ? profile.gamesData : [];
   return { profile, gamesData };
 }
 

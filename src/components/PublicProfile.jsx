@@ -11,8 +11,18 @@ import {
   Clock,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../firebase";
+import { toPublicGames } from "../services/gameService";
 import { toast } from "react-hot-toast";
 
 function PublicWidget({ profile, currentGame, stats, username }) {
@@ -82,7 +92,7 @@ function PublicWidget({ profile, currentGame, stats, username }) {
               textDecoration: "none",
             }}
           >
-            gamebacklog.app/u/{username}
+            xplog.online/u/{username}
           </a>
         </div>
         <div
@@ -143,9 +153,10 @@ function PublicWidget({ profile, currentGame, stats, username }) {
               {currentGame.platform}
             </div>
           </div>
-          {currentGame.imageBase64 && (
+          {(currentGame.imageUrl || currentGame.imageBase64) && (
             <img
-              src={currentGame.imageBase64}
+              src={currentGame.imageUrl || currentGame.imageBase64}
+              referrerPolicy="no-referrer"
               style={{
                 width: "32px",
                 height: "42px",
@@ -223,7 +234,7 @@ export default function PublicProfile({ currentUser, gamesData }) {
     })(),
   };
 
-  const currentGame = gamesData.find((g) => g.status === "jogando") || null;
+  const currentGame = gamesData.find((g) => g.status === "playing" || g.status === "jogando") || null;
 
   const saveProfile = async () => {
     if (!username.trim()) return;
@@ -238,23 +249,34 @@ export default function PublicProfile({ currentUser, gamesData }) {
 
     setSaving(true);
     try {
-      // O Firebase odeia receber "undefined", então garantimos um valor padrão (|| '')
+      const duplicateQuery = query(
+        collection(db, "publicProfiles"),
+        where("username", "==", slug),
+      );
+      const duplicateSnapshot = await getDocs(duplicateQuery);
+      const belongsToAnotherUser = duplicateSnapshot.docs.some(
+        (profileDoc) => profileDoc.id !== currentUser.uid,
+      );
+
+      if (belongsToAnotherUser) {
+        toast.error("Esse username já está em uso.");
+        return;
+      }
+
       await setDoc(doc(db, "publicProfiles", currentUser.uid), {
         username: slug,
         displayName: currentUser.displayName || "Gamer",
-        photoURL: currentUser.photoURL || "",
+        photoURL: currentUser.photoBase64 || currentUser.photoURL || "",
         level: currentUser.level || 1,
         uid: currentUser.uid,
+        gamesData: toPublicGames(gamesData),
         updatedAt: serverTimestamp(),
       });
       setSavedUsername(slug);
-      toast.success(`Perfil público salvo! gamebacklog.app/u/${slug}`);
+      toast.success(`Perfil público atualizado com sucesso! xplog.online/u/${slug}`);
     } catch (error) {
-      // Agora vamos ver exatamente o que o Firebase está reclamando!
-      console.error("ERRO FIREBASE:", error);
-      toast.error(
-        "Erro ao salvar. Olhe o Console (F12) para ver o motivo real.",
-      );
+      console.error("Erro ao salvar perfil público:", error);
+      toast.error("Não foi possível salvar o perfil público.");
     } finally {
       setSaving(false);
     }
@@ -338,6 +360,15 @@ export default function PublicProfile({ currentUser, gamesData }) {
 
         {savedUsername && (
           <>
+            <button
+              onClick={saveProfile}
+              disabled={saving}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}
+            >
+              {saving ? "Sincronizando..." : "🔄 Atualizar Capas & Foto Pública"}
+            </button>
+
             <div className="flex gap-2">
               <button
                 onClick={copyLink}

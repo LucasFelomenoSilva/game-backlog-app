@@ -37,6 +37,7 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
       await sendMessage(
         chatId,
         currentUser.uid,
+        friendUid,
         currentUser.displayName,
         currentUser.photoURL || null,
         trimmed
