@@ -3,13 +3,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Gamepad2, Joystick, TrendingUp, Trophy, User, Users } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
-const TABS = [
-  { id: 'categories',   label: 'Backlog',  icon: Joystick },
-  { id: 'progress',     label: 'Stats',    icon: TrendingUp },
-  { id: 'friends',      label: 'Social',   icon: Users },
-  { id: 'achievements', label: 'Troféus',  icon: Trophy },
-  { id: 'profile',      label: 'Perfil',   icon: User },
+const TAB_DEFS = [
+  { id: 'categories',   key: 'tab.backlog',  icon: Joystick },
+  { id: 'progress',     key: 'tab.stats',    icon: TrendingUp },
+  { id: 'friends',      key: 'tab.social',   icon: Users },
+  { id: 'achievements', key: 'tab.trophies', icon: Trophy },
+  { id: 'profile',      key: 'tab.profile',  icon: User },
 ];
 
 export default function BottomNavigation({
@@ -20,8 +21,10 @@ export default function BottomNavigation({
   totalFinishedGames = 0,
 }) {
   const { theme: V } = useTheme();
+  const { t } = useLanguage();
   const avatar = user?.photoBase64 || user?.photoURL;
   const firstName = user?.displayName?.split(' ')[0] || 'Gamer';
+  const tabs = TAB_DEFS.map(tDef => ({ ...tDef, label: t(tDef.key) }));
 
   return (
     <>
@@ -48,7 +51,7 @@ export default function BottomNavigation({
         </button>
 
         <nav className="mt-7 space-y-1" aria-label="Navegação principal">
-          {TABS.map(tab => {
+          {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             const hasBadge = tab.id === 'friends' && friendRequestCount > 0;
@@ -102,7 +105,7 @@ export default function BottomNavigation({
 
         <div className="glass-panel pointer-events-auto relative mx-auto max-w-xl rounded-[1.4rem] p-1.5 shadow-2xl">
         <div className="flex items-center justify-between gap-1">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const Icon    = tab.icon;
             const isActive = activeTab === tab.id;
             const hasBadge = tab.id === 'friends' && friendRequestCount > 0;

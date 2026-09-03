@@ -166,11 +166,16 @@ export async function saveUserData(uid, { gamesData, achievements, gameHistory, 
     }, { merge: true }));
 
     if (publicProfile.exists()) {
+      const currentPublic = publicProfile.data() || {};
+      const avatar = photoBase64 || photoURL || currentPublic.photoURL || '';
       const publicUpdates = {
+        username: currentPublic.username,
+        displayName: currentPublic.displayName || 'Gamer',
+        uid,
+        level: currentPublic.level || 1,
         gamesData: toPublicGames(cleanGames),
         updatedAt: serverTimestamp(),
       };
-      const avatar = photoBase64 || photoURL;
       if (avatar) {
         publicUpdates.photoURL = avatar;
       }
@@ -219,9 +224,13 @@ export async function syncPublicProfile(uid, user, gamesData) {
   const snap = await getDoc(publicProfileRef);
   if (!snap.exists()) return false;
 
-  const currentData = snap.data();
+  const currentData = snap.data() || {};
   const photoURL = user?.photoBase64 || user?.photoURL || currentData.photoURL || '';
   await setDoc(publicProfileRef, {
+    username: currentData.username,
+    displayName: currentData.displayName || user?.displayName || 'Gamer',
+    uid,
+    level: currentData.level || user?.level || 1,
     photoURL,
     gamesData: toPublicGames(gamesData),
     updatedAt: serverTimestamp(),

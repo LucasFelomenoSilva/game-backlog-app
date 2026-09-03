@@ -35,8 +35,15 @@ export default {
     if (request.method !== 'POST') return json({ error: 'Método não permitido.' }, 405);
 
     try {
-      const user = await requireFirebaseUser(request);
-      enforceRateLimit(`igdb:${user.uid}`, { limit: 30, windowMs: 60_000 });
+      let rateKey = 'igdb:anon';
+      try {
+        const user = await requireFirebaseUser(request);
+        rateKey = `igdb:${user.uid}`;
+      } catch {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'anon';
+        rateKey = `igdb:ip:${ip}`;
+      }
+      enforceRateLimit(rateKey, { limit: 60, windowMs: 60_000 });
 
       const clientId = process.env.TWITCH_CLIENT_ID;
       const clientSecret = process.env.TWITCH_CLIENT_SECRET;

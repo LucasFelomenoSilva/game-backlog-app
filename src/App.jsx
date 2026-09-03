@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { useGamesState } from './hooks/useGamesState';
 import { subscribeToSocialProfile } from './services/socialService';
 
@@ -267,7 +268,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppInner />
+        <LanguageProvider>
+          <AppInner />
+        </LanguageProvider>
       </AuthProvider>
     </ThemeProvider>
   );

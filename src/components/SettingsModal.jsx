@@ -1,10 +1,12 @@
 // src/components/SettingsModal.jsx
 import React, { useState } from 'react';
-import { X, Palette, Check, Monitor, Sparkles } from 'lucide-react';
+import { X, Palette, Check, Monitor, Sparkles, Globe } from 'lucide-react';
 import { useTheme, THEMES } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function SettingsModal({ onClose }) {
   const { theme, themeId, setTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   const [selected, setSelected] = useState(themeId);
 
   const handleApply = () => {
@@ -18,7 +20,7 @@ export default function SettingsModal({ onClose }) {
       style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)' }}
     >
       <div
-        className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl"
+        className="w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
         style={{
           background: theme.card,
           border: `1px solid ${theme.border}`,
@@ -27,7 +29,7 @@ export default function SettingsModal({ onClose }) {
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-5"
+          className="flex items-center justify-between px-6 py-5 flex-shrink-0"
           style={{ borderBottom: `1px solid ${theme.border}` }}
         >
           <div className="flex items-center gap-3">
@@ -39,10 +41,10 @@ export default function SettingsModal({ onClose }) {
             </div>
             <div>
               <h2 className="text-base font-black" style={{ color: theme.text }}>
-                Configurações
+                {t('settings.title')}
               </h2>
               <p className="text-xs" style={{ color: theme.muted }}>
-                Personalize sua experiência
+                {t('settings.subtitle')}
               </p>
             </div>
           </div>
@@ -55,28 +57,70 @@ export default function SettingsModal({ onClose }) {
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+          {/* Idioma / Language */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="w-4 h-4" style={{ color: theme.soft }} />
+              <p className="text-sm font-black uppercase tracking-widest" style={{ color: theme.text }}>
+                {t('settings.language')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {[
+                { id: 'pt-BR', label: '🇧🇷 Português', sub: 'Brasil' },
+                { id: 'en',    label: '🇺🇸 English',   sub: 'United States' },
+              ].map((l) => {
+                const isSelected = language === l.id;
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => setLanguage(l.id)}
+                    className="flex items-center justify-between p-3.5 rounded-2xl transition-all text-left"
+                    style={{
+                      background: isSelected ? `${theme.primary}20` : theme.faint,
+                      border: `2px solid ${isSelected ? theme.primary : theme.border}`,
+                      boxShadow: isSelected ? `0 0 16px ${theme.glow}` : 'none',
+                    }}
+                  >
+                    <div>
+                      <span className="block text-sm font-black" style={{ color: isSelected ? theme.text : theme.soft }}>
+                        {l.label}
+                      </span>
+                      <span className="block text-[10px] font-bold" style={{ color: theme.muted }}>
+                        {l.sub}
+                      </span>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Tema */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <Monitor className="w-4 h-4" style={{ color: theme.soft }} />
               <p className="text-sm font-black uppercase tracking-widest" style={{ color: theme.text }}>
-                Tema de Cores
+                {t('settings.theme')}
               </p>
             </div>
 
             <div className="grid grid-cols-5 gap-2">
-              {Object.values(THEMES).map((t) => {
-                const isSelected = selected === t.id;
+              {Object.values(THEMES).map((thm) => {
+                const isSelected = selected === thm.id;
                 return (
                   <button
-                    key={t.id}
-                    onClick={() => setSelected(t.id)}
+                    key={thm.id}
+                    onClick={() => setSelected(thm.id)}
                     className="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all"
                     style={{
-                      background: isSelected ? `${t.primary}20` : theme.faint,
-                      border: `2px solid ${isSelected ? t.primary : theme.border}`,
-                      boxShadow: isSelected ? `0 0 16px ${t.glow}` : 'none',
+                      background: isSelected ? `${thm.primary}20` : theme.faint,
+                      border: `2px solid ${isSelected ? thm.primary : theme.border}`,
+                      boxShadow: isSelected ? `0 0 16px ${thm.glow}` : 'none',
                       transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                     }}
                   >
@@ -84,7 +128,7 @@ export default function SettingsModal({ onClose }) {
                     <div className="relative">
                       <div
                         className="w-8 h-8 rounded-full"
-                        style={{ background: t.grad }}
+                        style={{ background: thm.grad }}
                       />
                       {isSelected && (
                         <div
@@ -97,9 +141,9 @@ export default function SettingsModal({ onClose }) {
                     </div>
                     <span
                       className="text-[9px] font-bold uppercase tracking-wide"
-                      style={{ color: isSelected ? t.primary : theme.muted }}
+                      style={{ color: isSelected ? thm.primary : theme.muted }}
                     >
-                      {t.name}
+                      {thm.name}
                     </span>
                   </button>
                 );
@@ -120,10 +164,10 @@ export default function SettingsModal({ onClose }) {
                 </div>
                 <div>
                   <p className="text-sm font-black" style={{ color: THEMES[selected].text }}>
-                    Preview: {THEMES[selected].name}
+                    {t('settings.preview')}: {THEMES[selected].name}
                   </p>
                   <p className="text-xs" style={{ color: THEMES[selected].muted }}>
-                    Assim vai ficar o seu app
+                    {t('settings.preview_desc')}
                   </p>
                 </div>
                 <div
@@ -143,7 +187,7 @@ export default function SettingsModal({ onClose }) {
               boxShadow: `0 4px 20px ${THEMES[selected].glow}`,
             }}
           >
-            Aplicar Tema {THEMES[selected].emoji}
+            {t('settings.apply_theme')} {THEMES[selected].emoji}
           </button>
         </div>
       </div>

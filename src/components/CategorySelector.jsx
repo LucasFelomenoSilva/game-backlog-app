@@ -8,19 +8,7 @@ import GlobalSearch from './GlobalSearch';
 import NextGameSuggestion from './NextGameSuggestion';
 import FocusMode from './FocusMode';
 import { useTheme } from '../context/ThemeContext';
-
-// ─── Design Tokens ─────────────────────────────────────────────────────────────
-// Colunas drag & drop — coloridas individualmente mas com acento roxo
-const MAIN_COLUMNS = [
-  { id: 'playing',   label: 'Jogando Agora', grad: 'from-violet-500 to-indigo-600',   emoji: '🎮' },
-  { id: 'backlog',   label: 'Na Fila',       grad: 'from-purple-500 to-violet-600',   emoji: '⏳' },
-  { id: 'installed', label: 'Instalados',    grad: 'from-indigo-500 to-purple-600',   emoji: '💾' },
-];
-
-const SPECIAL_CATEGORIES = [
-  { id: 'zerados',   label: 'Zerados',         grad: 'from-emerald-500 to-teal-600',  icon: Trophy },
-  { id: 'desejados', label: 'Lista de Desejos', grad: 'from-amber-500 to-orange-600', icon: Star   },
-];
+import { useLanguage } from '../context/LanguageContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -60,7 +48,19 @@ export default function CategorySelector({
   gamesData = [],
 }) {
   const { theme: V } = useTheme(); // Recebe as cores dinâmicas
+  const { t } = useLanguage();
   const [focusGame, setFocusGame] = useState(null);
+
+  const mainColumns = useMemo(() => [
+    { id: 'playing',   label: t('col.playing'),   grad: 'from-violet-500 to-indigo-600',   emoji: '🎮' },
+    { id: 'backlog',   label: t('col.backlog'),   grad: 'from-purple-500 to-violet-600',   emoji: '⏳' },
+    { id: 'installed', label: t('col.installed'), grad: 'from-indigo-500 to-purple-600',   emoji: '💾' },
+  ], [t]);
+
+  const specialCategories = useMemo(() => [
+    { id: 'zerados',   label: t('col.completed'), grad: 'from-emerald-500 to-teal-600',  icon: Trophy },
+    { id: 'desejados', label: t('col.wishlist'),  grad: 'from-amber-500 to-orange-600', icon: Star   },
+  ], [t]);
   const overview = useMemo(() => {
     const total = gamesData.length;
     const finished = gamesData.filter(game => game.status === 'zerados').length;
@@ -172,7 +172,7 @@ export default function CategorySelector({
 
           {/* ── Grid 3 Colunas — Drag & Drop ── */}
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-            {MAIN_COLUMNS.map((col) => {
+            {mainColumns.map((col) => {
               const colGames = games[col.id] || [];
               return (
                 <Droppable droppableId={col.id} key={col.id}>
@@ -301,7 +301,7 @@ export default function CategorySelector({
 
           {/* ── Categorias Especiais ── */}
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {SPECIAL_CATEGORIES.map((cat) => {
+            {specialCategories.map((cat) => {
               const Icon = cat.icon;
               const count = getCategoryProgress(cat.id);
               const catGames = games[cat.id] || [];

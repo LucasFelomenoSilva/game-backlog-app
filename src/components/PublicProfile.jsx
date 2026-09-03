@@ -1,5 +1,5 @@
 // src/components/PublicProfile.jsx — Widget de perfil público compartilhável
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Share2,
   Copy,
@@ -11,6 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import {
   doc,
   getDoc,
@@ -204,48 +205,57 @@ function PublicWidget({ profile, currentGame, stats, username }) {
 
 export default function PublicProfile({ currentUser, gamesData }) {
   const { theme: V } = useTheme();
+  const { t } = useLanguage();
   const [username, setUsername] = useState("");
   const [savedUsername, setSavedUsername] = useState("");
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showWidget, setShowWidget] = useState(false);
 
+  const saveTimeoutRef = useRef(null);
+
+  // Auto-sincronização automática em segundo plano ao abrir
   useEffect(() => {
     if (!currentUser?.uid) return;
     getDoc(doc(db, "publicProfiles", currentUser.uid)).then((snap) => {
       if (snap.exists()) {
-        setSavedUsername(snap.data().username || "");
-        setUsername(snap.data().username || "");
+        const currentData = snap.data();
+        const savedSlug = currentData.username || "";
+        setSavedUsername(savedSlug);
+        setUsername(savedSlug);
+
+        // Atualiza fotos e capas automaticamente em background
+        if (Array.isArray(gamesData) && gamesData.length > 0) {
+          setDoc(doc(db, "publicProfiles", currentUser.uid), {
+            username: savedSlug,
+            displayName: currentUser.displayName || "Gamer",
+            photoURL: currentUser.photoBase64 || currentUser.photoURL || currentData.photoURL || "",
+            level: currentUser.level || 1,
+            uid: currentUser.uid,
+            gamesData: toPublicGames(gamesData),
+            updatedAt: serverTimestamp(),
+          }, { merge: true }).catch(() => {});
+        }
       }
     });
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, gamesData]);
 
   const stats = {
-    zerados: gamesData.filter((g) => g.status === "zerados").length,
-    platinas: gamesData.filter((g) => g.status === "zerados" && g.isPlatinum)
-      .length,
+    zerados: (gamesData || []).filter((g) => g.status === "zerados").length,
+    platinas: (gamesData || []).filter((g) => g.status === "zerados" && g.isPlatinum).length,
     avgRating: (() => {
-      const r = gamesData.filter((g) => g.status === "zerados" && g.rating > 0);
+      const r = (gamesData || []).filter((g) => g.status === "zerados" && g.rating > 0);
       return r.length
-        ? (r.reduce((s, g) => s + parseFloat(g.rating), 0) / r.length).toFixed(
-            1,
-          )
+        ? (r.reduce((s, g) => s + parseFloat(g.rating), 0) / r.length).toFixed(1)
         : "—";
     })(),
   };
 
-  const currentGame = gamesData.find((g) => g.status === "playing" || g.status === "jogando") || null;
+  const currentGame = (gamesData || []).find((g) => g.status === "playing" || g.status === "jogando") || null;
 
-  const saveProfile = async () => {
-    if (!username.trim()) return;
-    const slug = username
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9_]/g, "");
-    if (slug.length < 3) {
-      toast.error("Username muito curto (mín. 3 chars)");
-      return;
-    }
+  const saveProfileAuto = async (slugToSave) => {
+    const slug = (slugToSave || username).trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (slug.length < 3 || slug === savedUsername) return;
 
     setSaving(true);
     try {
@@ -259,7 +269,7 @@ export default function PublicProfile({ currentUser, gamesData }) {
       );
 
       if (belongsToAnotherUser) {
-        toast.error("Esse username já está em uso.");
+        toast.error(t('profile.username_taken'));
         return;
       }
 
@@ -271,15 +281,25 @@ export default function PublicProfile({ currentUser, gamesData }) {
         uid: currentUser.uid,
         gamesData: toPublicGames(gamesData),
         updatedAt: serverTimestamp(),
-      });
+      }, { merge: true });
       setSavedUsername(slug);
-      toast.success(`Perfil público atualizado com sucesso! xplog.online/u/${slug}`);
     } catch (error) {
-      console.error("Erro ao salvar perfil público:", error);
-      toast.error("Não foi possível salvar o perfil público.");
+      console.error("Erro ao salvar perfil público automaticamente:", error);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleUsernameChange = (newVal) => {
+    setUsername(newVal);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+    const slug = newVal.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (slug.length < 3) return;
+
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProfileAuto(slug);
+    }, 700);
   };
 
   const copyLink = () => {
@@ -287,7 +307,7 @@ export default function PublicProfile({ currentUser, gamesData }) {
       `${window.location.origin}/u/${savedUsername}`,
     );
     setCopied(true);
-    toast.success("Link copiado!");
+    toast.success(t('profile.copied'));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -308,10 +328,10 @@ export default function PublicProfile({ currentUser, gamesData }) {
         </div>
         <div>
           <p className="text-sm font-black" style={{ color: V.text }}>
-            Perfil Público
+            {t('profile.public_title')}
           </p>
           <p className="text-xs" style={{ color: V.muted }}>
-            Compartilhe no Twitter/Discord
+            {t('profile.public_subtitle')}
           </p>
         </div>
       </div>
@@ -322,53 +342,45 @@ export default function PublicProfile({ currentUser, gamesData }) {
             className="text-xs font-bold mb-1.5 block"
             style={{ color: V.muted }}
           >
-            Seu username
+            {t('profile.your_username')}
           </label>
-          <div className="flex gap-2">
-            <div
-              className="flex-1 flex items-center rounded-xl overflow-hidden"
-              style={{ background: V.faint, border: `1px solid ${V.border}` }}
+          <div
+            className="w-full flex items-center rounded-xl overflow-hidden"
+            style={{ background: V.faint, border: `1px solid ${V.border}` }}
+          >
+            <span
+              className="pl-3 pr-1 text-xs font-bold"
+              style={{ color: V.low }}
             >
-              <span
-                className="pl-3 pr-1 text-xs font-bold"
-                style={{ color: V.low }}
-              >
-                gamebacklog.app/u/
+              xplog.online/u/
+            </span>
+            <input
+              value={username}
+              onChange={(e) => handleUsernameChange(e.target.value)}
+              placeholder="seunome"
+              className="flex-1 py-2.5 pr-3 text-sm outline-none"
+              style={{
+                background: "transparent",
+                color: V.text,
+                fontSize: 14,
+              }}
+            />
+          </div>
+          <div className="mt-1.5 flex items-center justify-between">
+            {saving ? (
+              <span className="text-xs font-bold text-purple-400">
+                {t('profile.saving')}
               </span>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="seunome"
-                className="flex-1 py-2.5 pr-3 text-sm outline-none"
-                style={{
-                  background: "transparent",
-                  color: V.text,
-                  fontSize: 14,
-                }}
-              />
-            </div>
-            <button
-              onClick={saveProfile}
-              disabled={saving || !username.trim()}
-              className="px-4 py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-40"
-              style={{ background: V.grad }}
-            >
-              {saving ? "..." : "Salvar"}
-            </button>
+            ) : savedUsername ? (
+              <span className="text-xs font-bold text-emerald-400">
+                ✓ {t('profile.auto_saved')}
+              </span>
+            ) : null}
           </div>
         </div>
 
         {savedUsername && (
-          <>
-            <button
-              onClick={saveProfile}
-              disabled={saving}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}
-            >
-              {saving ? "Sincronizando..." : "🔄 Atualizar Capas & Foto Pública"}
-            </button>
-
+          <div className="space-y-3">
             <div className="flex gap-2">
               <button
                 onClick={copyLink}
@@ -384,7 +396,7 @@ export default function PublicProfile({ currentUser, gamesData }) {
                 ) : (
                   <Copy className="w-4 h-4" />
                 )}
-                {copied ? "Copiado!" : "Copiar link"}
+                {copied ? t('profile.copied') : t('profile.copy_link')}
               </button>
               <button
                 onClick={() => setShowWidget((s) => !s)}
@@ -396,7 +408,7 @@ export default function PublicProfile({ currentUser, gamesData }) {
                 }}
               >
                 <Share2 className="w-4 h-4" />
-                Ver widget
+                {t('profile.view_widget')}
               </button>
             </div>
 
@@ -410,7 +422,7 @@ export default function PublicProfile({ currentUser, gamesData }) {
                 />
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

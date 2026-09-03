@@ -7,7 +7,9 @@ import React, { useState, useEffect } from 'react';
 import { Gamepad2, Trophy, Sparkles } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { getPublicProfile } from '../../services/gameService';
+import { useLanguage } from '../../context/LanguageContext';
+import { getPublicProfile, getUserGames, syncPublicProfile } from '../../services/gameService';
+import { auth } from '../../firebase';
 
 const publicGameImage = game => {
   let img = String(game?.imageUrl || game?.imageBase64 || '').trim();
@@ -18,22 +20,74 @@ const publicGameImage = game => {
 
 export default function PublicProfilePage() {
   const { theme: V } = useTheme();
+  const { t } = useLanguage();
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
   useEffect(() => {
     const username = window.location.pathname.split('/u/')[1]?.replace('/', '');
-    if (!username) { setError('Link de utilizador inválido.'); setLoading(false); return; }
+    if (!username) { setError('Link de usuário inválido.'); setLoading(false); return; }
 
     getPublicProfile(username)
       .then(result => {
-        if (!result) setError('Perfil não encontrado 😢');
+        if (!result) setError('Perfil não encontrado');
         else setData(result);
       })
       .catch(() => setError('Erro ao carregar o perfil.'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Se o usuário logado for o dono do perfil, sincroniza tudo automaticamente em segundo plano
+  useEffect(() => {
+    if (!data?.profile?.uid) return;
+    const currentUid = auth.currentUser?.uid;
+    if (currentUid && currentUid === data.profile.uid) {
+      getUserGames(currentUid).then(userGames => {
+        if (userGames && userGames.length > 0) {
+          syncPublicProfile(currentUid, auth.currentUser, userGames).then(() => {
+            getPublicProfile(data.profile.username).then(res => {
+              if (res) setData(res);
+            });
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [data?.profile?.uid, data?.profile?.username]);
+
+  // Se algum jogo público estiver sem capa, busca automaticamente pelo nome
+  useEffect(() => {
+    if (!data?.gamesData) return;
+    const missing = data.gamesData.filter(g => !publicGameImage(g) && g.nome);
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    missing.forEach(async (game) => {
+      try {
+        const res = await fetch('/api/igdb', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: game.nome }),
+        });
+        if (!res.ok) return;
+        const results = await res.json();
+        const found = results?.[0]?.imageUrl;
+        if (found && !cancelled) {
+          setData(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              gamesData: prev.gamesData.map(g => g.id === game.id ? { ...g, imageUrl: found } : g),
+            };
+          });
+        }
+      } catch {
+        // silencioso
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [data?.gamesData]);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: V.bg }}>
@@ -44,11 +98,11 @@ export default function PublicProfilePage() {
   if (error || !data) return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center" style={{ background: V.bg }}>
       <Gamepad2 className="w-20 h-20 mb-6 opacity-50" style={{ color: V.muted }} />
-      <h1 className="text-3xl font-black mb-2 text-white">{error || 'Perfil não encontrado'}</h1>
-      <p className="mb-8" style={{ color: V.muted }}>O utilizador que procura não existe ou alterou o nome.</p>
+      <h1 className="text-3xl font-black mb-2 text-white">{error || t('profile.not_found')}</h1>
+      <p className="mb-8" style={{ color: V.muted }}>{t('profile.not_found_desc')}</p>
       <a href="/" className="px-6 py-3 rounded-2xl font-bold text-white transition-all hover:scale-105 shadow-xl"
         style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
-        Criar o meu Backlog
+        {t('profile.create_backlog_cta')}
       </a>
     </div>
   );
@@ -75,7 +129,6 @@ export default function PublicProfilePage() {
                     alt="Avatar"
                     className="w-full h-full object-cover"
                     referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                       const fb = e.currentTarget.nextElementSibling;
@@ -97,11 +150,11 @@ export default function PublicProfilePage() {
           })()}
         </div>
         <h1 className="text-3xl font-black mb-1">{profile.displayName}</h1>
-        <p className="text-sm font-semibold mb-6" style={{ color: V.primary }}>Nível {profile.level || 1}</p>
+        <p className="text-sm font-semibold mb-6" style={{ color: V.primary }}>{t('profile.level')} {profile.level || 1}</p>
         <div className="flex justify-center gap-4 max-w-sm mx-auto">
           {[
-            { value: finished.length, label: 'Zerados',  color: '#10b981' },
-            { value: platinas,        label: 'Platinas',  color: '#f59e0b' },
+            { value: finished.length, label: t('profile.stats_completed'), color: '#10b981' },
+            { value: platinas,        label: t('profile.stats_platinums'), color: '#f59e0b' },
           ].map(stat => (
             <div key={stat.label} className="flex-1 p-3 rounded-2xl" style={{ background: V.faint, border: `1px solid ${V.border}` }}>
               <div className="text-2xl font-black" style={{ color: stat.color }}>{stat.value}</div>
@@ -112,11 +165,11 @@ export default function PublicProfilePage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 mt-8 space-y-8">
-        {/* A jogar agora */}
+        {/* Jogando agora */}
         {playing.length > 0 && (
           <div>
             <h2 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: V.muted }}>
-              <Gamepad2 className="w-4 h-4" /> A Jogar Agora
+              <Gamepad2 className="w-4 h-4" /> {t('profile.playing_now')}
             </h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {playing.map(game => {
@@ -159,10 +212,10 @@ export default function PublicProfilePage() {
         {/* Últimos zerados */}
         <div>
           <h2 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: V.muted }}>
-            <Trophy className="w-4 h-4" /> Últimos Zerados
+            <Trophy className="w-4 h-4" /> {t('profile.recent_completed')}
           </h2>
           {finished.length === 0
-            ? <p className="text-center py-10 text-sm" style={{ color: V.muted }}>Nenhum jogo concluído ainda.</p>
+            ? <p className="text-center py-10 text-sm" style={{ color: V.muted }}>{t('profile.no_completed')}</p>
             : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {finished.map(game => {
@@ -213,7 +266,7 @@ export default function PublicProfilePage() {
       <div className="text-center mt-16 pb-8">
         <a href="/" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-transform hover:scale-105"
           style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
-          <Sparkles className="w-5 h-5" /> Crie o seu Backlog também
+          <Sparkles className="w-5 h-5" /> {t('profile.create_backlog_cta')}
         </a>
       </div>
     </div>
