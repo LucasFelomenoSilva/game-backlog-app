@@ -1,7 +1,8 @@
 // src/features/auth/LoginScreen.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, BarChart3, Check, Gamepad2, Layers3, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import LegalModal from '../../components/LegalModal';
 
 const FEATURES = [
   { icon: Layers3, title: 'Backlog organizado', text: 'Tudo que você quer jogar, sem perder o contexto.' },
@@ -11,6 +12,7 @@ const FEATURES = [
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const [legalModal, setLegalModal] = useState(null);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#08060f] text-white">
@@ -106,7 +108,35 @@ export default function LoginScreen() {
             </div>
           </div>
         </section>
+
+        {/* Footer com Termos e Privacidade */}
+        <footer className="mt-auto border-t border-white/5 py-6 text-center sm:text-left flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+          <div>
+            © {new Date().getFullYear()} XpLog. Todos os direitos reservados.
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setLegalModal('terms')}
+              className="hover:text-slate-300 transition-colors underline"
+            >
+              Termos de Uso
+            </button>
+            <span>·</span>
+            <button
+              type="button"
+              onClick={() => setLegalModal('privacy')}
+              className="hover:text-slate-300 transition-colors underline"
+            >
+              Política de Privacidade
+            </button>
+          </div>
+        </footer>
       </div>
+
+      {legalModal && (
+        <LegalModal initialTab={legalModal} onClose={() => setLegalModal(null)} />
+      )}
     </main>
   );
 }

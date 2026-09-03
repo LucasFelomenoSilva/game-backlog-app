@@ -1,13 +1,14 @@
-// src/components/SettingsModal.jsx
 import React, { useState } from 'react';
-import { X, Palette, Check, Monitor, Sparkles, Globe } from 'lucide-react';
+import { X, Palette, Check, Monitor, Sparkles, Globe, ShieldCheck } from 'lucide-react';
 import { useTheme, THEMES } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import LegalModal from './LegalModal';
 
 export default function SettingsModal({ onClose }) {
   const { theme, themeId, setTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [selected, setSelected] = useState(themeId);
+  const [legalTab, setLegalTab] = useState(null);
 
   const handleApply = () => {
     setTheme(selected);
@@ -189,8 +190,33 @@ export default function SettingsModal({ onClose }) {
           >
             {t('settings.apply_theme')} {THEMES[selected].emoji}
           </button>
+
+          {/* Links de Termos e Privacidade */}
+          <div className="pt-3 border-t flex items-center justify-center gap-3 text-xs" style={{ borderColor: theme.border }}>
+            <button
+              type="button"
+              onClick={() => setLegalTab('terms')}
+              className="hover:underline transition-colors font-medium"
+              style={{ color: theme.muted }}
+            >
+              Termos de Uso
+            </button>
+            <span style={{ color: theme.border }}>•</span>
+            <button
+              type="button"
+              onClick={() => setLegalTab('privacy')}
+              className="hover:underline transition-colors font-medium"
+              style={{ color: theme.muted }}
+            >
+              Privacidade
+            </button>
+          </div>
         </div>
       </div>
+
+      {legalTab && (
+        <LegalModal initialTab={legalTab} onClose={() => setLegalTab(null)} />
+      )}
     </div>
   );
 }

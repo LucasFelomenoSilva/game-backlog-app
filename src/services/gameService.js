@@ -168,11 +168,13 @@ export async function saveUserData(uid, { gamesData, achievements, gameHistory, 
     if (publicProfile.exists()) {
       const currentPublic = publicProfile.data() || {};
       const avatar = photoBase64 || photoURL || currentPublic.photoURL || '';
+      const finishedCount = cleanGames.filter(g => g.status === 'zerados').length;
+      const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
       const publicUpdates = {
         username: currentPublic.username,
         displayName: currentPublic.displayName || 'Gamer',
         uid,
-        level: currentPublic.level || 1,
+        level: calculatedLevel,
         gamesData: toPublicGames(cleanGames),
         updatedAt: serverTimestamp(),
       };
@@ -226,11 +228,13 @@ export async function syncPublicProfile(uid, user, gamesData) {
 
   const currentData = snap.data() || {};
   const photoURL = user?.photoBase64 || user?.photoURL || currentData.photoURL || '';
+  const finishedCount = (gamesData || []).filter(g => g.status === 'zerados').length;
+  const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
   await setDoc(publicProfileRef, {
     username: currentData.username,
     displayName: currentData.displayName || user?.displayName || 'Gamer',
     uid,
-    level: currentData.level || user?.level || 1,
+    level: calculatedLevel,
     photoURL,
     gamesData: toPublicGames(gamesData),
     updatedAt: serverTimestamp(),

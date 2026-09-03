@@ -38,6 +38,17 @@ export default function PublicProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Altera o título da aba do navegador para "XpLog -- {nome do usuário}"
+  useEffect(() => {
+    if (data?.profile) {
+      const name = data.profile.displayName || data.profile.username || 'Perfil';
+      document.title = `XpLog -- ${name}`;
+    }
+    return () => {
+      document.title = 'XpLog - Seu Backlog Gamer';
+    };
+  }, [data?.profile]);
+
   // Se o usuário logado for o dono do perfil, sincroniza tudo automaticamente em segundo plano
   useEffect(() => {
     if (!data?.profile?.uid) return;
@@ -150,7 +161,14 @@ export default function PublicProfilePage() {
           })()}
         </div>
         <h1 className="text-3xl font-black mb-1">{profile.displayName}</h1>
-        <p className="text-sm font-semibold mb-6" style={{ color: V.primary }}>{t('profile.level')} {profile.level || 1}</p>
+        {(() => {
+          const currentLevel = Math.max(Number(profile.level) || 1, Math.floor(finished.length / 5) + 1);
+          return (
+            <p className="text-sm font-semibold mb-6" style={{ color: V.primary }}>
+              {t('profile.level')} {currentLevel}
+            </p>
+          );
+        })()}
         <div className="flex justify-center gap-4 max-w-sm mx-auto">
           {[
             { value: finished.length, label: t('profile.stats_completed'), color: '#10b981' },
@@ -262,12 +280,47 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* CTA */}
-      <div className="text-center mt-16 pb-8">
-        <a href="/" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-transform hover:scale-105"
-          style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}>
-          <Sparkles className="w-5 h-5" /> {t('profile.create_backlog_cta')}
+      {/* CTA com Brilho e Animação Sutil */}
+      <div className="text-center mt-16 pb-8 px-4">
+        <style>{`
+          @keyframes xplog-shimmer {
+            0% { transform: translateX(-150%) skewX(-25deg); }
+            40%, 100% { transform: translateX(250%) skewX(-25deg); }
+          }
+          @keyframes xplog-glow {
+            0% { box-shadow: 0 0 20px ${V.primary}66, 0 8px 30px rgba(0,0,0,0.5); transform: translateY(0); }
+            100% { box-shadow: 0 0 35px ${V.primary}aa, 0 12px 35px rgba(0,0,0,0.7); transform: translateY(-2px); }
+          }
+        `}</style>
+        <a
+          href="/"
+          className="group relative inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl font-black text-white text-base overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95"
+          style={{
+            background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})`,
+            animation: 'xplog-glow 2.5s ease-in-out infinite alternate',
+            border: `1px solid ${V.primary}80`,
+          }}
+        >
+          {/* Efeito de brilho / Shimmer contínuo sutil */}
+          <div
+            className="absolute inset-0 -translate-x-full pointer-events-none bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            style={{ animation: 'xplog-shimmer 3s ease-in-out infinite' }}
+          />
+          <Sparkles className="w-5 h-5 text-yellow-300 transition-transform group-hover:rotate-12" />
+          <span className="relative z-10">{t('profile.create_backlog_cta')}</span>
         </a>
+
+        {/* Rodapé com Termos e Privacidade */}
+        <div className="mt-12 pt-6 border-t flex flex-wrap justify-center items-center gap-6 text-xs max-w-sm mx-auto"
+          style={{ borderColor: V.border, color: V.muted }}>
+          <span>© {new Date().getFullYear()} XpLog</span>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-white transition-colors">
+            Termos de Uso
+          </a>
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-white transition-colors">
+            Privacidade
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -1,11 +1,19 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Gamepad, Save, Upload, Loader2, Search, Image as ImageIcon, FileText, Trophy, Star, Calendar, CalendarDays, AlertTriangle } from 'lucide-react';
+import { X, Gamepad, Save, Upload, Loader2, Search, Image as ImageIcon, FileText, Trophy, Star, Calendar, CalendarDays, AlertTriangle, ChevronDown, Check, Clock } from 'lucide-react';
 import { categoryNames, initialGameData, platformOptions, genreOptions } from '../data/categories';
 import imageCompression from "browser-image-compression";
 import { toast } from 'react-hot-toast';
 import { searchGameIGDB } from '../services/igdbService';
 import CustomTags from './CustomTags';
 import { useTheme } from '../context/ThemeContext';
+
+const STATUS_CONFIG = {
+  playing:   { label: 'Jogando Agora', emoji: '🔥', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+  installed: { label: 'Instalados',    emoji: '💾', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  backlog:   { label: 'Na Fila',       emoji: '⏳', color: '#a855f7', bg: 'rgba(168,85,247,0.15)' },
+  zerados:   { label: 'Zerados',       emoji: '✅', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+  desejados: { label: 'Lista de Desejos', emoji: '🌟', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+};
 
 const RatingStar = ({ rating, setRating, index }) => {
   const isSelected = index <= rating;
@@ -23,7 +31,20 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const { theme: V } = useTheme();
   const isEditing = !!gameToEdit;
   const initialStatus = isEditing ? gameToEdit.status : 'playing';
-  const [formData, setFormData] = useState(isEditing ? gameToEdit : { ...initialGameData, status: initialStatus });
+  const lastSavedPlatform = useMemo(() => {
+    try {
+      return localStorage.getItem('xplog_last_platform') || 'PC';
+    } catch {
+      return 'PC';
+    }
+  }, []);
+
+  const [formData, setFormData] = useState(() => {
+    if (isEditing) return gameToEdit;
+    return { ...initialGameData, status: initialStatus, platform: lastSavedPlatform };
+  });
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [genreOpen, setGenreOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const fileInputRef = useRef(null);
@@ -111,13 +132,30 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
   const togglePlatform = (platform) => {
     const current = formData.platform ? formData.platform.split(' | ').filter(p => p.trim() !== '') : [];
     const updated = current.includes(platform) ? current.filter(p => p !== platform) : [...current, platform];
-    setFormData(prev => ({ ...prev, platform: updated.join(' | ') }));
+    const platStr = updated.join(' | ');
+    setFormData(prev => ({ ...prev, platform: platStr }));
+    try {
+      if (platStr) localStorage.setItem('xplog_last_platform', platStr);
+    } catch {}
   };
 
   const handleSelectGame = (gameResult) => {
-    setFormData(prev => ({ ...prev, nome: gameResult.nome, timeToBeat: gameResult.timeToBeat || 0, imageBase64: gameResult.imageUrl ? `LOADING_URL:${gameResult.imageUrl}` : "", genre: gameResult.genre, platform: gameResult.platform }));
-    setSearchQuery(''); setSearchResults([]); setShowSearchResults(false);
-    toast.success("Jogo selecionado!");
+    setFormData(prev => ({
+      ...prev,
+      nome: gameResult.nome,
+      timeToBeat: (gameResult.timeToBeat && gameResult.timeToBeat > 0) ? gameResult.timeToBeat : prev.timeToBeat,
+      imageBase64: gameResult.imageUrl ? `LOADING_URL:${gameResult.imageUrl}` : "",
+      genre: gameResult.genre || prev.genre,
+      platform: prev.platform || gameResult.platform || 'PC',
+    }));
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+    if (gameResult.timeToBeat > 0) {
+      toast.success(`${gameResult.nome} (~${gameResult.timeToBeat}h · ${gameResult.genre})`, { icon: '✨' });
+    } else {
+      toast.success(`Jogo selecionado! (${gameResult.genre})`);
+    }
   };
 
   const convertFileToBase64 = async (file) => {
@@ -138,6 +176,9 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     setLoading(true);
     let imageBase64Data = formData.imageBase64;
     try {
+      if (formData.platform) {
+        try { localStorage.setItem('xplog_last_platform', formData.platform); } catch {}
+      }
       if (imageFile) {
         imageBase64Data = await convertFileToBase64(imageFile);
       } else if (imageBase64Data && imageBase64Data.startsWith('LOADING_URL:')) {
@@ -311,33 +352,176 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-1 gap-4 min-[380px]:grid-cols-2">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Gênero</label>
-                    <select name="genre" value={formData.genre} onChange={handleChange}
-                      className="w-full px-3 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
-                      {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
+
+                {/* Status e Gênero */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Status Dropdown */}
+                  <div className="relative">
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Status *</label>
+                    <button
+                      type="button"
+                      onClick={() => { setStatusOpen(p => !p); setGenreOpen(false); }}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all shadow-sm focus:outline-none focus:ring-2"
+                      style={{
+                        ...inputStyle,
+                        borderColor: statusOpen ? V.primary : V.border,
+                        '--tw-ring-color': V.primary
+                      }}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-base">{STATUS_CONFIG[formData.status]?.emoji || '🎮'}</span>
+                        <span className="truncate" style={{ color: STATUS_CONFIG[formData.status]?.color || V.text }}>
+                          {categoryNames[formData.status] || formData.status}
+                        </span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180 text-white' : ''}`} style={{ color: V.muted }} />
+                    </button>
+
+                    {statusOpen && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setStatusOpen(false)} />
+                        <div
+                          className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl border p-1.5 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+                          style={{ background: `${V.card}fa`, borderColor: V.border }}
+                        >
+                          <div className="space-y-1">
+                            {availableCategories.map(([key, label]) => {
+                              const conf = STATUS_CONFIG[key] || { emoji: '🎮', color: V.primary, bg: 'rgba(255,255,255,0.05)' };
+                              const isSelected = formData.status === key;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({ ...prev, status: key }));
+                                    setStatusOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                                    isSelected ? 'shadow-sm' : 'hover:bg-white/5 opacity-85 hover:opacity-100'
+                                  }`}
+                                  style={isSelected ? { background: conf.bg, color: conf.color, border: `1px solid ${conf.color}40` } : { color: V.text }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span>{conf.emoji}</span>
+                                    <span>{label}</span>
+                                  </div>
+                                  {isSelected && <Check className="w-3.5 h-3.5" style={{ color: conf.color }} />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Horas</label>
-                    <input type="number" name="timeToBeat" value={formData.timeToBeat} onChange={handleChange}
-                      className="w-full px-3 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} placeholder="0" />
+
+                  {/* Gênero Dropdown */}
+                  <div className="relative">
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Gênero</label>
+                    <button
+                      type="button"
+                      onClick={() => { setGenreOpen(p => !p); setStatusOpen(false); }}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all shadow-sm focus:outline-none focus:ring-2"
+                      style={{
+                        ...inputStyle,
+                        borderColor: genreOpen ? V.primary : V.border,
+                        '--tw-ring-color': V.primary
+                      }}
+                    >
+                      <span className="truncate" style={{ color: formData.genre ? V.text : V.muted }}>
+                        {formData.genre || 'Selecione'}
+                      </span>
+                      <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${genreOpen ? 'rotate-180 text-white' : ''}`} style={{ color: V.muted }} />
+                    </button>
+
+                    {genreOpen && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setGenreOpen(false)} />
+                        <div
+                          className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl border p-1.5 shadow-2xl backdrop-blur-xl max-h-52 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150"
+                          style={{ background: `${V.card}fa`, borderColor: V.border }}
+                        >
+                          <div className="space-y-1">
+                            {genreOptions.map((g) => {
+                              const isSelected = formData.genre === g;
+                              return (
+                                <button
+                                  key={g}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData(prev => ({ ...prev, genre: g }));
+                                    setGenreOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                                    isSelected ? 'font-bold' : 'hover:bg-white/5 opacity-85 hover:opacity-100'
+                                  }`}
+                                  style={isSelected ? { background: `${V.primary}20`, color: V.primary, border: `1px solid ${V.primary}40` } : { color: V.text }}
+                                >
+                                  <span>{g}</span>
+                                  {isSelected && <Check className="w-3.5 h-3.5" style={{ color: V.primary }} />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
+
+                {/* Horas p/ Zerar */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Status</label>
-                  <select name="status" value={formData.status} onChange={handleChange}
-                    className="w-full px-3 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle}>
-                    {availableCategories.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
-                  </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider" style={labelStyle}>
+                      Horas Estimadas
+                    </label>
+                    {formData.timeToBeat > 0 && (
+                      <span className="text-[11px] font-semibold text-emerald-400">
+                        ~{formData.timeToBeat}h para zerar
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: V.muted }} />
+                    <input
+                      type="number"
+                      name="timeToBeat"
+                      min="0"
+                      max="9999"
+                      value={formData.timeToBeat === 0 ? '' : formData.timeToBeat}
+                      onChange={(e) => setFormData(prev => ({ ...prev, timeToBeat: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
+                      className="w-full pl-10 pr-12 py-2.5 rounded-xl focus:outline-none focus:ring-2 transition-all font-semibold text-sm"
+                      style={inputStyle}
+                      placeholder="Ex: 25"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold pointer-events-none" style={{ color: V.muted }}>
+                      hrs
+                    </span>
+                  </div>
+                  {/* Chips rápidos */}
+                  <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5">
+                    <span className="text-[10px] uppercase font-bold flex-shrink-0" style={{ color: V.muted }}>Atalhos:</span>
+                    {[10, 25, 50, 80, 100].map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, timeToBeat: h }))}
+                        className="px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all hover:opacity-100 flex-shrink-0"
+                        style={formData.timeToBeat === h
+                          ? { background: `${V.primary}30`, borderColor: V.primary, color: V.primary }
+                          : { background: V.faint, borderColor: V.border, color: V.muted, opacity: 0.8 }}
+                      >
+                        {h}h
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Plataformas */}
-            <div className="rounded-xl p-4" style={sectionStyle}>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-3" style={{ color: V.soft }}>Plataformas *</label>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: V.soft }}>Plataformas *</label>
               <div className="flex flex-wrap gap-2">
                 {platformOptions.map((p) => {
                   const selected = isPlatformSelected(p);
