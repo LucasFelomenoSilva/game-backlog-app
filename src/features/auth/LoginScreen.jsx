@@ -7,7 +7,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import LegalModal from '../../components/LegalModal';
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, lastUser, clearLastUser } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [legalModal, setLegalModal] = useState(null);
 
@@ -130,7 +130,7 @@ export default function LoginScreen() {
             <motion.button
               whileHover={{ scale: 1.025, translateY: -2 }}
               whileTap={{ scale: 0.98 }}
-              onClick={signIn}
+              onClick={() => signIn()}
               className="group relative overflow-hidden mt-10 flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 font-black text-slate-950 shadow-2xl shadow-violet-950/50 transition-all sm:w-auto"
             >
               {/* Efeito de brilho / Shimmer sutil no hover */}
@@ -140,6 +140,55 @@ export default function LoginScreen() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 text-violet-700" />
             </motion.button>
             <p className="mt-3 text-xs text-slate-500">{t('landing.login_note')}</p>
+
+            {/* Opção de reconexão rápida com a última conta utilizada */}
+            {lastUser && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-5 max-w-sm rounded-2xl border border-violet-500/25 bg-violet-950/30 p-3.5 backdrop-blur-md shadow-xl"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-violet-300/80">
+                    {language === 'en' ? 'Previous account' : 'Último login realizado'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearLastUser}
+                    className="text-[10px] text-slate-400 hover:text-rose-300 transition-colors"
+                    title={language === 'en' ? 'Remove account' : 'Esquecer conta'}
+                  >
+                    {language === 'en' ? 'Forget' : 'Esquecer'}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => signIn(lastUser.email)}
+                  className="group flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-2.5 transition-all hover:bg-white/10 hover:border-violet-400/40 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-violet-400/30 bg-violet-900/40">
+                      {lastUser.photoURL ? (
+                        <img src={lastUser.photoURL} alt={lastUser.displayName} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="grid h-full w-full place-items-center text-xs font-black text-violet-300">
+                          {lastUser.displayName?.charAt(0) || 'G'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <p className="truncate text-xs font-black text-white group-hover:text-violet-200 transition-colors">
+                        {lastUser.displayName}
+                      </p>
+                      <p className="truncate text-[10px] text-slate-400">{lastUser.email}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-md shadow-violet-950/50 transition-all group-hover:brightness-110">
+                    {language === 'en' ? 'Log in' : 'Entrar'}
+                  </span>
+                </button>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Card do Painel com Levitação Sutil e Hover Interativo */}

@@ -257,7 +257,7 @@ function AppInner() {
       {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isAddGameModalOpen && (
         <button
           onClick={() => setShowAIModal(true)}
-          className="fixed bottom-[4.75rem] right-4 z-30 flex items-center justify-center gap-1.5 rounded-full border border-purple-400/25 bg-purple-950/70 text-purple-200 backdrop-blur-md shadow-lg shadow-black/50 transition-all duration-300 hover:scale-105 hover:bg-purple-900/80 hover:text-white hover:border-purple-400/40 active:scale-95 h-9 w-9 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2"
+          className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] right-4 sm:bottom-24 sm:right-6 lg:bottom-8 lg:right-8 z-30 flex items-center justify-center gap-1.5 rounded-full border border-purple-400/25 bg-purple-950/70 text-purple-200 backdrop-blur-md shadow-lg shadow-black/50 transition-all duration-300 hover:scale-105 hover:bg-purple-900/80 hover:text-white hover:border-purple-400/40 active:scale-95 h-9 w-9 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2"
           title={t('ai.title')}
           aria-label={t('ai.title')}
         >

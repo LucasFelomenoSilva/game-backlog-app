@@ -32,6 +32,15 @@ export function AuthProvider({ children }) {
     () => LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]
   );
 
+  const [lastUser, setLastUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('xplog_last_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
@@ -51,6 +60,19 @@ export function AuthProvider({ children }) {
             favorites:   data.favorites   || [],
           });
 
+          // Salva dados do último login para reconexão rápida de um clique
+          const userMeta = {
+            displayName: currentUser.displayName || 'Gamer',
+            email: currentUser.email || '',
+            photoURL: data.photoBase64 || currentUser.photoURL || '',
+          };
+          try {
+            localStorage.setItem('xplog_last_user', JSON.stringify(userMeta));
+            setLastUser(userMeta);
+          } catch {
+            // ignore
+          }
+
           initUserSocialProfile(currentUser.uid, currentUser.displayName, currentUser.photoURL);
         } else {
           setUser(null);
@@ -69,12 +91,28 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (emailHint = null) => {
     try {
+      if (emailHint && typeof emailHint === 'string') {
+        googleProvider.setCustomParameters({ login_hint: emailHint });
+      } else {
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+      }
       await signInWithPopup(auth, googleProvider);
       toast.success('Player 1 Connected!');
+    } catch (err) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        toast.error('Erro ao conectar controle (Login).');
+      }
+    }
+  }, []);
+
+  const clearLastUser = useCallback(() => {
+    try {
+      localStorage.removeItem('xplog_last_user');
+      setLastUser(null);
     } catch {
-      toast.error('Erro ao conectar controle (Login).');
+      // ignore
     }
   }, []);
 
@@ -113,7 +151,7 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, loadingTip, firestoreData, signIn, signOut, updateAvatar }}>
+    <AuthContext.Provider value={{ user, loading, loadingTip, firestoreData, signIn, signOut, updateAvatar, lastUser, clearLastUser }}>
       {children}
     </AuthContext.Provider>
   );

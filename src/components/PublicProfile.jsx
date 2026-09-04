@@ -226,11 +226,18 @@ export default function PublicProfile({ currentUser, gamesData }) {
 
         // Atualiza fotos e capas automaticamente em background
         if (Array.isArray(gamesData) && gamesData.length > 0) {
+          const finishedCount = (gamesData || []).filter((g) => g.status === "zerados").length;
+          const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
+          let avatar = currentUser.photoURL || currentData.photoURL || "";
+          if (!avatar && currentUser.photoBase64 && currentUser.photoBase64.length <= 150_000) {
+            avatar = currentUser.photoBase64;
+          }
+
           setDoc(doc(db, "publicProfiles", currentUser.uid), {
             username: savedSlug,
             displayName: currentUser.displayName || "Gamer",
-            photoURL: currentUser.photoBase64 || currentUser.photoURL || currentData.photoURL || "",
-            level: currentUser.level || 1,
+            photoURL: avatar,
+            level: calculatedLevel,
             uid: currentUser.uid,
             gamesData: toPublicGames(gamesData),
             updatedAt: serverTimestamp(),
@@ -273,11 +280,18 @@ export default function PublicProfile({ currentUser, gamesData }) {
         return;
       }
 
+      const finishedCount = (gamesData || []).filter((g) => g.status === "zerados").length;
+      const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
+      let avatar = currentUser.photoURL || "";
+      if (!avatar && currentUser.photoBase64 && currentUser.photoBase64.length <= 150_000) {
+        avatar = currentUser.photoBase64;
+      }
+
       await setDoc(doc(db, "publicProfiles", currentUser.uid), {
         username: slug,
         displayName: currentUser.displayName || "Gamer",
-        photoURL: currentUser.photoBase64 || currentUser.photoURL || "",
-        level: currentUser.level || 1,
+        photoURL: avatar,
+        level: calculatedLevel,
         uid: currentUser.uid,
         gamesData: toPublicGames(gamesData),
         updatedAt: serverTimestamp(),
