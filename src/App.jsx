@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -253,16 +253,16 @@ function AppInner() {
         </AnimatePresence>
       </div>
 
-      {/* Prévia da futura recomendação por IA */}
+      {/* Prévia da futura recomendação por IA - sutil e compacto no mobile */}
       {!games.selectedGame && !games.selectedCategory && activeTab === 'categories' && !isAddGameModalOpen && (
         <button
           onClick={() => setShowAIModal(true)}
-          className="fixed bottom-24 right-6 z-30 flex items-center gap-2 rounded-full border-2 border-purple-400/30 bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-white shadow-2xl shadow-purple-500/30 transition-all duration-300 hover:scale-105 active:scale-95"
+          className="fixed bottom-[4.75rem] right-4 z-30 flex items-center justify-center gap-1.5 rounded-full border border-purple-400/25 bg-purple-950/70 text-purple-200 backdrop-blur-md shadow-lg shadow-black/50 transition-all duration-300 hover:scale-105 hover:bg-purple-900/80 hover:text-white hover:border-purple-400/40 active:scale-95 h-9 w-9 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2"
           title={t('ai.title')}
           aria-label={t('ai.title')}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
-          <span className="text-xs font-black uppercase tracking-wider">{t('ai.badge_button')}</span>
+          <Sparkles className="w-4 h-4 text-purple-300 animate-pulse" />
+          <span className="hidden sm:inline text-[11px] font-bold tracking-wide uppercase">{t('ai.badge_button')}</span>
         </button>
       )}
 

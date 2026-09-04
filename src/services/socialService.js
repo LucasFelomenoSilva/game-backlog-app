@@ -147,10 +147,17 @@ export async function sendMessage(chatId, senderUid, recipientUid, senderName, s
 }
 
 // Marca conversa como lida
-export async function markChatAsRead(chatId) {
+export async function markChatAsRead(chatId, currentUid) {
+  if (!chatId || !currentUid) return;
   try {
     const metaRef = doc(db, 'chats', chatId);
-    await setDoc(metaRef, { unread: false }, { merge: true });
+    const snap = await getDoc(metaRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.unread === true && data.lastSenderUid && data.lastSenderUid !== currentUid) {
+        await updateDoc(metaRef, { unread: false });
+      }
+    }
   } catch {
     // silencioso
   }

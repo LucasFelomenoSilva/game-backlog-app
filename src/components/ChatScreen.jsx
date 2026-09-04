@@ -17,14 +17,19 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
   const chatId = getChatId(currentUser.uid, friendUid);
 
   useEffect(() => {
-    markChatAsRead(chatId);
+    if (currentUser?.uid) {
+      markChatAsRead(chatId, currentUser.uid);
+    }
     const unsub = subscribeToChat(chatId, (msgs) => {
       setMessages(msgs);
       setLoading(false);
-      markChatAsRead(chatId);
+      const lastMsg = msgs[msgs.length - 1];
+      if (lastMsg && lastMsg.senderUid && lastMsg.senderUid !== currentUser?.uid) {
+        markChatAsRead(chatId, currentUser?.uid);
+      }
     });
     return () => unsub();
-  }, [chatId]);
+  }, [chatId, currentUser?.uid]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,7 +49,8 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
         currentUser.photoURL || null,
         trimmed
       );
-    } catch {
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
       toast.error('Erro ao enviar mensagem.');
       setText(trimmed);
     } finally {
