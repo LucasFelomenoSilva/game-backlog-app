@@ -6,8 +6,11 @@ import {
   initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -147,6 +150,17 @@ test('chat é restrito aos participantes', async () => {
   await assertFails(updateDoc(doc(outsiderDb, 'chats/user-a_user-b'), {
     unread: false,
   }));
+
+  // Participante pode ler mensagens de um chat novo mesmo antes de existir documento pai
+  const emptyUserXDb = testEnv.authenticatedContext('user-x').firestore();
+  const emptyOutsiderDb = testEnv.authenticatedContext('user-z').firestore();
+  await assertSucceeds(getDoc(doc(emptyUserXDb, 'chats/user-x_user-y/messages/fake-msg')));
+  await assertFails(getDoc(doc(emptyOutsiderDb, 'chats/user-x_user-y/messages/fake-msg')));
+
+  const qOwner = query(collection(emptyUserXDb, 'chats/user-x_user-y/messages'));
+  const qOutsider = query(collection(emptyOutsiderDb, 'chats/user-x_user-y/messages'));
+  await assertSucceeds(getDocs(qOwner));
+  await assertFails(getDocs(qOutsider));
 });
 
 test('lista colaborativa é restrita aos membros', async () => {

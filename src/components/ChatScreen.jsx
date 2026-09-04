@@ -20,14 +20,21 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
     if (currentUser?.uid) {
       markChatAsRead(chatId, currentUser.uid);
     }
-    const unsub = subscribeToChat(chatId, (msgs) => {
-      setMessages(msgs);
-      setLoading(false);
-      const lastMsg = msgs[msgs.length - 1];
-      if (lastMsg && lastMsg.senderUid && lastMsg.senderUid !== currentUser?.uid) {
-        markChatAsRead(chatId, currentUser?.uid);
+    const unsub = subscribeToChat(
+      chatId,
+      (msgs) => {
+        setMessages(msgs);
+        setLoading(false);
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg && lastMsg.senderUid && lastMsg.senderUid !== currentUser?.uid) {
+          markChatAsRead(chatId, currentUser?.uid);
+        }
+      },
+      (err) => {
+        console.warn('Falha ao carregar mensagens do chat:', err);
+        setLoading(false);
       }
-    });
+    );
     return () => unsub();
   }, [chatId, currentUser?.uid]);
 

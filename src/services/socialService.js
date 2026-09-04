@@ -164,13 +164,20 @@ export async function markChatAsRead(chatId, currentUid) {
 }
 
 // Listener de mensagens em tempo real
-export function subscribeToChat(chatId, callback) {
+export function subscribeToChat(chatId, callback, onError) {
   const chatRef = collection(db, 'chats', chatId, 'messages');
   const q = query(chatRef, orderBy('createdAt', 'asc'));
-  return onSnapshot(q, (snap) => {
-    const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    callback(messages);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      callback(messages);
+    },
+    (err) => {
+      console.warn('Erro ao escutar mensagens do chat:', err);
+      if (onError) onError(err);
+    }
+  );
 }
 
 // Listener do perfil social em tempo real
