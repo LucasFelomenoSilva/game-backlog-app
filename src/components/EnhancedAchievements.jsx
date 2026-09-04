@@ -6,6 +6,7 @@ import {
   Shield, Sparkles, Star, Swords, Target, TrendingUp, Trophy, Zap,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export function computeAchievements(gamesData = []) {
   const zerados = gamesData.filter(game => game.status === 'zerados');
@@ -70,17 +71,11 @@ const ACHIEVEMENTS = [
   { id: 'one_thousand_hours', tier: 'platinum', title: 'O Escolhido', description: 'Acumule 1000 horas de jornada.', icon: ChevronUp, check: data => data.totalHours >= 1000, points: 3000 },
 ];
 
-const TIER_CONFIG = {
-  platinum: { label: 'Platina', color: '#c084fc', bg: 'rgba(192,132,252,.1)', border: 'rgba(192,132,252,.25)' },
-  gold: { label: 'Ouro', color: '#facc15', bg: 'rgba(250,204,21,.1)', border: 'rgba(250,204,21,.25)' },
-  silver: { label: 'Prata', color: '#cbd5e1', bg: 'rgba(203,213,225,.09)', border: 'rgba(203,213,225,.22)' },
-  bronze: { label: 'Bronze', color: '#d97706', bg: 'rgba(217,119,6,.1)', border: 'rgba(217,119,6,.25)' },
-};
 const TIER_ORDER = ['platinum', 'gold', 'silver', 'bronze'];
 
-function AchievementCard({ achievement, unlocked, V }) {
+function AchievementCard({ achievement, unlocked, V, tierConfig }) {
   const Icon = achievement.icon;
-  const tier = TIER_CONFIG[achievement.tier];
+  const tier = tierConfig[achievement.tier];
   return (
     <motion.article
       variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
@@ -108,6 +103,7 @@ function AchievementCard({ achievement, unlocked, V }) {
 
 export default function EnhancedAchievements({ achievements = [], gamesData = [] }) {
   const { theme: V } = useTheme();
+  const { t } = useLanguage();
   const derived = useMemo(() => computeAchievements(gamesData), [gamesData]);
   const unlockedSet = useMemo(() => {
     const result = new Set(achievements);
@@ -121,18 +117,25 @@ export default function EnhancedAchievements({ achievements = [], gamesData = []
   const totalPoints = ACHIEVEMENTS.filter(item => unlockedSet.has(item.id)).reduce((sum, item) => sum + item.points, 0);
   const progress = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
 
+  const tierConfig = useMemo(() => ({
+    platinum: { label: t('trophies.tier_platina'), color: '#c084fc', bg: 'rgba(192,132,252,.1)', border: 'rgba(192,132,252,.25)' },
+    gold: { label: t('trophies.tier_ouro'), color: '#facc15', bg: 'rgba(250,204,21,.1)', border: 'rgba(250,204,21,.25)' },
+    silver: { label: t('trophies.tier_prata'), color: '#cbd5e1', bg: 'rgba(203,213,225,.09)', border: 'rgba(203,213,225,.22)' },
+    bronze: { label: t('trophies.tier_bronze'), color: '#d97706', bg: 'rgba(217,119,6,.1)', border: 'rgba(217,119,6,.25)' },
+  }), [t]);
+
   return (
     <div className="app-page min-h-screen pb-28">
       <main className="app-shell py-7 sm:py-9">
         <header className="mb-6">
-          <p className="eyebrow mb-2">Sua coleção de feitos</p>
-          <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: V.text }}>Troféus</h1>
-          <p className="mt-1 text-sm" style={{ color: V.muted }}>{unlockedCount} conquistas desbloqueadas em {gamesData.length} jogos.</p>
+          <p className="eyebrow mb-2">{t('trophies.subtitle')}</p>
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: V.text }}>{t('trophies.title')}</h1>
+          <p className="mt-1 text-sm" style={{ color: V.muted }}>{unlockedCount} {t('trophies.count_desc')} {gamesData.length} {t('trophies.games')}</p>
         </header>
 
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {TIER_ORDER.map(tierId => {
-            const tier = TIER_CONFIG[tierId];
+            const tier = tierConfig[tierId];
             const items = ACHIEVEMENTS.filter(item => item.tier === tierId);
             const count = items.filter(item => unlockedSet.has(item.id)).length;
             return (
@@ -147,25 +150,25 @@ export default function EnhancedAchievements({ achievements = [], gamesData = []
         <section className="mt-4 grid gap-4 lg:grid-cols-[.72fr_1.28fr]">
           <motion.aside initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} className="h-fit space-y-4 lg:sticky lg:top-6">
             <div className="glass-panel rounded-3xl p-6">
-              <div className="flex items-center justify-between"><div><p className="eyebrow">Progresso geral</p><p className="mt-2 text-4xl font-black" style={{ color: V.text }}>{progress}%</p></div><div className="grid h-14 w-14 place-items-center rounded-2xl" style={{ background: V.faint, color: V.soft }}><Target className="h-7 w-7" /></div></div>
+              <div className="flex items-center justify-between"><div><p className="eyebrow">{t('trophies.overall_progress')}</p><p className="mt-2 text-4xl font-black" style={{ color: V.text }}>{progress}%</p></div><div className="grid h-14 w-14 place-items-center rounded-2xl" style={{ background: V.faint, color: V.soft }}><Target className="h-7 w-7" /></div></div>
               <div className="mt-5 h-2.5 overflow-hidden rounded-full" style={{ background: V.faint }}><motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.7 }} className="h-full rounded-full" style={{ background: V.grad }} /></div>
-              <p className="mt-2 text-xs" style={{ color: V.muted }}>{ACHIEVEMENTS.length - unlockedCount} conquistas ainda esperam por você.</p>
+              <p className="mt-2 text-xs" style={{ color: V.muted }}>{ACHIEVEMENTS.length - unlockedCount} {t('trophies.achievements_waiting')}</p>
             </div>
             <div className="rounded-3xl border p-6" style={{ background: 'rgba(250,204,21,.07)', borderColor: 'rgba(250,204,21,.2)' }}>
-              <Zap className="h-6 w-6 text-yellow-400" /><p className="mt-4 text-3xl font-black text-yellow-300">{totalPoints.toLocaleString('pt-BR')}</p><p className="text-sm font-bold text-yellow-100">XP conquistados</p><p className="mt-1 text-xs text-yellow-100/50">Somando todos os seus feitos desbloqueados.</p>
+              <Zap className="h-6 w-6 text-yellow-400" /><p className="mt-4 text-3xl font-black text-yellow-300">{totalPoints.toLocaleString(t('lang') === 'en' ? 'en-US' : 'pt-BR')}</p><p className="text-sm font-bold text-yellow-100">{t('trophies.earned_xp')}</p><p className="mt-1 text-xs text-yellow-100/50">{t('trophies.xp_desc')}</p>
             </div>
           </motion.aside>
 
           <div className="space-y-7">
             {TIER_ORDER.map(tierId => {
-              const tier = TIER_CONFIG[tierId];
+              const tier = tierConfig[tierId];
               const items = ACHIEVEMENTS.filter(item => item.tier === tierId);
               const unlockedInTier = items.filter(item => unlockedSet.has(item.id)).length;
               return (
                 <section key={tierId}>
                   <div className="mb-3 flex items-center gap-3"><Medal className="h-4 w-4" style={{ color: tier.color }} /><h2 className="text-sm font-black uppercase tracking-wider" style={{ color: tier.color }}>{tier.label}</h2><span className="text-xs" style={{ color: V.muted }}>{unlockedInTier}/{items.length}</span><div className="h-px flex-1" style={{ background: V.border }} /></div>
                   <motion.div variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }} initial="hidden" animate="show" className="grid gap-3 xl:grid-cols-2">
-                    {items.map(item => <AchievementCard key={item.id} achievement={item} unlocked={unlockedSet.has(item.id)} V={V} />)}
+                    {items.map(item => <AchievementCard key={item.id} achievement={item} unlocked={unlockedSet.has(item.id)} V={V} tierConfig={tierConfig} />)}
                   </motion.div>
                 </section>
               );

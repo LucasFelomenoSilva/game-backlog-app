@@ -17,22 +17,10 @@ import {
 import { toast } from 'react-hot-toast';
 import { categoryNames } from '../data/categories';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { getRatingHex } from '../utils/gameUtils';
 import { TagBadge } from './CustomTags';
 import DragSortList from './DragSortList';
-
-const CATEGORY_COPY = {
-  playing: 'O que está ocupando seu tempo agora.',
-  backlog: 'Sua fila de próximas aventuras.',
-  installed: 'Prontos para começar quando você quiser.',
-  zerados: 'A história daquilo que você já conquistou.',
-  desejados: 'Jogos que ainda estão no seu radar.',
-};
-
-const formatDate = value => {
-  if (!value) return 'Sem data';
-  return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-};
 
 export default function GameListModern({
   selectedCategory,
@@ -42,6 +30,7 @@ export default function GameListModern({
   setGamesData,
 }) {
   const { theme: V } = useTheme();
+  const { t, language } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState('all');
   const [sortOption, setSortOption] = useState(selectedCategory === 'zerados' ? 'date_desc' : 'manual');
@@ -52,7 +41,12 @@ export default function GameListModern({
 
   const categoryGames = games?.[selectedCategory] || [];
   const isFinishedList = selectedCategory === 'zerados';
-  const categoryName = categoryNames[selectedCategory] || 'Coleção';
+  const categoryName = t(`cat.${selectedCategory}`) || categoryNames[selectedCategory] || t('list.collection');
+
+  const formatDate = value => {
+    if (!value) return t('list.no_date');
+    return new Date(value).toLocaleDateString(language === 'en' ? 'en-US' : 'pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
 
   const years = useMemo(() => [...new Set(categoryGames
     .filter(game => game.finishedDate)
@@ -137,7 +131,7 @@ export default function GameListModern({
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="eyebrow">Coleção · {categoryGames.length} jogos</p>
+            <p className="eyebrow">{t('list.collection')} · {categoryGames.length} {t('list.games_count')}</p>
             <h1 className="truncate text-xl font-black tracking-tight sm:text-2xl">{categoryName}</h1>
           </div>
           <button
@@ -147,10 +141,10 @@ export default function GameListModern({
             style={dragMode ? { background: V.faint, borderColor: V.primary, color: V.soft } : undefined}
           >
             <GripVertical className="h-4 w-4" />
-            <span className="hidden sm:inline">{dragMode ? 'Concluir' : 'Reordenar'}</span>
+            <span className="hidden sm:inline">{dragMode ? t('list.done_reorder') : t('list.reorder')}</span>
           </button>
           {isFinishedList && categoryGames.length > 0 && (
-            <button type="button" disabled={isExporting} onClick={handleExport} className="rounded-2xl p-3 text-white disabled:opacity-50" style={{ background: V.grad }} aria-label="Exportar coleção">
+            <button type="button" disabled={isExporting} onClick={handleExport} className="rounded-2xl p-3 text-white disabled:opacity-50" style={{ background: V.grad }} aria-label={t('list.export_image')}>
               <Download className={`h-5 w-5 ${isExporting ? 'animate-bounce' : ''}`} />
             </button>
           )}
@@ -165,17 +159,17 @@ export default function GameListModern({
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: V.faint, color: V.soft }}>
                 {isFinishedList ? <Trophy className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
               </div>
-              <p className="eyebrow mb-2">{isFinishedList ? 'Seu histórico' : 'Seu espaço'}</p>
+              <p className="eyebrow mb-2">{isFinishedList ? t('list.done_reorder') || 'Histórico' : t('home.library')}</p>
               <h2 className="max-w-xl text-3xl font-black leading-tight tracking-[-0.035em] sm:text-4xl">{categoryName}</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: V.muted }}>{CATEGORY_COPY[selectedCategory]}</p>
+              <p className="mt-3 max-w-xl text-sm leading-6 sm:text-base" style={{ color: V.muted }}>{t(`cat.desc_${selectedCategory}`)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3 lg:grid-cols-1">
             {[
-              { label: 'Jogos', value: categoryGames.length, icon: Gamepad2 },
-              { label: isFinishedList ? 'Média' : 'Horas', value: isFinishedList ? stats.average : `${stats.hours}h`, icon: isFinishedList ? Star : Clock3 },
-              { label: isFinishedList ? 'Platinas' : 'Planejadas', value: isFinishedList ? stats.platinum : stats.hours, icon: isFinishedList ? Trophy : CalendarDays },
+              { label: t('list.games_count'), value: categoryGames.length, icon: Gamepad2 },
+              { label: isFinishedList ? t('list.avg_rating') : t('list.total_hours'), value: isFinishedList ? stats.average : `${stats.hours}h`, icon: isFinishedList ? Star : Clock3 },
+              { label: isFinishedList ? t('list.platinums') : t('home.time_in_queue'), value: isFinishedList ? stats.platinum : `${stats.hours}h`, icon: isFinishedList ? Trophy : CalendarDays },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="surface-card flex flex-col justify-between rounded-2xl p-4 lg:flex-row lg:items-center">
                 <div>
@@ -192,27 +186,27 @@ export default function GameListModern({
           <section className="glass-panel mb-6 grid gap-3 rounded-3xl p-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
             <label className="relative block">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: V.muted }} />
-              <input value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder="Buscar por jogo, gênero ou plataforma" className="w-full rounded-2xl border bg-transparent py-3 pl-11 pr-4 text-sm outline-none" style={{ borderColor: V.border, color: V.text }} />
+              <input value={searchTerm} onChange={event => setSearchTerm(event.target.value)} placeholder={t('list.search_placeholder')} className="w-full rounded-2xl border bg-transparent py-3 pl-11 pr-4 text-sm outline-none" style={{ borderColor: V.border, color: V.text }} />
             </label>
             {isFinishedList && years.length > 0 && (
               <select value={selectedYear} onChange={event => setSelectedYear(event.target.value)} className="rounded-2xl border bg-transparent px-4 py-3 text-sm outline-none" style={{ borderColor: V.border, color: V.text, backgroundColor: V.card }}>
-                <option value="all">Todos os anos</option>
+                <option value="all">{t('list.all_years')}</option>
                 {years.map(year => <option key={year} value={year}>{year}</option>)}
               </select>
             )}
             {isFinishedList && stats.platinum > 0 && (
               <button type="button" onClick={() => setShowPlatinumOnly(value => !value)} className="flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold" style={{ borderColor: showPlatinumOnly ? '#f59e0b' : V.border, color: showPlatinumOnly ? '#fbbf24' : V.muted, background: showPlatinumOnly ? 'rgba(245,158,11,.1)' : 'transparent' }}>
-                <Trophy className="h-4 w-4" /> Platinas
+                <Trophy className="h-4 w-4" /> {t('list.platinums')}
               </button>
             )}
             <label className="relative">
               <ArrowDownUp className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: V.muted }} />
               <select value={sortOption} onChange={event => setSortOption(event.target.value)} className="h-full w-full appearance-none rounded-2xl border py-3 pl-11 pr-8 text-sm outline-none" style={{ borderColor: V.border, color: V.text, backgroundColor: V.card }}>
-                <option value="manual">Ordem manual</option>
-                <option value="name_asc">Nome A–Z</option>
-                {isFinishedList && <option value="rating_desc">Maior nota</option>}
-                {isFinishedList && <option value="date_desc">Mais recentes</option>}
-                {isFinishedList && <option value="date_asc">Mais antigos</option>}
+                <option value="manual">{t('list.order_manual')}</option>
+                <option value="name_asc">{t('list.order_name')}</option>
+                {isFinishedList && <option value="rating_desc">{t('list.order_rating_desc')}</option>}
+                {isFinishedList && <option value="date_desc">{t('list.order_date_desc')}</option>}
+                {isFinishedList && <option value="date_asc">{t('list.order_date_asc')}</option>}
               </select>
             </label>
           </section>
@@ -221,7 +215,7 @@ export default function GameListModern({
         {dragMode ? (
           <div className="mx-auto max-w-3xl">
             <div className="mb-4 rounded-2xl border px-4 py-3 text-sm" style={{ borderColor: V.border, background: V.faint, color: V.muted }}>
-              Arraste pelo marcador para definir a ordem. A alteração é salva automaticamente.
+              {t('home.drag_here')}
             </div>
             <DragSortList games={[...categoryGames].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999))} onReorder={handleReorder} />
           </div>
@@ -244,14 +238,14 @@ export default function GameListModern({
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col p-4">
                       <div className="mb-3 flex items-start justify-between gap-2">
-                        <span className="rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider" style={{ color: V.muted, borderColor: V.border, background: V.faint }}>{game.platform || 'Sem plataforma'}</span>
+                        <span className="rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider" style={{ color: V.muted, borderColor: V.border, background: V.faint }}>{game.platform || 'Multi'}</span>
                         <ChevronRight className="h-4 w-4 flex-shrink-0 transition group-hover:translate-x-1" style={{ color: V.low }} />
                       </div>
                       <h3 className="line-clamp-2 text-lg font-black leading-tight tracking-tight">{game.nome}</h3>
-                      <p className="mt-1 text-xs" style={{ color: V.muted }}>{game.genre || 'Gênero não informado'}</p>
+                      <p className="mt-1 text-xs" style={{ color: V.muted }}>{game.genre || ''}</p>
                       <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
                         {isFinished && Number(game.rating) > 0 && <span className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-black text-white" style={{ background: getRatingHex(game.rating) }}><Star className="h-3 w-3 fill-current" />{game.rating}</span>}
-                        {game.isPlatinum && <span className="flex items-center gap-1 rounded-lg bg-amber-400/15 px-2 py-1 text-xs font-bold text-amber-300"><Trophy className="h-3 w-3" /> Platina</span>}
+                        {game.isPlatinum && <span className="flex items-center gap-1 rounded-lg bg-amber-400/15 px-2 py-1 text-xs font-bold text-amber-300"><Trophy className="h-3 w-3" /> {t('list.platinums')}</span>}
                         {isFinished ? <span className="flex items-center gap-1 text-[10px]" style={{ color: V.muted }}><CalendarDays className="h-3 w-3" />{formatDate(game.finishedDate)}</span> : Number(game.timeToBeat) > 0 && <span className="flex items-center gap-1 text-[10px]" style={{ color: V.muted }}><Clock3 className="h-3 w-3" />{game.timeToBeat}h</span>}
                       </div>
                       {game.tags?.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{game.tags.slice(0, 2).map(tag => <TagBadge key={tag} tag={tag} small />)}</div>}
@@ -264,8 +258,8 @@ export default function GameListModern({
         ) : (
           <div className="glass-panel rounded-[2rem] px-6 py-20 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: V.faint }}><Gamepad2 className="h-6 w-6" style={{ color: V.soft }} /></div>
-            <h3 className="text-lg font-black">Nada por aqui ainda</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm" style={{ color: V.muted }}>{categoryGames.length ? 'Tente remover algum filtro ou buscar outro termo.' : 'Adicione ou mova um jogo para esta coleção.'}</p>
+            <h3 className="text-lg font-black">{t('list.empty_title')}</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm" style={{ color: V.muted }}>{categoryGames.length ? t('list.no_games_filter') : t('list.no_games')}</p>
           </div>
         )}
       </main>

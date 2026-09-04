@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, FileText, Lock, CheckCircle2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function LegalModal({ initialTab = 'terms', onClose }) {
   const { theme: V } = useTheme();
+  const { language, t } = useLanguage();
   const [tab, setTab] = useState(initialTab); // 'terms' | 'privacy'
 
   return (
@@ -38,10 +40,10 @@ export default function LegalModal({ initialTab = 'terms', onClose }) {
             </div>
             <div>
               <h2 className="text-base font-black" style={{ color: V.text }}>
-                {tab === 'terms' ? 'Termos de Uso' : 'Política de Privacidade'}
+                {tab === 'terms' ? t('settings.terms') : t('settings.privacy')}
               </h2>
               <p className="text-xs" style={{ color: V.muted }}>
-                Transparência e segurança no XpLog
+                {language === 'en' ? 'Transparency and security on XpLog' : 'Transparência e segurança no XpLog'}
               </p>
             </div>
           </div>
@@ -64,7 +66,7 @@ export default function LegalModal({ initialTab = 'terms', onClose }) {
             className="pb-3 text-sm font-bold transition-all relative"
             style={{ color: tab === 'terms' ? V.primary : V.muted }}
           >
-            Termos de Uso
+            {t('settings.terms')}
             {tab === 'terms' && (
               <div
                 className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
@@ -77,7 +79,7 @@ export default function LegalModal({ initialTab = 'terms', onClose }) {
             className="pb-3 text-sm font-bold transition-all relative"
             style={{ color: tab === 'privacy' ? V.primary : V.muted }}
           >
-            Política de Privacidade (LGPD)
+            {t('settings.privacy')}
             {tab === 'privacy' && (
               <div
                 className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
@@ -212,7 +214,7 @@ export default function LegalModal({ initialTab = 'terms', onClose }) {
             className="px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: V.grad }}
           >
-            Fechar
+            {t('action.close')}
           </button>
         </div>
       </div>

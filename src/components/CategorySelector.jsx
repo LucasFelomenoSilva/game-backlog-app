@@ -122,11 +122,11 @@ export default function CategorySelector({
                 </div>
               </div>
               <div>
-                <p className="eyebrow mb-1">Sua biblioteca</p>
+                <p className="eyebrow mb-1">{t('home.library')}</p>
                 <h1 className="text-2xl font-black tracking-tight sm:text-3xl" style={{ color: V.text }}>
-                  Olá, {user?.displayName?.split(' ')[0] || 'Gamer'}
+                  {t('home.hello')}, {user?.displayName?.split(' ')[0] || 'Gamer'}
                 </h1>
-                <p className="text-sm" style={{ color: V.muted }}>Escolha a próxima aventura ou reorganize sua fila.</p>
+                <p className="text-sm" style={{ color: V.muted }}>{t('home.subtitle')}</p>
               </div>
             </div>
 
@@ -139,17 +139,17 @@ export default function CategorySelector({
                 style={{ background: V.grad, boxShadow: `0 8px 22px ${V.glow}` }}
               >
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Adicionar jogo</span>
+                <span className="hidden sm:inline">{t('home.add_game')}</span>
               </button>
             </div>
           </div>
 
           <section className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3" aria-label="Resumo da coleção">
             {[
-              { label: 'Na coleção', value: overview.total, suffix: ' jogos', icon: LibraryBig },
-              { label: 'Conclusão', value: overview.completion, suffix: '%', icon: Gauge },
-              { label: 'Tempo na fila', value: overview.plannedHours, suffix: 'h', icon: Clock3 },
-              { label: 'Ritmo · 30 dias', value: overview.recentFinished, suffix: ' zerados', icon: Activity },
+              { label: t('home.in_collection'), value: overview.total, suffix: t('home.games_suffix'), icon: LibraryBig },
+              { label: t('home.completion'), value: overview.completion, suffix: '%', icon: Gauge },
+              { label: t('home.time_in_queue'), value: overview.plannedHours, suffix: 'h', icon: Clock3 },
+              { label: t('home.pace_30d'), value: overview.recentFinished, suffix: t('home.completed_suffix'), icon: Activity },
             ].map(({ label, value, suffix, icon: Icon }) => (
               <div
                 key={label}
@@ -208,8 +208,8 @@ export default function CategorySelector({
                         {!colGames.length ? (
                           <div className="flex flex-col items-center justify-center py-10 text-center">
                             <Gamepad2 className="w-10 h-10 mb-2" style={{ color: V.faint }} />
-                            <p className="text-xs" style={{ color: V.muted }}>Nenhum jogo aqui</p>
-                            <p className="text-[10px] mt-0.5" style={{ color: V.muted }}>Arraste para cá</p>
+                            <p className="text-xs" style={{ color: V.muted }}>{t('home.no_games')}</p>
+                            <p className="text-[10px] mt-0.5" style={{ color: V.muted }}>{t('home.drag_here')}</p>
                           </div>
                         ) : (
                           colGames.map((game, index) => {
@@ -269,9 +269,9 @@ export default function CategorySelector({
                                         <div className="flex items-center gap-1.5">
                                           {isPlaying && (
                                             <button type="button" onClick={e => { e.stopPropagation(); setFocusGame(game); }}
-                                              className="p-1.5 rounded-lg transition-all hover:scale-110"
-                                              style={{ background: V.faint, border: `1px solid ${V.border}` }}
-                                              title="Modo Foco">
+                                               className="p-1.5 rounded-lg transition-all hover:scale-110"
+                                               style={{ background: V.faint, border: `1px solid ${V.border}` }}
+                                               title={t('home.focus_mode')}>
                                               <Flame className="w-3.5 h-3.5" style={{ color: V.soft }} />
                                             </button>
                                           )}
@@ -333,7 +333,7 @@ export default function CategorySelector({
                   {snapshot.isDraggingOver && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl backdrop-blur-sm" style={{ background: `${V.bg}b8` }}>
                       <div className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-black text-white" style={{ background: V.grad }}>
-                        <Icon className="h-4 w-4" /> Solte em {cat.label}
+                        <Icon className="h-4 w-4" /> {t('home.drop_in')} {cat.label}
                       </div>
                     </div>
                   )}

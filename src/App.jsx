@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { useGamesState } from './hooks/useGamesState';
 import { subscribeToSocialProfile } from './services/socialService';
 
@@ -67,6 +67,7 @@ const pageTransitionVariants = {
 
 function AppInner() {
   const { theme: V } = useTheme();
+  const { t } = useLanguage();
   const { user, loading, loadingTip, signOut, updateAvatar } = useAuth();
   const games = useGamesState(user);
 
@@ -243,11 +244,11 @@ function AppInner() {
         <button
           onClick={() => setShowAIModal(true)}
           className="fixed bottom-24 right-6 z-30 flex items-center gap-2 rounded-full border-2 border-purple-400/30 bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-3 text-white shadow-2xl shadow-purple-500/30 transition-all duration-300 hover:scale-105 active:scale-95"
-          title="Recomendações com IA — em breve"
-          aria-label="Recomendações com IA — em breve"
+          title={t('ai.title')}
+          aria-label={t('ai.title')}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
-          <span className="text-xs font-black uppercase tracking-wider">IA em breve</span>
+          <span className="text-xs font-black uppercase tracking-wider">{t('ai.badge_button')}</span>
         </button>
       )}
 

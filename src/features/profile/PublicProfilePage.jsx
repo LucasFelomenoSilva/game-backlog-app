@@ -21,9 +21,9 @@ const publicGameImage = game => {
 export default function PublicProfilePage() {
   const { theme: V } = useTheme();
   const { t } = useLanguage();
-  const [data,    setData]    = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const username = window.location.pathname.split('/u/')[1]?.replace('/', '');
@@ -42,10 +42,10 @@ export default function PublicProfilePage() {
   useEffect(() => {
     if (data?.profile) {
       const name = data.profile.displayName || data.profile.username || 'Perfil';
-      document.title = `XpLog -- ${name}`;
+      document.title = `XpLog — ${name}`;
     }
     return () => {
-      document.title = 'XpLog - Seu Backlog Gamer';
+      document.title = 'XpLog — Seu Backlog Gamer';
     };
   }, [data?.profile]);
 
@@ -62,7 +62,7 @@ export default function PublicProfilePage() {
             });
           });
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [data?.profile?.uid, data?.profile?.username]);
 
@@ -123,7 +123,7 @@ export default function PublicProfilePage() {
     .filter(g => g.status === 'zerados')
     .sort((a, b) => new Date(b.finishedDate || 0) - new Date(a.finishedDate || 0));
   const platinas = finished.filter(g => g.isPlatinum).length;
-  const playing  = pubGames.filter(g => g.status === 'jogando' || g.status === 'playing');
+  const playing = pubGames.filter(g => g.status === 'jogando' || g.status === 'playing');
 
   return (
     <div className="min-h-screen pb-20" style={{ background: V.bg, color: V.text }}>
@@ -172,7 +172,7 @@ export default function PublicProfilePage() {
         <div className="flex justify-center gap-4 max-w-sm mx-auto">
           {[
             { value: finished.length, label: t('profile.stats_completed'), color: '#10b981' },
-            { value: platinas,        label: t('profile.stats_platinums'), color: '#f59e0b' },
+            { value: platinas, label: t('profile.stats_platinums'), color: '#f59e0b' },
           ].map(stat => (
             <div key={stat.label} className="flex-1 p-3 rounded-2xl" style={{ background: V.faint, border: `1px solid ${V.border}` }}>
               <div className="text-2xl font-black" style={{ color: stat.color }}>{stat.value}</div>
@@ -268,7 +268,7 @@ export default function PublicProfilePage() {
                         <div className="text-xs font-black text-white leading-tight line-clamp-2">{game.nome}</div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {game.rating > 0 && <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500 text-white font-bold">{game.rating}⭐</span>}
-                          {game.isPlatinum && <span className="text-[10px] px-2 py-0.5 rounded-md bg-yellow-500 text-yellow-950 font-black tracking-wide">PLATINA</span>}
+                          {game.isPlatinum && <span className="text-[10px] px-2 py-0.5 rounded-md bg-yellow-500 text-yellow-950 font-black tracking-wide">{t('trophies.tier_platina').toUpperCase()}</span>}
                         </div>
                       </div>
                     </div>
@@ -315,10 +315,10 @@ export default function PublicProfilePage() {
           style={{ borderColor: V.border, color: V.muted }}>
           <span>© {new Date().getFullYear()} XpLog</span>
           <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-white transition-colors">
-            Termos de Uso
+            {t('settings.terms')}
           </a>
           <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-white transition-colors">
-            Privacidade
+            {t('settings.privacy')}
           </a>
         </div>
       </div>

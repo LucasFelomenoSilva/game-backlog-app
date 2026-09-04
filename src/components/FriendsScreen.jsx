@@ -13,17 +13,9 @@ import {
   rejectFriendRequest, removeFriend, getSocialProfile, getFriendGamesData,
 } from '../services/socialService';
 import FriendProfileModal from './FriendProfileModal';
-import { useTheme } from '../context/ThemeContext'; // <-- Importado
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
-const TAB_ROW1 = [
-  { id: 'friends',  label: 'Amigos',  icon: Users    },
-  { id: 'ranking',  label: 'Ranking', icon: Crown    },
-  { id: 'feed',     label: 'Feed',    icon: Activity },
-];
-const TAB_ROW2 = [
-  { id: 'requests', label: 'Pedidos', icon: Bell   },
-  { id: 'add',      label: 'Buscar',  icon: Search },
-];
 
 function Avatar({ profile, size = 12, V }) {
   const initial = profile?.displayName?.charAt(0) || '?';
@@ -103,6 +95,7 @@ function FriendCard({ uid, profile, zerados, playing, totalGames, onViewProfile,
 
 export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }) {
   const { theme: V } = useTheme(); // <-- Usando as cores do tema
+  const { t, language } = useLanguage();
   const [activeTab, setActiveTab] = useState('friends');
   const [searchCode, setSearchCode] = useState('');
   const [searchResult, setSearchResult] = useState(null);
@@ -218,9 +211,9 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
 
           <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="eyebrow mb-2">Sua comunidade</p>
-              <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: V.text }}>Social</h1>
-              <p className="mt-1 text-sm" style={{ color: V.muted }}>Descubra o que seus amigos andam jogando.</p>
+              <p className="eyebrow mb-2">{language === 'en' ? 'Your community' : 'Sua comunidade'}</p>
+              <h1 className="text-3xl font-black tracking-tight sm:text-4xl" style={{ color: V.text }}>{t('tab.social')}</h1>
+              <p className="mt-1 text-sm" style={{ color: V.muted }}>{language === 'en' ? 'Discover what your friends are playing.' : 'Descubra o que seus amigos andam jogando.'}</p>
             </div>
 
             <div className="relative min-w-72 overflow-hidden rounded-2xl p-4"
@@ -228,10 +221,10 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
               <div className="relative flex items-center justify-between gap-5">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: V.muted }}>
-                    <Hash className="w-3 h-3" />Meu Código
+                    <Hash className="w-3 h-3" />{t('social.my_code')}
                   </p>
                   <p className="font-mono text-xl font-black tracking-widest" style={{ color: V.soft }}>{myCode || '—'}</p>
-                  <p className="text-[10px] mt-1" style={{ color: V.low }}>Compartilhe com amigos</p>
+                  <p className="text-[10px] mt-1" style={{ color: V.low }}>{language === 'en' ? 'Share with friends' : 'Compartilhe com amigos'}</p>
                 </div>
                 <button onClick={copyCode} className="p-3 rounded-xl transition-all duration-300"
                   style={{ background: codeCopied ? 'rgba(16,185,129,0.2)' : V.faint, border: `1px solid ${codeCopied ? 'rgba(16,185,129,0.4)' : V.border}` }}>
@@ -244,7 +237,13 @@ export default function FriendsScreen({ currentUser, socialProfile, onOpenChat }
           <div className="no-scrollbar mb-5 overflow-x-auto rounded-2xl p-1.5"
             style={{ background: V.card, border: `1px solid ${V.border}` }}>
             <div className="grid min-w-[520px] grid-cols-5 gap-1">
-              {[...TAB_ROW1, ...TAB_ROW2].map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} badge={tab.id === 'requests' ? requests.length : 0} V={V} />)}
+              {[
+                { id: 'friends',  label: t('social.tab_friends'),  icon: Users    },
+                { id: 'ranking',  label: t('social.tab_ranking'),  icon: Crown    },
+                { id: 'feed',     label: t('social.tab_feed'),     icon: Activity },
+                { id: 'requests', label: t('social.tab_requests'), icon: Bell   },
+                { id: 'add',      label: t('social.tab_search'),   icon: Search },
+              ].map(tab => <TabBtn key={tab.id} tab={tab} active={activeTab === tab.id} onClick={setActiveTab} badge={tab.id === 'requests' ? requests.length : 0} V={V} />)}
             </div>
           </div>
 

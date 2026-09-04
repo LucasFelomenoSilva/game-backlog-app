@@ -6,13 +6,14 @@ import { toast } from 'react-hot-toast';
 import { searchGameIGDB } from '../services/igdbService';
 import CustomTags from './CustomTags';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const STATUS_CONFIG = {
-  playing:   { label: 'Jogando Agora', emoji: '🔥', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
-  installed: { label: 'Instalados',    emoji: '💾', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  backlog:   { label: 'Na Fila',       emoji: '⏳', color: '#a855f7', bg: 'rgba(168,85,247,0.15)' },
-  zerados:   { label: 'Zerados',       emoji: '✅', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-  desejados: { label: 'Lista de Desejos', emoji: '🌟', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+  playing:   { labelKey: 'col.playing', emoji: '🔥', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+  installed: { labelKey: 'col.installed', emoji: '💾', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  backlog:   { labelKey: 'col.backlog', emoji: '⏳', color: '#a855f7', bg: 'rgba(168,85,247,0.15)' },
+  zerados:   { labelKey: 'col.completed', emoji: '✅', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+  desejados: { labelKey: 'col.wishlist', emoji: '🌟', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
 };
 
 const RatingStar = ({ rating, setRating, index }) => {
@@ -29,6 +30,7 @@ const RatingStar = ({ rating, setRating, index }) => {
 
 export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialData, gamesData = [] }) {
   const { theme: V } = useTheme();
+  const { t, language } = useLanguage();
   const isEditing = !!gameToEdit;
   const initialStatus = isEditing ? gameToEdit.status : 'playing';
   const lastSavedPlatform = useMemo(() => {
@@ -236,10 +238,10 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
               </div>
               <div>
                 <h2 className="text-xl font-black" style={{ color: V.text }}>
-                  {isEditing ? 'Editar Jogo' : 'Adicionar Jogo'}
+                  {isEditing ? t('modal.edit_title') : t('modal.add_title')}
                 </h2>
                 <p className="text-xs hidden sm:block" style={{ color: V.muted }}>
-                  {isEditing ? 'Atualize as informações' : 'Preencha os dados'}
+                  {isEditing ? t('modal.edit_subtitle') : t('modal.add_subtitle')}
                 </p>
               </div>
             </div>
@@ -258,7 +260,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
               <div className="flex items-center gap-2 mb-3">
                 <Search className="w-4 h-4" style={{ color: V.primary }} />
                 <label className="text-xs font-bold uppercase tracking-wider" style={{ color: V.primary }}>
-                  Buscar no IGDB
+                  {t('modal.search_igdb')}
                 </label>
               </div>
               <div className="relative">
@@ -266,7 +268,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Digite o nome do jogo..."
+                  placeholder={t('modal.search_placeholder')}
                   autoComplete="off"
                   aria-label="Buscar jogo no IGDB"
                   aria-expanded={showSearchResults}
@@ -277,14 +279,14 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                   {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 </div>
               </div>
-              <p className="mt-2 text-[11px]" style={{ color: V.muted }}>As sugestões aparecem automaticamente a partir de 2 caracteres.</p>
+              <p className="mt-2 text-[11px]" style={{ color: V.muted }}>{t('modal.search_hint')}</p>
 
               {showSearchResults && (
                 <div className="mt-3 rounded-xl overflow-hidden" style={sectionStyle}>
                   {isSearching ? (
                     <div className="p-4 text-center flex items-center justify-center gap-2" style={{ color: V.muted }}>
                       <Loader2 className="w-4 h-4 animate-spin" style={{ color: V.primary }} />
-                      <span className="text-sm">Buscando...</span>
+                      <span className="text-sm">{t('modal.searching')}</span>
                     </div>
                   ) : searchError ? (
                     <p className="p-4 text-center text-sm text-red-300">{searchError}</p>
@@ -305,7 +307,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       ))}
                     </div>
                   ) : (
-                    <p className="p-4 text-center text-sm" style={{ color: V.muted }}>Nada encontrado</p>
+                    <p className="p-4 text-center text-sm" style={{ color: V.muted }}>{t('modal.nothing_found')}</p>
                   )}
                 </div>
               )}
@@ -318,7 +320,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             {/* Capa + Campos principais */}
             <div className="grid gap-5 md:grid-cols-[200px,1fr] md:gap-6">
               <div className="space-y-2 mx-auto md:mx-0 w-full max-w-[200px]">
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-center md:text-left" style={labelStyle}>Capa</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-center md:text-left" style={labelStyle}>{t('modal.cover')}</label>
                 <button type="button" onClick={() => fileInputRef.current.click()}
                   className="w-full aspect-[3/4] rounded-2xl border-2 border-dashed overflow-hidden transition-all group relative hover:opacity-80"
                   style={{ borderColor: V.border, background: V.faint }}>
@@ -327,13 +329,13 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       <img src={displayImage} alt="Preview" className="w-full h-full object-cover" onLoad={() => { if (previewImageURL) URL.revokeObjectURL(previewImageURL); }} />
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity">
                         <Upload className="w-8 h-8 text-white mb-1" />
-                        <span className="text-xs text-white">Alterar</span>
+                        <span className="text-xs text-white">{t('modal.cover_change')}</span>
                       </div>
                     </>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full" style={{ color: V.muted }}>
                       <ImageIcon className="w-8 h-8 mb-2" />
-                      <span className="text-xs">Adicionar</span>
+                      <span className="text-xs">{t('modal.cover_add')}</span>
                     </div>
                   )}
                 </button>
@@ -341,14 +343,14 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Nome *</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>{t('modal.name')} *</label>
                   <input type="text" name="nome" value={formData.nome} onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 transition-all"
-                    style={inputStyle} placeholder="Nome do jogo" />
+                    style={inputStyle} placeholder={t('modal.name_placeholder')} />
                   {duplicateGame && (
                     <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2.5 text-amber-200">
                       <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                      <p className="text-xs leading-5"><strong>Este jogo já está na coleção</strong> em {categoryNames[duplicateGame.status] || duplicateGame.status}. Você ainda pode adicionar outra edição.</p>
+                      <p className="text-xs leading-5"><strong>{t('modal.already_in_collection')}</strong> {t('col.' + duplicateGame.status) || duplicateGame.status}. {t('modal.can_add_other_edition')}</p>
                     </div>
                   )}
                 </div>
@@ -357,7 +359,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Status Dropdown */}
                   <div className="relative">
-                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Status *</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>{t('modal.status')} *</label>
                     <button
                       type="button"
                       onClick={() => { setStatusOpen(p => !p); setGenreOpen(false); }}
@@ -371,7 +373,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       <div className="flex items-center gap-2 truncate">
                         <span className="text-base">{STATUS_CONFIG[formData.status]?.emoji || '🎮'}</span>
                         <span className="truncate" style={{ color: STATUS_CONFIG[formData.status]?.color || V.text }}>
-                          {categoryNames[formData.status] || formData.status}
+                          {t(STATUS_CONFIG[formData.status]?.labelKey) || categoryNames[formData.status] || formData.status}
                         </span>
                       </div>
                       <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${statusOpen ? 'rotate-180 text-white' : ''}`} style={{ color: V.muted }} />
@@ -386,7 +388,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                         >
                           <div className="space-y-1">
                             {availableCategories.map(([key, label]) => {
-                              const conf = STATUS_CONFIG[key] || { emoji: '🎮', color: V.primary, bg: 'rgba(255,255,255,0.05)' };
+                              const conf = STATUS_CONFIG[key] || { emoji: '🎮', color: V.primary, bg: 'rgba(255,255,255,0.05)', labelKey: 'col.' + key };
                               const isSelected = formData.status === key;
                               return (
                                 <button
@@ -403,7 +405,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                                 >
                                   <div className="flex items-center gap-2">
                                     <span>{conf.emoji}</span>
-                                    <span>{label}</span>
+                                    <span>{t(conf.labelKey) || label}</span>
                                   </div>
                                   {isSelected && <Check className="w-3.5 h-3.5" style={{ color: conf.color }} />}
                                 </button>
@@ -417,7 +419,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
                   {/* Gênero Dropdown */}
                   <div className="relative">
-                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>Gênero</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={labelStyle}>{t('modal.genre')}</label>
                     <button
                       type="button"
                       onClick={() => { setGenreOpen(p => !p); setStatusOpen(false); }}
@@ -429,7 +431,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       }}
                     >
                       <span className="truncate" style={{ color: formData.genre ? V.text : V.muted }}>
-                        {formData.genre || 'Selecione'}
+                        {formData.genre || t('modal.genre_select')}
                       </span>
                       <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${genreOpen ? 'rotate-180 text-white' : ''}`} style={{ color: V.muted }} />
                     </button>
@@ -473,11 +475,11 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold uppercase tracking-wider" style={labelStyle}>
-                      Horas Estimadas
+                      {t('modal.hours_label')}
                     </label>
                     {formData.timeToBeat > 0 && (
                       <span className="text-[11px] font-semibold text-emerald-400">
-                        ~{formData.timeToBeat}h para zerar
+                        ~{formData.timeToBeat}{t('modal.hours_for_beating')}
                       </span>
                     )}
                   </div>
@@ -500,7 +502,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                   </div>
                   {/* Chips rápidos */}
                   <div className="flex items-center gap-1.5 mt-2 overflow-x-auto pb-0.5">
-                    <span className="text-[10px] uppercase font-bold flex-shrink-0" style={{ color: V.muted }}>Atalhos:</span>
+                    <span className="text-[10px] uppercase font-bold flex-shrink-0" style={{ color: V.muted }}>{t('modal.hours_shortcuts')}</span>
                     {[10, 25, 50, 80, 100].map(h => (
                       <button
                         key={h}
@@ -521,7 +523,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
             {/* Plataformas */}
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: V.soft }}>Plataformas *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: V.soft }}>{t('modal.platforms')} *</label>
               <div className="flex flex-wrap gap-2">
                 {platformOptions.map((p) => {
                   const selected = isPlatformSelected(p);
@@ -545,7 +547,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                 <div className="rounded-2xl p-5 border-2 border-yellow-500/30" style={{ background: 'rgba(245,158,11,0.08)' }}>
                   <div className="flex items-center gap-2 mb-4">
                     <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                    <label className="text-sm font-bold text-yellow-300 uppercase tracking-wider">Sua Nota</label>
+                    <label className="text-sm font-bold text-yellow-300 uppercase tracking-wider">{t('modal.your_rating')}</label>
                     <span className="ml-auto text-3xl font-black bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
                       {inlineRating > 0 ? `${inlineRating}/10` : '—'}
                     </span>
@@ -555,7 +557,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       <RatingStar key={i} rating={inlineRating} setRating={setInlineRating} index={i} />
                     ))}
                   </div>
-                  <p className="text-center text-xs text-yellow-600 mt-2">Clique para avaliar · opcional</p>
+                  <p className="text-center text-xs text-yellow-600 mt-2">{t('modal.rating_hint')}</p>
                 </div>
 
                 {/* Data personalizada */}
@@ -565,8 +567,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     <div className="flex items-center gap-2">
                       <CalendarDays className={`w-5 h-5 ${useCustomDate ? 'text-blue-400' : ''}`} style={useCustomDate ? {} : { color: V.muted }} />
                       <div>
-                        <p className={`text-sm font-bold ${useCustomDate ? 'text-blue-300' : ''}`} style={useCustomDate ? {} : { color: V.text }}>Data personalizada</p>
-                        <p className="text-xs" style={{ color: V.muted }}>{useCustomDate ? 'Quando você zerou esse jogo?' : 'Zerado em outra data? Adicione aqui'}</p>
+                        <p className={`text-sm font-bold ${useCustomDate ? 'text-blue-300' : ''}`} style={useCustomDate ? {} : { color: V.text }}>{t('modal.custom_date')}</p>
+                        <p className="text-xs" style={{ color: V.muted }}>{useCustomDate ? t('modal.custom_date_question') : t('modal.custom_date_hint')}</p>
                       </div>
                     </div>
                     <button type="button" onClick={() => { setUseCustomDate(p => !p); if (!useCustomDate) setCustomDate(''); }}
@@ -585,7 +587,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     </div>
                     {customDate && (
                       <p className="text-xs text-blue-400 mt-2 text-center">
-                        📅 Zerado em: {new Date(customDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        📅 {t('modal.finished_at')} {new Date(customDate + 'T12:00:00').toLocaleDateString(language === 'en' ? 'en-US' : 'pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                     )}
                   </div>
@@ -600,8 +602,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                     <div className="flex items-center gap-2 flex-1">
                       <Trophy className="w-5 h-5 text-yellow-400" />
                       <div>
-                        <span className="text-sm font-bold text-yellow-300 block">Platinado / 100% Completo</span>
-                        <span className="text-xs text-yellow-500/70">Marque se você conquistou todas as conquistas</span>
+                        <span className="text-sm font-bold text-yellow-300 block">{t('modal.platinum_title')}</span>
+                        <span className="text-xs text-yellow-500/70">{t('modal.platinum_desc')}</span>
                       </div>
                     </div>
                   </label>
@@ -619,8 +621,8 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                   <div className="flex items-center gap-2 flex-1">
                     <Trophy className="w-5 h-5 text-yellow-400" />
                     <div>
-                      <span className="text-sm font-bold text-yellow-300 block">Platinado / 100% Completo</span>
-                      <span className="text-xs text-yellow-500/70">Marque se você conquistou todas as conquistas</span>
+                      <span className="text-sm font-bold text-yellow-300 block">{t('modal.platinum_title')}</span>
+                      <span className="text-xs text-yellow-500/70">{t('modal.platinum_desc')}</span>
                     </div>
                   </div>
                 </label>
@@ -629,7 +631,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
 
             {/* Tags */}
             <div className="rounded-xl p-4" style={sectionStyle}>
-              <label className="block text-xs font-bold uppercase tracking-wider mb-3" style={{ color: V.soft }}>Tags Personalizadas</label>
+              <label className="block text-xs font-bold uppercase tracking-wider mb-3" style={{ color: V.soft }}>{t('modal.tags')}</label>
               <CustomTags tags={formData.tags || []} onChange={(tags) => setFormData(prev => ({ ...prev, tags }))} />
             </div>
 
@@ -637,11 +639,11 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4" style={{ color: V.primary }} />
-                <label className="text-xs font-bold uppercase tracking-wider" style={labelStyle}>Anotações (Opcional)</label>
+                <label className="text-xs font-bold uppercase tracking-wider" style={labelStyle}>{t('modal.notes')}</label>
               </div>
               <textarea name="notes" value={formData.notes || ''} onChange={handleChange} rows="3"
                 className="w-full px-4 py-3 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 transition-all"
-                style={inputStyle} placeholder="Ex: Tenho a continuação no PS5; Pegar troféu X..." />
+                style={inputStyle} placeholder={t('modal.notes_placeholder')} />
             </div>
 
             {/* Botão salvar */}
@@ -649,7 +651,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
               className="w-full py-3.5 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 hover:opacity-90"
               style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`, boxShadow: `0 4px 20px ${V.primary}44` }}>
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              {isEditing ? 'Salvar Alterações' : 'Salvar Jogo'}
+              {isEditing ? t('modal.save_changes') : t('modal.save')}
             </button>
           </form>
         </div>

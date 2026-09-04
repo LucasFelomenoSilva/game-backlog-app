@@ -42,16 +42,11 @@ export function toPublicGames(gamesData = []) {
       sourceImage = 'https:' + sourceImage;
     }
 
-    let imageUrl = '';
-    if (/^https?:\/\//i.test(sourceImage)) {
-      imageUrl = sourceImage.slice(0, 2048);
-    } else if (sourceImage.startsWith('data:image/')) {
-      // Para capas Base64, preserva para jogos visíveis no perfil (zerados, playing, jogando)
-      const isVisible = game?.status === 'zerados' || game?.status === 'playing' || game?.status === 'jogando';
-      if (isVisible) {
-        imageUrl = sourceImage.length <= 350_000 ? sourceImage : '';
-      }
-    }
+    // Apenas URLs HTTP/HTTPS são salvas no perfil público para garantir
+    // que o documento nunca ultrapasse o limite de 1MB do Firestore.
+    // Se o jogo for upload manual sem URL externa, o PublicProfilePage
+    // recupera a capa pelo nome via IGDB no cliente.
+    const imageUrl = /^https?:\/\//i.test(sourceImage) ? sourceImage.slice(0, 2048) : '';
 
     return {
       id: cleanPublicText(game?.id ?? index, 100),
@@ -62,7 +57,6 @@ export function toPublicGames(gamesData = []) {
       isPlatinum: Boolean(game?.isPlatinum),
       finishedDate: cleanPublicText(game?.finishedDate, 40),
       imageUrl,
-      imageBase64: imageUrl.startsWith('data:image/') ? imageUrl : '',
     };
   });
 }
@@ -165,26 +159,35 @@ export async function saveUserData(uid, { gamesData, achievements, gameHistory, 
       updatedAt: serverTimestamp(),
     }, { merge: true }));
 
-    if (publicProfile.exists()) {
-      const currentPublic = publicProfile.data() || {};
-      const avatar = photoBase64 || photoURL || currentPublic.photoURL || '';
-      const finishedCount = cleanGames.filter(g => g.status === 'zerados').length;
-      const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
-      const publicUpdates = {
-        username: currentPublic.username,
-        displayName: currentPublic.displayName || 'Gamer',
-        uid,
-        level: calculatedLevel,
-        gamesData: toPublicGames(cleanGames),
-        updatedAt: serverTimestamp(),
-      };
-      if (avatar) {
-        publicUpdates.photoURL = avatar;
-      }
-      operations.push(batch => batch.set(publicProfileRef, publicUpdates, { merge: true }));
-    }
-
+    // Salva primeiro os dados privados essenciais do usuário
     await commitOperations(operations);
+
+    // Sincroniza o perfil público de forma independente e protegida contra limites de tamanho
+    if (publicProfile.exists()) {
+      try {
+        const currentPublic = publicProfile.data() || {};
+        let avatar = photoURL || currentPublic.photoURL || '';
+        if (!avatar && photoBase64 && photoBase64.length <= 150_000) {
+          avatar = photoBase64;
+        }
+        const finishedCount = cleanGames.filter(g => g.status === 'zerados').length;
+        const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
+        const publicUpdates = {
+          username: currentPublic.username,
+          displayName: currentPublic.displayName || 'Gamer',
+          uid,
+          level: calculatedLevel,
+          gamesData: toPublicGames(cleanGames),
+          updatedAt: serverTimestamp(),
+        };
+        if (avatar) {
+          publicUpdates.photoURL = avatar;
+        }
+        await setDoc(publicProfileRef, publicUpdates, { merge: true });
+      } catch (publicErr) {
+        console.warn('Aviso: Perfil público não pôde ser sincronizado:', publicErr);
+      }
+    }
   };
 
   const previousSave = saveQueues.get(uid) || Promise.resolve();
@@ -227,19 +230,27 @@ export async function syncPublicProfile(uid, user, gamesData) {
   if (!snap.exists()) return false;
 
   const currentData = snap.data() || {};
-  const photoURL = user?.photoBase64 || user?.photoURL || currentData.photoURL || '';
+  let photoURL = user?.photoURL || currentData.photoURL || '';
+  if (!photoURL && user?.photoBase64 && user.photoBase64.length <= 150_000) {
+    photoURL = user.photoBase64;
+  }
   const finishedCount = (gamesData || []).filter(g => g.status === 'zerados').length;
   const calculatedLevel = Math.max(1, Math.floor(finishedCount / 5) + 1);
-  await setDoc(publicProfileRef, {
-    username: currentData.username,
-    displayName: currentData.displayName || user?.displayName || 'Gamer',
-    uid,
-    level: calculatedLevel,
-    photoURL,
-    gamesData: toPublicGames(gamesData),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-  return true;
+  try {
+    await setDoc(publicProfileRef, {
+      username: currentData.username,
+      displayName: currentData.displayName || user?.displayName || 'Gamer',
+      uid,
+      level: calculatedLevel,
+      photoURL,
+      gamesData: toPublicGames(gamesData),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return true;
+  } catch (err) {
+    console.warn('Erro ao sincronizar publicProfile:', err);
+    return false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

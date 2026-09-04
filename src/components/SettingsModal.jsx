@@ -199,7 +199,7 @@ export default function SettingsModal({ onClose }) {
               className="hover:underline transition-colors font-medium"
               style={{ color: theme.muted }}
             >
-              Termos de Uso
+              {t('settings.terms')}
             </button>
             <span style={{ color: theme.border }}>•</span>
             <button
@@ -208,7 +208,7 @@ export default function SettingsModal({ onClose }) {
               className="hover:underline transition-colors font-medium"
               style={{ color: theme.muted }}
             >
-              Privacidade
+              {t('settings.privacy')}
             </button>
           </div>
         </div>

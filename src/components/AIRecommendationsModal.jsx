@@ -2,9 +2,11 @@
 import React from 'react';
 import { X, Sparkles, Bot, Clock, Compass, ArrowRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AIRecommendationsModal({ onClose }) {
   const { theme: V } = useTheme();
+  const { t } = useLanguage();
 
   return (
     <div
@@ -32,7 +34,7 @@ export default function AIRecommendationsModal({ onClose }) {
               className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-md flex items-center gap-1.5"
               style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})` }}
             >
-              <Sparkles className="w-3 h-3" /> Em Breve
+              <Sparkles className="w-3 h-3" /> {t('ai.badge')}
             </span>
           </div>
           <button
@@ -65,10 +67,10 @@ export default function AIRecommendationsModal({ onClose }) {
 
           <div>
             <h2 className="text-2xl font-black mb-2" style={{ color: V.text }}>
-              Recomendações com IA
+              {t('ai.title')}
             </h2>
             <p className="text-sm font-semibold leading-relaxed" style={{ color: V.soft }}>
-              Em breve teremos recomendações de jogos personalizados de acordo com o seu gosto!
+              {t('ai.headline')}
             </p>
           </div>
 
@@ -86,10 +88,10 @@ export default function AIRecommendationsModal({ onClose }) {
               </div>
               <div>
                 <p className="text-xs font-bold" style={{ color: V.text }}>
-                  Baseado no que você zerou e amou
+                  {t('ai.feature1_title')}
                 </p>
                 <p className="text-[11px]" style={{ color: V.muted }}>
-                  Analisa suas notas altas e preferências reais de gameplay.
+                  {t('ai.feature1_desc')}
                 </p>
               </div>
             </div>
@@ -106,10 +108,10 @@ export default function AIRecommendationsModal({ onClose }) {
               </div>
               <div>
                 <p className="text-xs font-bold" style={{ color: V.text }}>
-                  Alinhado ao seu tempo livre
+                  {t('ai.feature2_title')}
                 </p>
                 <p className="text-[11px]" style={{ color: V.muted }}>
-                  Sugestões sob medida para finais de semana ou maratonas.
+                  {t('ai.feature2_desc')}
                 </p>
               </div>
             </div>
@@ -126,10 +128,10 @@ export default function AIRecommendationsModal({ onClose }) {
               </div>
               <div>
                 <p className="text-xs font-bold" style={{ color: V.text }}>
-                  Descubra pérolas escondidas
+                  {t('ai.feature3_title')}
                 </p>
                 <p className="text-[11px]" style={{ color: V.muted }}>
-                  Títulos que você vai adorar e talvez nem saiba que existem.
+                  {t('ai.feature3_desc')}
                 </p>
               </div>
             </div>
@@ -143,7 +145,7 @@ export default function AIRecommendationsModal({ onClose }) {
               boxShadow: `0 4px 20px ${V.glow}`,
             }}
           >
-            Entendido, mal posso esperar! <ArrowRight className="w-4 h-4" />
+            {t('ai.got_it')} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

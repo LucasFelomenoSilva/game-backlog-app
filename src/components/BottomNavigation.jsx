@@ -93,7 +93,7 @@ export default function BottomNavigation({
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold" style={{ color: V.text }}>{firstName}</p>
-              <p className="truncate text-[11px]" style={{ color: V.muted }}>{totalFinishedGames} jogos zerados</p>
+              <p className="truncate text-[11px]" style={{ color: V.muted }}>{totalFinishedGames} {t('nav.completed_games')}</p>
             </div>
           </div>
         </div>
