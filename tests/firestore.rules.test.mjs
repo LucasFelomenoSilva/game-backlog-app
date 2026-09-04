@@ -132,6 +132,21 @@ test('chat é restrito aos participantes', async () => {
     text: 'Intrusão',
     createdAt: serverTimestamp(),
   }));
+
+  // Participantes podem atualizar metadados de notificação e leitura
+  await assertSucceeds(updateDoc(doc(userADb, 'chats/user-a_user-b'), {
+    lastMessage: 'Tudo bem?',
+    lastMessageAt: serverTimestamp(),
+    lastSenderUid: 'user-a',
+    recipientUid: 'user-b',
+    unread: true,
+  }));
+  await assertSucceeds(updateDoc(doc(userBDb, 'chats/user-a_user-b'), {
+    unread: false,
+  }));
+  await assertFails(updateDoc(doc(outsiderDb, 'chats/user-a_user-b'), {
+    unread: false,
+  }));
 });
 
 test('lista colaborativa é restrita aos membros', async () => {

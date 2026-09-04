@@ -1,7 +1,7 @@
 // src/App.jsx
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
-import { Toaster, toast } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,7 @@ import LoadingScreen       from './features/auth/LoadingScreen';
 import ChatScreen          from './components/ChatScreen';
 import FriendProfileScreen from './components/FriendProfileScreen';
 import AIRecommendationsModal from './components/AIRecommendationsModal';
+import LegalModal          from './components/LegalModal';
 
 import {
   LazyProgressScreen, LazyProfileScreen, LazyEnhancedAchievements,
@@ -33,6 +34,8 @@ import {
 } from './lazyComponents';
 
 const isPublicRoute = window.location.pathname.startsWith('/u/');
+const isTermsRoute = window.location.pathname === '/terms' || window.location.pathname === '/terms/';
+const isPrivacyRoute = window.location.pathname === '/privacy' || window.location.pathname === '/privacy/';
 const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
 const CONFETTI_COLORS = ['#f43f5e', '#22c55e', '#3b82f6', '#facc15', '#ec4899', '#06b6d4'];
 const CONFETTI_PIECES = Array.from({ length: 50 }, (_, id) => ({
@@ -106,9 +109,8 @@ function AppInner() {
   }, [user]);
 
   const hasUnreadMessages = useMemo(() => {
-    if (activeTab === 'friends' && !chatOpen) return false;
     return chats.some(c => c.unread === true && c.lastSenderUid && c.lastSenderUid !== user?.uid);
-  }, [chats, user?.uid, activeTab, chatOpen]);
+  }, [chats, user?.uid]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -152,6 +154,8 @@ function AppInner() {
     games.handleDragEnd(result);
   }, [games, openReviewModal]);
 
+  if (isTermsRoute) return <LegalModal initialTab="terms" onClose={() => { window.location.href = '/'; }} />;
+  if (isPrivacyRoute) return <LegalModal initialTab="privacy" onClose={() => { window.location.href = '/'; }} />;
   if (isPublicRoute) return <PublicProfilePage />;
 
   if (chatOpen) return (

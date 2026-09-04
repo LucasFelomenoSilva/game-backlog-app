@@ -92,12 +92,19 @@ export function AuthProvider({ children }) {
       const compressed = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 200, useWebWorker: true });
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64 = reader.result;
-        setUser(prev => ({ ...prev, photoBase64: base64 }));
-        if (user) {
-          await updateUserAvatar(user.uid, base64);
-          toast.success('Avatar atualizado!');
+        try {
+          const base64 = reader.result;
+          setUser(prev => ({ ...prev, photoBase64: base64 }));
+          if (user) {
+            await updateUserAvatar(user.uid, base64);
+            toast.success('Avatar atualizado!');
+          }
+        } catch {
+          toast.error('Erro ao salvar avatar.');
         }
+      };
+      reader.onerror = () => {
+        toast.error('Erro ao ler a imagem selecionada.');
       };
       reader.readAsDataURL(compressed);
     } catch {

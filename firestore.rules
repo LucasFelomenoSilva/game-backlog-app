@@ -99,7 +99,8 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid in resource.data.participants
         && request.resource.data.participants == resource.data.participants
-        && changedOnly(['lastMessage', 'lastMessageAt']);
+        && changedOnly(['lastMessage', 'lastMessageAt', 'lastSenderUid', 'recipientUid', 'unread'])
+        && (!('unread' in request.resource.data) || request.resource.data.unread is bool);
       allow delete: if false;
 
       match /messages/{messageId} {

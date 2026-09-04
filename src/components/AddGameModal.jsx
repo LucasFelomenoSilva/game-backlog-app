@@ -138,7 +138,9 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     setFormData(prev => ({ ...prev, platform: platStr }));
     try {
       if (platStr) localStorage.setItem('xplog_last_platform', platStr);
-    } catch {}
+    } catch {
+      // ignore storage error
+    }
   };
 
   const handleSelectGame = (gameResult) => {
@@ -179,7 +181,11 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
     let imageBase64Data = formData.imageBase64;
     try {
       if (formData.platform) {
-        try { localStorage.setItem('xplog_last_platform', formData.platform); } catch {}
+        try {
+          localStorage.setItem('xplog_last_platform', formData.platform);
+        } catch {
+          // ignore storage error
+        }
       }
       if (imageFile) {
         imageBase64Data = await convertFileToBase64(imageFile);

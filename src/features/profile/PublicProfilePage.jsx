@@ -66,10 +66,10 @@ export default function PublicProfilePage() {
     }
   }, [data?.profile?.uid, data?.profile?.username]);
 
-  // Se algum jogo público estiver sem capa, busca automaticamente pelo nome
+  // Se algum jogo público estiver sem capa, busca automaticamente pelo nome (limitado a 6 para evitar rate limit)
   useEffect(() => {
     if (!data?.gamesData) return;
-    const missing = data.gamesData.filter(g => !publicGameImage(g) && g.nome);
+    const missing = data.gamesData.filter(g => !publicGameImage(g) && g.nome).slice(0, 6);
     if (missing.length === 0) return;
 
     let cancelled = false;

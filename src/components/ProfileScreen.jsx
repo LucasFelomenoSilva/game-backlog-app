@@ -1,5 +1,5 @@
 // src/components/ProfileScreen.jsx
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import {
   LogOut, Camera, Trophy, Star, Clock, ChevronLeft,
@@ -13,7 +13,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage, getTranslatedGenre } from '../context/LanguageContext';
-import SettingsModal from './SettingsModal';
+import { LazySettingsModal } from '../lazyComponents';
 import PublicProfile from './PublicProfile';
 
 // ── Badges ────────────────────────────────────────────────────────────────────
@@ -341,7 +341,9 @@ export default function ProfileScreen({
         <FavoritePicker gamesData={gamesData} favorites={favorites} onToggle={toggle} onClose={handleClosePicker} />
       )}
       {showTheme && (
-        <SettingsModal onClose={() => setShowTheme(false)} />
+        <Suspense fallback={null}>
+          <LazySettingsModal onClose={() => setShowTheme(false)} />
+        </Suspense>
       )}
       {showEditProfile && (
         <EditProfileModal user={{ ...user, displayName: localDisplayName, bio: localBio }} onSave={handleSaveProfile} onClose={() => setShowEditProfile(false)} />

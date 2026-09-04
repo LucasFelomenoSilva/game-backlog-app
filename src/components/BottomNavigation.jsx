@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Gamepad2, Joystick, TrendingUp, Trophy, User, Users, Settings, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
-import SettingsModal from './SettingsModal';
+import { LazySettingsModal } from '../lazyComponents';
 
 const TAB_DEFS = [
   { id: 'categories',   key: 'tab.backlog',  icon: Joystick },
@@ -199,7 +199,11 @@ export default function BottomNavigation({
         </div>
       </div>
 
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <Suspense fallback={null}>
+          <LazySettingsModal onClose={() => setShowSettings(false)} />
+        </Suspense>
+      )}
     </>
   );
 }
