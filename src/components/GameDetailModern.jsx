@@ -20,7 +20,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { categoryNames } from '../data/categories';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage, getTranslatedGenre } from '../context/LanguageContext';
 import { getGameLengthInfo, getRatingHex, getRatingLabel } from '../utils/gameUtils';
 
 export default function GameDetailModern({
@@ -199,7 +199,7 @@ export default function GameDetailModern({
                     <div className="mt-5 grid gap-3 sm:grid-cols-2">
                       {[
                         [t('detail.platform'), selectedGame.platform || t('detail.not_informed')],
-                        [t('detail.genre'), selectedGame.genre || t('detail.not_informed_m')],
+                        [t('detail.genre'), getTranslatedGenre(selectedGame.genre, language) || t('detail.not_informed_m')],
                         [t('detail.time_to_beat'), lengthInfo ? `${selectedGame.timeToBeat}h · ${lengthInfo.label}` : t('detail.not_informed')],
                         [t('detail.my_rating'), rating ? `${getRatingLabel(rating)} · ${rating}/10` : t('detail.no_review_yet')],
                       ].map(([label, value]) => <div key={label} className="rounded-2xl border p-4" style={{ borderColor: V.border, background: V.faint }}><p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: V.muted }}>{label}</p><p className="mt-1.5 text-sm font-bold">{value}</p></div>)}

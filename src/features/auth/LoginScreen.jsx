@@ -1,19 +1,21 @@
 // src/features/auth/LoginScreen.jsx
 import React, { useState } from 'react';
-import { ArrowRight, BarChart3, Check, Gamepad2, Layers3, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, BarChart3, Check, Gamepad2, Globe, Layers3, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import LegalModal from '../../components/LegalModal';
-
-const FEATURES = [
-  { icon: Layers3, title: 'Backlog organizado', text: 'Tudo que você quer jogar, sem perder o contexto.' },
-  { icon: BarChart3, title: 'Progresso visível', text: 'Metas, histórico e estatísticas em um só lugar.' },
-  { icon: Sparkles, title: 'Escolhas mais fáceis', text: 'Sugestões inteligentes para decidir o próximo jogo.' },
-];
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [legalModal, setLegalModal] = useState(null);
+
+  const features = [
+    { icon: Layers3, title: t('landing.feat1_title'), text: t('landing.feat1_desc') },
+    { icon: BarChart3, title: t('landing.feat2_title'), text: t('landing.feat2_desc') },
+    { icon: Sparkles, title: t('landing.feat3_title'), text: t('landing.feat3_desc') },
+  ];
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#08060f] text-white">
@@ -33,7 +35,7 @@ export default function LoginScreen() {
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 py-6 sm:px-8 lg:px-12">
-        <header className="flex items-center justify-between">
+        <header className="flex items-center justify-between gap-4">
           <motion.div
             initial={{ opacity: 0, x: -15 }}
             animate={{ opacity: 1, x: 0 }}
@@ -48,15 +50,47 @@ export default function LoginScreen() {
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-violet-300/70">Game backlog</p>
             </div>
           </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="hidden items-center gap-2 text-xs text-slate-400 sm:flex"
-          >
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
-            Seus dados sincronizados com segurança
-          </motion.div>
+
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: 15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="hidden items-center gap-2 text-xs text-slate-400 sm:flex"
+            >
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              {t('landing.security_badge')}
+            </motion.div>
+
+            {/* Language Selector PT / EN */}
+            <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 p-1 backdrop-blur-md">
+              <Globe className="h-3.5 w-3.5 text-violet-300 ml-1.5 hidden sm:block" />
+              <button
+                type="button"
+                onClick={() => setLanguage('pt-BR')}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                  language === 'pt-BR'
+                    ? 'bg-violet-600 text-white shadow-sm shadow-violet-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Português (Brasil)"
+              >
+                PT
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                  language === 'en'
+                    ? 'bg-violet-600 text-white shadow-sm shadow-violet-900/50'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="English"
+              >
+                EN
+              </button>
+            </div>
+          </div>
         </header>
 
         <section className="grid flex-1 items-center gap-12 py-14 lg:grid-cols-[1.08fr_.92fr] lg:py-20">
@@ -68,18 +102,18 @@ export default function LoginScreen() {
           >
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1.5 text-xs font-bold text-violet-200 shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_#c4b5fd] animate-ping" />
-              Sua próxima aventura começa aqui
+              {t('landing.badge')}
             </div>
             <h1 className="text-4xl font-black leading-[1.05] tracking-[-0.045em] sm:text-6xl lg:text-7xl">
-              Menos tempo escolhendo.{' '}
-              <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300 bg-clip-text text-transparent">Mais tempo jogando.</span>
+              {t('landing.headline_1')}{' '}
+              <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-indigo-300 bg-clip-text text-transparent">{t('landing.headline_grad')}</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
-              Organize sua coleção, acompanhe conquistas e encontre o jogo certo para cada momento — sem transformar diversão em planilha.
+              {t('landing.subtitle')}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-300">
-              {['Backlog em um só lugar', 'Estatísticas automáticas', 'Sugestões personalizadas'].map((item, i) => (
+              {[t('landing.bullet1'), t('landing.bullet2'), t('landing.bullet3')].map((item, i) => (
                 <motion.span
                   key={item}
                   initial={{ opacity: 0, y: 10 }}
@@ -102,10 +136,10 @@ export default function LoginScreen() {
               {/* Efeito de brilho / Shimmer sutil no hover */}
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-violet-200/40 to-transparent pointer-events-none" />
               <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-sm font-black text-blue-600 shadow ring-1 ring-slate-200" aria-hidden="true">G</span>
-              Continuar com Google
+              {t('landing.continue_google')}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 text-violet-700" />
             </motion.button>
-            <p className="mt-3 text-xs text-slate-500">Login rápido e seguro. Nada de senha extra para lembrar.</p>
+            <p className="mt-3 text-xs text-slate-500">{t('landing.login_note')}</p>
           </motion.div>
 
           {/* Card do Painel com Levitação Sutil e Hover Interativo */}
@@ -123,14 +157,14 @@ export default function LoginScreen() {
             <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-7">
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300/70">Seu painel</p>
-                  <p className="mt-1 text-xl font-black">Tudo sob controle</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300/70">{t('landing.panel_title')}</p>
+                  <p className="mt-1 text-xl font-black">{t('landing.panel_subtitle')}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-400">24 jogos</div>
+                <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-slate-400">{t('landing.panel_games_count')}</div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-                {[['Jogando', '3', 'bg-violet-400'], ['Na fila', '14', 'bg-fuchsia-400'], ['Zerados', '7', 'bg-emerald-400']].map(([label, value, color]) => (
+                {[[t('landing.status_playing'), '3', 'bg-violet-400'], [t('landing.status_queue'), '14', 'bg-fuchsia-400'], [t('landing.status_completed'), '7', 'bg-emerald-400']].map(([label, value, color]) => (
                   <motion.div
                     key={label}
                     whileHover={{ scale: 1.04, y: -2 }}
@@ -144,7 +178,7 @@ export default function LoginScreen() {
               </div>
 
               <div className="mt-5 space-y-3">
-                {FEATURES.map(({ icon: Icon, title, text }) => (
+                {features.map(({ icon: Icon, title, text }) => (
                   <motion.div
                     key={title}
                     whileHover={{ x: 4 }}
@@ -165,7 +199,7 @@ export default function LoginScreen() {
         {/* Footer com Termos e Privacidade */}
         <footer className="mt-auto border-t border-white/5 py-6 text-center sm:text-left flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <div>
-            © {new Date().getFullYear()} XpLog. Todos os direitos reservados.
+            {t('landing.copyright', { year: new Date().getFullYear() })}
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -173,7 +207,7 @@ export default function LoginScreen() {
               onClick={() => setLegalModal('terms')}
               className="hover:text-slate-300 transition-colors underline"
             >
-              Termos de Uso
+              {t('landing.terms')}
             </button>
             <span>·</span>
             <button
@@ -181,7 +215,7 @@ export default function LoginScreen() {
               onClick={() => setLegalModal('privacy')}
               className="hover:text-slate-300 transition-colors underline"
             >
-              Política de Privacidade
+              {t('landing.privacy')}
             </button>
           </div>
         </footer>

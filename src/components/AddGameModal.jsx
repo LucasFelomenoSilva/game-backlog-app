@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { searchGameIGDB } from '../services/igdbService';
 import CustomTags from './CustomTags';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage, getTranslatedGenre } from '../context/LanguageContext';
 
 const STATUS_CONFIG = {
   playing:   { labelKey: 'col.playing', emoji: '🔥', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
@@ -431,7 +431,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                       }}
                     >
                       <span className="truncate" style={{ color: formData.genre ? V.text : V.muted }}>
-                        {formData.genre || t('modal.genre_select')}
+                        {getTranslatedGenre(formData.genre, language) || t('modal.genre_select')}
                       </span>
                       <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${genreOpen ? 'rotate-180 text-white' : ''}`} style={{ color: V.muted }} />
                     </button>
@@ -459,7 +459,7 @@ export default function AddGameModal({ onClose, onSaveGame, gameToEdit, initialD
                                   }`}
                                   style={isSelected ? { background: `${V.primary}20`, color: V.primary, border: `1px solid ${V.primary}40` } : { color: V.text }}
                                 >
-                                  <span>{g}</span>
+                                  <span>{getTranslatedGenre(g, language)}</span>
                                   {isSelected && <Check className="w-3.5 h-3.5" style={{ color: V.primary }} />}
                                 </button>
                               );

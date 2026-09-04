@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { categoryNames } from "../data/categories";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage, getTranslatedGenre } from "../context/LanguageContext";
 import { getRatingHex } from "../utils/gameUtils";
 
 const CAT_GRAD = {
@@ -32,6 +33,7 @@ const CAT_EMOJI = {
 
 export default function GlobalSearch({ gamesData = [], onSelectGame }) {
   const { theme: V } = useTheme();
+  const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -108,11 +110,11 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
         onClick={() => setOpen(true)}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all hover:opacity-80 group"
         style={{ background: V.faint, border: `1px solid ${V.border}` }}
-        title="Busca global (Ctrl+K)"
+        title={language === 'en' ? 'Global search (Ctrl+K)' : 'Busca global (Ctrl+K)'}
       >
         <Search className="w-4 h-4" style={{ color: V.muted }} />
         <span className="text-sm hidden sm:block" style={{ color: V.muted }}>
-          Buscar jogos...
+          {t('action.search')}
         </span>
         <kbd
           className="hidden sm:flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono"
@@ -157,7 +159,7 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Buscar por nome, gênero, plataforma..."
+            placeholder={t('search.placeholder')}
             className="flex-1 bg-transparent outline-none text-base"
             style={{ color: V.text, fontSize: 16 }}
           />
@@ -206,10 +208,10 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
                 <Zap className="w-7 h-7 text-white" />
               </div>
               <p className="text-sm font-semibold" style={{ color: V.muted }}>
-                Digite para buscar na sua coleção
+                {t('search.hint')}
               </p>
               <p className="text-xs mt-1" style={{ color: V.low }}>
-                {gamesData.length} jogos
+                {gamesData.length} {gamesData.length === 1 ? t('stats.game_count_single') : t('stats.games_count')}
               </p>
             </div>
           )}
@@ -220,7 +222,7 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
                 style={{ color: V.low }}
               />
               <p className="text-sm" style={{ color: V.muted }}>
-                Nenhum resultado para "{query}"
+                {t('search.not_found')} "{query}"
               </p>
             </div>
           )}
@@ -230,13 +232,13 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
                 className="px-4 py-1 text-[10px] font-bold uppercase tracking-widest"
                 style={{ color: V.low }}
               >
-                {results.length} resultado{results.length !== 1 ? "s" : ""}
+                {results.length} {language === 'en' ? (results.length === 1 ? 'result' : 'results') : (results.length === 1 ? 'resultado' : 'resultados')}
               </p>
               {results.map((game, index) => {
                 const grad =
                   CAT_GRAD[game.status] || "from-violet-500 to-indigo-500";
                 const emoji = CAT_EMOJI[game.status] || "🎮";
-                const cat = categoryNames[game.status] || game.status;
+                const cat = t('col.' + game.status) || categoryNames[game.status] || game.status;
                 return (
                   <button
                     key={game.id}
@@ -280,14 +282,13 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
                         <span
                           className={`text-[9px] font-black px-1.5 py-0.5 rounded-full bg-gradient-to-r ${grad} text-white`}
                         >
-                          {emoji}{" "}
-                          {cat.replace(/[^a-zA-Z\u00C0-\u00FF\s]/g, "").trim()}
+                          {emoji} {cat}
                         </span>
                         <span
                           className="text-[10px]"
                           style={{ color: V.muted }}
                         >
-                          {game.platform}
+                          {game.platform}{game.genre ? ` · ${getTranslatedGenre(game.genre, language)}` : ''}
                         </span>
                       </div>
                     </div>
@@ -346,7 +347,7 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
               >
                 ↵
               </kbd>
-              selecionar
+              {language === 'en' ? 'select' : 'selecionar'}
             </span>
             <span className="flex items-center gap-1">
               <kbd
@@ -355,11 +356,11 @@ export default function GlobalSearch({ gamesData = [], onSelectGame }) {
               >
                 ESC
               </kbd>
-              fechar
+              {language === 'en' ? 'close' : 'fechar'}
             </span>
           </div>
           <span className="text-[10px]" style={{ color: V.low }}>
-            {gamesData.length} jogos
+            {gamesData.length} {gamesData.length === 1 ? t('stats.game_count_single') : t('stats.games_count')}
           </span>
         </div>
       </div>

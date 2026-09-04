@@ -6,7 +6,7 @@ import {
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage, getTranslatedGenre } from '../context/LanguageContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -145,7 +145,7 @@ export default function ProgressScreen({ gamesData = [], gameHistory = [], total
                 {stats.genreRanking.map((genre, index) => (
                   <div key={genre.name}>
                     <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                      <span className="font-bold" style={{ color: V.text }}>{genre.name}</span>
+                      <span className="font-bold" style={{ color: V.text }}>{getTranslatedGenre(genre.name, language)}</span>
                       <span style={{ color: V.muted }}>{genre.count} {genre.count === 1 ? t('stats.game_count_single') : t('stats.games_count')}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full" style={{ background: V.faint }}>

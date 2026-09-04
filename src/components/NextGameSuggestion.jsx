@@ -1,18 +1,20 @@
 // src/components/NextGameSuggestion.jsx
 import React, { useMemo, useState } from 'react';
 import { Zap, Clock, Shuffle, ChevronRight, Gamepad2, X } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext'; // <-- Importado
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
-function getGameLengthLabel(hours, V) {
+function getGameLengthLabel(hours, V, t) {
   if (!hours || hours === 0) return null;
-  if (hours <= 5)  return { label: 'Rapidinho',  color: '#4ade80', bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.2)' };
-  if (hours <= 15) return { label: 'Curto',       color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.2)' };
-  if (hours <= 40) return { label: 'Médio',       color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.2)' };
-  return             { label: 'Longo',       color: '#fb923c', bg: 'rgba(251,146,60,0.1)', border: 'rgba(251,146,60,0.2)' };
+  if (hours <= 5)  return { label: t ? t('next_game.very_short') : 'Rapidinho',  color: '#4ade80', bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.2)' };
+  if (hours <= 15) return { label: t ? t('next_game.short') : 'Curto',       color: '#22d3ee', bg: 'rgba(34,211,238,0.1)', border: 'rgba(34,211,238,0.2)' };
+  if (hours <= 40) return { label: t ? t('next_game.medium') : 'Médio',       color: '#facc15', bg: 'rgba(250,204,21,0.1)', border: 'rgba(250,204,21,0.2)' };
+  return             { label: t ? t('next_game.long') : 'Longo',       color: '#fb923c', bg: 'rgba(251,146,60,0.1)', border: 'rgba(251,146,60,0.2)' };
 }
 
 export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
-  const { theme: V } = useTheme(); // <-- Usando as cores do tema
+  const { theme: V } = useTheme();
+  const { t } = useLanguage();
   const [dismissed, setDismissed] = useState(false);
   const [shuffleSeed, setShuffleSeed] = useState(0);
 
@@ -36,7 +38,7 @@ export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
 
   if (!suggestion || dismissed) return null;
 
-  const lengthInfo = getGameLengthLabel(suggestion.timeToBeat, V);
+  const lengthInfo = getGameLengthLabel(suggestion.timeToBeat, V, t);
   const isInstalled = suggestion.status === 'installed';
 
   return (
@@ -74,7 +76,7 @@ export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border"
                  style={{ background: `${V.accent}1a`, borderColor: `${V.accent}33` }}>
               <Zap className="w-3 h-3" style={{ color: V.accent }} />
-              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: V.accent }}>Próximo Jogo</span>
+              <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: V.accent }}>{t('next_game.badge')}</span>
             </div>
             {lengthInfo && (
               <div className="px-2 py-0.5 rounded-full border" style={{ background: lengthInfo.bg, borderColor: lengthInfo.border }}>
@@ -92,7 +94,7 @@ export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
               </span>
             )}
             {!suggestion.timeToBeat && (
-              <span className="text-xs italic" style={{ color: V.low }}>Sem estimativa de tempo</span>
+              <span className="text-xs italic" style={{ color: V.low }}>{t('next_game.no_estimate')}</span>
             )}
           </div>
         </div>
@@ -102,7 +104,7 @@ export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
             onClick={() => setShuffleSeed(s => s + 1)}
             className="p-2 rounded-xl border transition-all hover:scale-110"
             style={{ background: V.faint, borderColor: V.border }}
-            title="Outra sugestão"
+            title={t('next_game.another_suggestion')}
           >
             <Shuffle className="w-4 h-4" style={{ color: V.muted }} />
           </button>
@@ -111,14 +113,14 @@ export default function NextGameSuggestion({ gamesData = [], onSelectGame }) {
             className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-white transition-all hover:scale-105 shadow-lg"
             style={{ background: `linear-gradient(to right, ${V.primary}, ${V.secondary})`, boxShadow: `0 4px 14px ${V.primary}33` }}
           >
-            <span className="hidden sm:inline">Jogar</span>
+            <span className="hidden sm:inline">{t('next_game.play')}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
             onClick={() => setDismissed(true)}
             className="p-1.5 rounded-lg transition-colors hover:bg-white/5"
-            title="Dispensar"
-            aria-label="Dispensar sugestão"
+            title={t('next_game.dismiss')}
+            aria-label={t('next_game.dismiss')}
           >
             <X className="w-3.5 h-3.5" style={{ color: V.low }} />
           </button>

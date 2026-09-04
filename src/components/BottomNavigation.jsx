@@ -1,9 +1,10 @@
-// src/components/BottomNavigation.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Gamepad2, Joystick, TrendingUp, Trophy, User, Users } from 'lucide-react';
+import { Gamepad2, Joystick, TrendingUp, Trophy, User, Users, Settings, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
+import SettingsModal from './SettingsModal';
 
 const TAB_DEFS = [
   { id: 'categories',   key: 'tab.backlog',  icon: Joystick },
@@ -17,11 +18,14 @@ export default function BottomNavigation({
   activeTab,
   setActiveTab,
   friendRequestCount = 0,
+  hasUnreadMessages = false,
   user,
   totalFinishedGames = 0,
 }) {
   const { theme: V } = useTheme();
   const { t } = useLanguage();
+  const { signOut } = useAuth();
+  const [showSettings, setShowSettings] = useState(false);
   const avatar = user?.photoBase64 || user?.photoURL;
   const firstName = user?.displayName?.split(' ')[0] || 'Gamer';
   const tabs = TAB_DEFS.map(tDef => ({ ...tDef, label: t(tDef.key) }));
@@ -55,13 +59,16 @@ export default function BottomNavigation({
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             const hasBadge = tab.id === 'friends' && friendRequestCount > 0;
+            const hasUnread = tab.id === 'friends' && hasUnreadMessages;
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className="relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-sm font-bold transition-colors"
-                style={{ color: isActive ? V.soft : V.muted }}
+                className={`relative flex w-full items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-sm font-bold transition-all ${
+                  hasUnread && !isActive ? 'ring-1 ring-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.15)]' : ''
+                }`}
+                style={{ color: isActive ? V.soft : (hasUnread ? '#34d399' : V.muted) }}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {isActive && (
@@ -72,7 +79,15 @@ export default function BottomNavigation({
                     transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                   />
                 )}
-                <Icon className="relative h-[18px] w-[18px]" />
+                <div className="relative">
+                  <Icon className="h-[18px] w-[18px]" />
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    </span>
+                  )}
+                </div>
                 <span className="relative flex-1 text-left">{tab.label}</span>
                 {hasBadge && (
                   <span className="relative grid min-w-5 place-items-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[9px] font-black text-white">
@@ -85,8 +100,8 @@ export default function BottomNavigation({
         </nav>
 
         <div className="mt-auto rounded-2xl border p-3" style={{ background: V.card, borderColor: V.border }}>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 overflow-hidden rounded-xl border" style={{ borderColor: V.border, background: V.faint }}>
+          <div className="flex items-center gap-2.5">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl border" style={{ borderColor: V.border, background: V.faint }}>
               {avatar
                 ? <img src={avatar} alt="Perfil" className="h-full w-full object-cover" />
                 : <span className="grid h-full w-full place-items-center text-sm font-black" style={{ color: V.soft }}>{firstName.charAt(0)}</span>}
@@ -94,6 +109,29 @@ export default function BottomNavigation({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold" style={{ color: V.text }}>{firstName}</p>
               <p className="truncate text-[11px]" style={{ color: V.muted }}>{totalFinishedGames} {t('nav.completed_games')}</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowSettings(true)}
+                className="grid h-8 w-8 place-items-center rounded-lg transition-all hover:scale-105 active:scale-95"
+                style={{ color: V.muted }}
+                title={t('settings.title')}
+                aria-label={t('settings.title')}
+                onMouseEnter={e => { e.currentTarget.style.color = V.text; e.currentTarget.style.background = V.faint; }}
+                onMouseLeave={e => { e.currentTarget.style.color = V.muted; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-all hover:scale-105 hover:bg-rose-500/10 hover:text-rose-400 active:scale-95"
+                title={t('profile.logout')}
+                aria-label={t('profile.logout')}
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -109,13 +147,16 @@ export default function BottomNavigation({
             const Icon    = tab.icon;
             const isActive = activeTab === tab.id;
             const hasBadge = tab.id === 'friends' && friendRequestCount > 0;
+            const hasUnread = tab.id === 'friends' && hasUnreadMessages;
 
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className="group relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 transition-all duration-300 sm:flex-row sm:gap-2"
+                className={`group relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-1.5 transition-all duration-300 sm:flex-row sm:gap-2 ${
+                  hasUnread && !isActive ? 'ring-1 ring-emerald-500/50 bg-emerald-500/5' : ''
+                }`}
                 aria-label={`Abrir ${tab.label}`}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -128,7 +169,14 @@ export default function BottomNavigation({
                     background: isActive ? `linear-gradient(to bottom right, ${V.primary}, ${V.secondary})` : V.faint,
                     boxShadow: isActive ? `0 4px 16px ${V.glow}` : 'none'
                   }}>
-                  <Icon className={`w-4 h-4 transition-all duration-300`} style={{ color: isActive ? '#fff' : V.muted }} />
+                  <Icon className={`w-4 h-4 transition-all duration-300`} style={{ color: isActive ? '#fff' : (hasUnread ? '#34d399' : V.muted) }} />
+
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 border-2" style={{ borderColor: V.bg }}></span>
+                    </span>
+                  )}
 
                   {hasBadge && (
                     <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center animate-pulse"
@@ -140,7 +188,7 @@ export default function BottomNavigation({
                   )}
                 </div>
 
-                <span className="relative z-10 text-[9px] font-bold transition-all duration-300 sm:text-[11px]" style={{ color: isActive ? V.text : V.low }}>
+                <span className="relative z-10 text-[9px] font-bold transition-all duration-300 sm:text-[11px]" style={{ color: isActive ? V.text : (hasUnread ? '#34d399' : V.low) }}>
                   {tab.label}
                 </span>
 
@@ -150,6 +198,8 @@ export default function BottomNavigation({
         </div>
         </div>
       </div>
+
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </>
   );
 }

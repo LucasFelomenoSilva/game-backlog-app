@@ -12,7 +12,7 @@ import { db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
+import { useLanguage, getTranslatedGenre } from '../context/LanguageContext';
 import SettingsModal from './SettingsModal';
 import PublicProfile from './PublicProfile';
 
@@ -523,7 +523,7 @@ export default function ProfileScreen({
                           )}
                         </div>
                         <p className="text-xl font-black text-white">{favorites[0].nome}</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{favorites[0].platform} · {favorites[0].genre}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{favorites[0].platform} · {getTranslatedGenre(favorites[0].genre, language)}</p>
                       </div>
                       {favorites[0].rating > 0 && (
                         <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl" style={{ background: `linear-gradient(135deg, ${V.primary}, ${V.secondary})`, boxShadow: `0 4px 16px ${V.glow}` }}>
@@ -603,7 +603,7 @@ export default function ProfileScreen({
             </div>
             <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${V.border}` }}>
               <HighlightRow label={t('profile.fav_platform')} value={S.topPlatform} icon={Monitor} />
-              <HighlightRow label={t('profile.fav_genre')}     value={S.favGenre}    icon={Heart} />
+              <HighlightRow label={t('profile.fav_genre')}     value={getTranslatedGenre(S.favGenre, language)}    icon={Heart} />
               <HighlightRow label={t('profile.total_games')}      value={S.total}       icon={Gamepad2} />
               <div className="flex items-center justify-between py-3 px-4">
                 <div className="flex items-center gap-2.5">

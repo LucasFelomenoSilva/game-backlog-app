@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Loader2 } from 'lucide-react';
@@ -10,7 +10,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { useGamesState } from './hooks/useGamesState';
-import { subscribeToSocialProfile } from './services/socialService';
+import { subscribeToSocialProfile, subscribeToUserChats } from './services/socialService';
 
 import CategorySelector    from './components/CategorySelector';
 import GameList            from './components/GameListModern';
@@ -74,6 +74,7 @@ function AppInner() {
   const [activeTab,          setActiveTab]          = useState('categories');
   const [showConfetti,       setShowConfetti]       = useState(false);
   const [socialProfile,      setSocialProfile]      = useState(null);
+  const [chats,              setChats]              = useState([]);
   const [chatOpen,           setChatOpen]           = useState(null);
   const [viewingFriend,      setViewingFriend]      = useState(null);
   const [isAddGameModalOpen, setIsAddGameModalOpen] = useState(false);
@@ -96,9 +97,18 @@ function AppInner() {
 
   useEffect(() => {
     if (!user) return undefined;
-    const unsub = subscribeToSocialProfile(user.uid, setSocialProfile);
-    return () => unsub();
+    const unsubProfile = subscribeToSocialProfile(user.uid, setSocialProfile);
+    const unsubChats = subscribeToUserChats(user.uid, setChats);
+    return () => {
+      unsubProfile();
+      unsubChats();
+    };
   }, [user]);
+
+  const hasUnreadMessages = useMemo(() => {
+    if (activeTab === 'friends' && !chatOpen) return false;
+    return chats.some(c => c.unread === true && c.lastSenderUid && c.lastSenderUid !== user?.uid);
+  }, [chats, user?.uid, activeTab, chatOpen]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -188,7 +198,7 @@ function AppInner() {
           {tabContent}
         </motion.div>
       </AnimatePresence>
-      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} user={user} totalFinishedGames={games.totalFinishedGames} />
+      <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} hasUnreadMessages={hasUnreadMessages} user={user} totalFinishedGames={games.totalFinishedGames} />
     </div>
   );
 
@@ -265,7 +275,7 @@ function AppInner() {
         </Suspense>
       )}
       {!games.selectedGame && !isReviewModalOpen && (
-        <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} user={user} totalFinishedGames={games.totalFinishedGames} />
+        <BottomNavigation activeTab={activeTab} setActiveTab={setActiveTab} friendRequestCount={socialProfile?.friendRequests?.length || 0} hasUnreadMessages={hasUnreadMessages} user={user} totalFinishedGames={games.totalFinishedGames} />
       )}
     </div>
   );

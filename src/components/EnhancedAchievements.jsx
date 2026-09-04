@@ -74,8 +74,12 @@ const ACHIEVEMENTS = [
 const TIER_ORDER = ['platinum', 'gold', 'silver', 'bronze'];
 
 function AchievementCard({ achievement, unlocked, V, tierConfig }) {
+  const { t } = useLanguage();
   const Icon = achievement.icon;
   const tier = tierConfig[achievement.tier];
+  const title = t('ach.' + achievement.id + '.title') || achievement.title;
+  const description = t('ach.' + achievement.id + '.desc') || achievement.description;
+
   return (
     <motion.article
       variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
@@ -91,10 +95,10 @@ function AchievementCard({ achievement, unlocked, V, tierConfig }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="truncate text-sm font-black" style={{ color: unlocked ? V.text : V.muted }}>{achievement.title}</h3>
+          <h3 className="truncate text-sm font-black" style={{ color: unlocked ? V.text : V.muted }}>{title}</h3>
           <span className="rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider" style={{ background: tier.bg, color: tier.color }}>{tier.label}</span>
         </div>
-        <p className="mt-1 text-xs leading-5" style={{ color: unlocked ? V.muted : V.low }}>{achievement.description}</p>
+        <p className="mt-1 text-xs leading-5" style={{ color: unlocked ? V.muted : V.low }}>{description}</p>
         <p className="mt-1.5 text-[10px] font-black" style={{ color: unlocked ? '#facc15' : V.low }}>+{achievement.points} XP</p>
       </div>
     </motion.article>

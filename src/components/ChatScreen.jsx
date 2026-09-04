@@ -1,7 +1,7 @@
 // src/components/ChatScreen.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Send, MessageCircle, Loader2 } from 'lucide-react';
-import { sendMessage, subscribeToChat, getChatId } from '../services/socialService';
+import { sendMessage, subscribeToChat, getChatId, markChatAsRead } from '../services/socialService';
 import { toast } from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
 
@@ -17,9 +17,11 @@ export default function ChatScreen({ currentUser, friendUid, friendProfile, onBa
   const chatId = getChatId(currentUser.uid, friendUid);
 
   useEffect(() => {
+    markChatAsRead(chatId);
     const unsub = subscribeToChat(chatId, (msgs) => {
       setMessages(msgs);
       setLoading(false);
+      markChatAsRead(chatId);
     });
     return () => unsub();
   }, [chatId]);

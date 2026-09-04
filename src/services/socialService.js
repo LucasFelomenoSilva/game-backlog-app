@@ -130,6 +130,9 @@ export async function sendMessage(chatId, senderUid, recipientUid, senderName, s
   await setDoc(metaRef, {
     lastMessage: text,
     lastMessageAt: serverTimestamp(),
+    lastSenderUid: senderUid,
+    recipientUid,
+    unread: true,
     participants: [senderUid, recipientUid].sort(),
   }, { merge: true });
 
@@ -141,6 +144,16 @@ export async function sendMessage(chatId, senderUid, recipientUid, senderName, s
     text: String(text).slice(0, 1000),
     createdAt: serverTimestamp(),
   });
+}
+
+// Marca conversa como lida
+export async function markChatAsRead(chatId) {
+  try {
+    const metaRef = doc(db, 'chats', chatId);
+    await setDoc(metaRef, { unread: false }, { merge: true });
+  } catch {
+    // silencioso
+  }
 }
 
 // Listener de mensagens em tempo real
@@ -158,5 +171,14 @@ export function subscribeToSocialProfile(uid, callback) {
   const ref = doc(db, 'socialProfiles', uid);
   return onSnapshot(ref, (snap) => {
     if (snap.exists()) callback(snap.data());
+  });
+}
+
+// Listener de todos os chats do usuário para notificações de mensagens não lidas
+export function subscribeToUserChats(uid, callback) {
+  const q = query(collection(db, 'chats'), where('participants', 'array-contains', uid));
+  return onSnapshot(q, (snap) => {
+    const chats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    callback(chats);
   });
 }
